@@ -32,6 +32,16 @@ export interface SettingDef {
   accessor?: string;
 }
 
+/**
+ * Fallback timeframe set. Used as the registry default for
+ * `engine.timeframes` and as the last-resort value when the stored row is
+ * unusable. There is intentionally no SECOND timeframe setting anywhere —
+ * `engine.timeframes` is authoritative.
+ */
+export const DEFAULT_TIMEFRAMES: readonly Timeframe[] = [
+  '1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w',
+];
+
 export const SETTINGS_REGISTRY: readonly SettingDef[] = [
   // ---------------- engine ----------------
   {
@@ -81,9 +91,21 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     category: 'engine',
     label: 'Active timeframes',
     description: 'Timeframes evaluated by the strategy worker.',
-    default: ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'],
+    default: [...DEFAULT_TIMEFRAMES],
     accessor: 'timeframes(',
     consumedBy: ['src/core/settings.ts', 'src/strategy/engine-runner.ts', 'src/workers/market.worker.ts'],
+  },
+  {
+    key: 'engine.max_catchup_candles',
+    type: 'number',
+    category: 'engine',
+    label: 'Max catch-up candles',
+    description:
+      'After downtime or re-enabling a timeframe, replay at most this many missed CLOSED candles through the state machine. Beyond this the slot is re-baselined instead, so a long gap can never fabricate an edge.',
+    default: 500,
+    min: 1,
+    max: 20000,
+    consumedBy: ['src/strategy/engine-runner.ts'],
   },
   {
     key: 'engine.lookback_candles',
@@ -695,11 +717,26 @@ export class Settings {
     return Array.isArray(def) ? ([...def] as T[]) : [];
   }
 
-  /** Active timeframes, validated against the supported set. */
+  /**
+   * Timeframes the strategy actively scans — the SINGLE source of truth.
+   *
+   * Deduplicated and returned in canonical chronological order, so a stored
+   * ["1h","15m","1h"] yields ["15m","1h"] and can never double-scan a slot.
+   *
+   * The admin selection is respected EXACTLY: selecting only 15m really does
+   * mean 10 symbols x 1 timeframe. The fallback below applies solely when the
+   * stored value is unusable (missing row, empty array, or every entry
+   * unrecognised) — validation already refuses to persist an empty selection,
+   * so in practice this only guards a corrupted/absent row and keeps the
+   * engine running rather than silently scanning nothing.
+   */
   timeframes(): Timeframe[] {
     const raw = this.arr<string>('engine.timeframes');
-    const valid = raw.filter((t): t is Timeframe => (TIMEFRAMES as readonly string[]).includes(t));
-    return valid.length > 0 ? valid : ['15m', '1h', '4h'];
+    const seen = new Set(raw.map((t) => String(t)));
+    const valid = (TIMEFRAMES as readonly string[]).filter((t) =>
+      seen.has(t),
+    ) as Timeframe[];
+    return valid.length > 0 ? valid : [...DEFAULT_TIMEFRAMES];
   }
 
   detectorEnabled(d: DetectorId): boolean {
@@ -797,14 +834,27 @@ export function coerceSettingValue(def: SettingDef, input: unknown): unknown {
         }
       }
       if (def.key === 'engine.timeframes') {
-        if (!Array.isArray(v) || v.length === 0) {
-          throw new Error('engine.timeframes: expected a non-empty array');
+        // engine.timeframes is the SINGLE source of truth for which
+        // timeframes the strategy scans. At least one must stay selected;
+        // an empty selection would silently stop the engine.
+        if (!Array.isArray(v)) {
+          throw new Error('engine.timeframes: expected an array of timeframes');
+        }
+        if (v.length === 0) {
+          throw new Error(
+            'engine.timeframes: выберите хотя бы один таймфрейм для стратегии',
+          );
         }
         for (const t of v) {
           if (!(TIMEFRAMES as readonly string[]).includes(String(t))) {
             throw new Error(`engine.timeframes: unsupported timeframe "${String(t)}"`);
           }
         }
+        // Deduplicate and store in canonical chronological order, so
+        // ["1h","15m","1h"] and ["15m","1h"] persist identically. Without this
+        // the UI could round-trip a duplicate into a doubled scan.
+        const seen = new Set(v.map((t) => String(t)));
+        v = (TIMEFRAMES as readonly string[]).filter((t) => seen.has(t));
       }
       if (def.key === 'market.enabled_symbols' || def.key === 'market.exclude_symbols') {
         if (!Array.isArray(v)) {

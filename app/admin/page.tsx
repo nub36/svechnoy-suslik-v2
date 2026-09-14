@@ -16,6 +16,119 @@ function translateApiError(err: unknown): string {
   return raw || 'Произошла ошибка';
 }
 
+/**
+ * Timeframe multi-select for `engine.timeframes`.
+ *
+ * This is the ONLY timeframe setting: it is the single source of truth for
+ * which timeframes the strategy scans. Russian labels are presentation only —
+ * the persisted values stay the canonical '1m'...'1w' identifiers.
+ */
+const TIMEFRAME_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: '1m', label: '1м' },
+  { value: '5m', label: '5м' },
+  { value: '15m', label: '15м' },
+  { value: '30m', label: '30м' },
+  { value: '1h', label: '1ч' },
+  { value: '4h', label: '4ч' },
+  { value: '1d', label: '1д' },
+  { value: '1w', label: '1н' },
+];
+
+/** Canonical chronological order, so the saved array is stable. */
+function canonicalTimeframes(selected: readonly string[]): string[] {
+  const set = new Set(selected);
+  return TIMEFRAME_OPTIONS.filter((o) => set.has(o.value)).map((o) => o.value);
+}
+
+function TimeframePicker({
+  selected,
+  disabled,
+  onChange,
+}: {
+  selected: string[];
+  disabled: boolean;
+  onChange: (next: string[]) => void;
+}) {
+  const toggle = (tf: string): void => {
+    const has = selected.includes(tf);
+    // Refuse to clear the last one: an empty selection would stop the engine,
+    // and the API rejects it anyway. Better to block it here than to let the
+    // admin build an invalid state and fail at save time.
+    if (has && selected.length === 1) return;
+    const next = has ? selected.filter((t) => t !== tf) : [...selected, tf];
+    onChange(canonicalTimeframes(next));
+  };
+
+  const empty = selected.length === 0;
+
+  return (
+    <div data-testid="timeframe-picker">
+      <div className="tf-grid">
+        {TIMEFRAME_OPTIONS.map((o) => {
+          const on = selected.includes(o.value);
+          const lastOne = on && selected.length === 1;
+          return (
+            <label
+              key={o.value}
+              className={`tf-option${on ? ' tf-option-on' : ''}`}
+              title={lastOne ? 'Должен остаться хотя бы один таймфрейм' : undefined}
+            >
+              <input
+                type="checkbox"
+                checked={on}
+                disabled={disabled || lastOne}
+                onChange={() => toggle(o.value)}
+                aria-label={o.label}
+              />
+              <span>{o.label}</span>
+            </label>
+          );
+        })}
+      </div>
+
+      <div className="row" style={{ gap: 8, marginTop: 8 }}>
+        <button
+          type="button"
+          disabled={disabled || selected.length === TIMEFRAME_OPTIONS.length}
+          onClick={() => onChange(TIMEFRAME_OPTIONS.map((o) => o.value))}
+        >
+          Выбрать все
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(['15m'])}
+          title="Оставить только 15м"
+        >
+          Сбросить
+        </button>
+      </div>
+
+      {empty ? (
+        <div className="alert alert-error" style={{ marginTop: 8 }}>
+          Выберите хотя бы один таймфрейм для стратегии.
+        </div>
+      ) : (
+        <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>
+          <b>Сканируется стратегией:</b> {selected.join(', ')} — {selected.length} ТФ x
+          TOP-10 символов = {selected.length * 10} комбинаций.
+        </div>
+      )}
+
+      {/* The market worker shares this same setting, so the admin must know
+          that unchecking a timeframe also stops collecting its candles. */}
+      <div className="alert alert-info" style={{ marginTop: 8, fontSize: 11 }}>
+        <b>Доступно для графика:</b> все 8 таймфреймов остаются доступны в
+        интерфейсе, но новые свечи загружаются только для выбранных выше.
+        По отключённому таймфрейму сохраняется уже загруженная история —
+        она не удаляется, и недостающие свечи никогда не дорисовываются.
+        При повторном включении движок последовательно догоняет пропущенные
+        закрытые свечи и не создаёт ложный сигнал.
+      </div>
+    </div>
+  );
+}
+
 interface Setting {
   key: string;
   value: unknown;
@@ -310,6 +423,14 @@ export default function AdminPage() {
                   max={s.max ?? undefined}
                   step="any"
                   onChange={(e) => setValue(s.key, e.target.value === '' ? '' : Number(e.target.value))}
+                />
+              ) : s.key === 'engine.timeframes' ? (
+                <TimeframePicker
+                  selected={
+                    Array.isArray(current(s)) ? (current(s) as string[]).map(String) : []
+                  }
+                  disabled={!s.editable}
+                  onChange={(next) => setValue(s.key, next)}
                 />
               ) : s.type === 'json' ? (
                 <input

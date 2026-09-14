@@ -199,6 +199,79 @@ of candle N+1 and is never fabricated.
 
 ---
 
+## Timeframe scanning control
+
+`engine.timeframes` is the **single source of truth** for which timeframes the
+strategy scans. There is deliberately no `strategy.timeframes`,
+`scan.timeframes` or `market.strategy_timeframes` — one setting, one behaviour.
+
+Supported values: `1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w`.
+
+### Admin UI
+
+Admin → «Таймфреймы стратегии» renders a checkbox per timeframe
+(1м/5м/15м/30м/1ч/4ч/1д/1н) plus «Выбрать все» / «Сбросить». Any combination is
+valid — one, several, or all eight. Nothing is forced.
+
+At least one timeframe must remain selected. The last checked box is disabled in
+the UI, and the API independently rejects an empty array with
+`engine.timeframes: выберите хотя бы один таймфрейм для стратегии`. Duplicates
+are collapsed and the list is stored in canonical chronological order, so
+`["1h","15m","1h"]` persists as `["15m","1h"]` and can never double-scan a slot.
+
+### Scan slots
+
+The selected set is applied to the **dynamic** Binance Spot USDT TOP-10; symbols
+are never hard-coded. Scan slots = TOP-10 x selected timeframes:
+
+| Selection | Slots |
+| --- | --- |
+| `["15m"]` | 10 x 1 = 10 |
+| `["15m","1h"]` | 10 x 2 = 20 |
+| `["5m","15m","1h"]` | 10 x 3 = 30 |
+| all 8 | 10 x 8 = 80 |
+
+Changes take effect on the **next worker loop** — no code change, no restart,
+because settings are reloaded every iteration.
+
+### Chart display vs strategy scanning
+
+The market worker consumes this same setting (existing architecture — there is
+no second market subsystem). Consequences, surfaced in the Admin UI:
+
+- A timeframe that is **unchecked is no longer scanned** by the strategy, and
+  the market worker **stops fetching new candles** for it.
+- Already-stored history is **never deleted**, and missing candles are **never
+  fabricated** — a chart simply stops advancing for a disabled timeframe.
+- `strategy_state` rows and historical signals for disabled timeframes are
+  **retained**. A retained row is not a currently-scanned combination.
+
+### Re-enabling a timeframe (and worker downtime)
+
+Re-enabling a timeframe after hours or days is treated exactly like worker
+downtime. The engine must never jump to the newest candle and read a
+long-standing condition as a fresh rising edge. Instead it walks every missed
+**CLOSED** candle in order through the state machine, so an edge is only emitted
+where a real transition actually occurred.
+
+`engine.max_catchup_candles` (default 500) bounds that walk. If the gap is
+larger, the slot is silently **re-baselined** to `REARM` at the newest closed
+candle — cold-start semantics, structurally incapable of emitting. A slot that
+has never been observed likewise takes its baseline from the newest candle only
+and stays silent on its first run.
+
+### One active signal per symbol
+
+A symbol may hold only **one** non-terminal signal at a time, across all
+selected timeframes. If BTCUSDT fires on 15m, a BTCUSDT 1h edge is suppressed
+while that signal is `WAITING_ENTRY` / `OPEN` / `TP1_HIT` / `TP2_HIT`. ETHUSDT is
+unaffected. Once the BTCUSDT signal reaches `TP3_HIT` / `STOPPED` / `EXPIRED`,
+BTCUSDT is eligible again — but only on a fresh genuine edge.
+
+A suppressed edge is settled into the corresponding `HOLD_*` state, never back
+to `NEUTRAL`. Returning to `NEUTRAL` would let the same still-passing condition
+re-read as a brand new edge on the following candle (a delayed fake edge).
+
 ## Admin
 
 `/admin`, protected by a bcrypt password and an HTTP-only session cookie.
@@ -281,7 +354,7 @@ record.
 ## Testing
 
 ```bash
-npm test                                                   # 506 tests
+npm test                                                   # 533 tests
 SMOKE_BASE_URL=http://127.0.0.1:3000 npx vitest run        # + live HTTP tests
 ```
 

@@ -5,6 +5,36 @@
  *   3. feed the persistent state machine (EDGE-only)
  *   4. persist a signal on the rising edge (entry left NULL until N+1 exists)
  *   5. promote WAITING_ENTRY -> ACTIVE once candle N+1 is available
+ *
+ * WHICH TIMEFRAMES ARE SCANNED
+ * ----------------------------
+ * Exclusively `engine.timeframes` (via settings.timeframes()). It is the
+ * single source of truth; there is deliberately no second timeframe setting.
+ * Settings are reloaded by the worker each loop, so an admin change takes
+ * effect on the next loop with no restart. Scan slots are therefore
+ * `active TOP-N symbols x selected timeframes`.
+ *
+ * Disabling a timeframe stops evaluation but never deletes its
+ * `strategy_state` rows or its signals — the cursor is preserved so the
+ * timeframe can resume later.
+ *
+ * SEQUENTIAL CATCH-UP
+ * -------------------
+ * Re-enabling a timeframe (or worker downtime) leaves a gap between the
+ * persisted cursor and the newest closed candle. We must NOT jump straight to
+ * the newest bar: that skips the intermediate observations and a condition
+ * that has been true the whole time would look like a fresh rising edge.
+ * Instead each missing CLOSED candle is replayed through the state machine in
+ * order, exactly as if the worker had never stopped. Beyond
+ * `engine.max_catchup_candles` the gap is treated as a cold start and the slot
+ * is re-baselined (silently) rather than partially replayed.
+ *
+ * ONE ACTIVE SIGNAL PER SYMBOL
+ * ----------------------------
+ * A symbol may hold at most one non-terminal signal across ALL timeframes.
+ * While BTCUSDT has a live 15m signal, a BTCUSDT 1h edge is suppressed (and
+ * settled into HOLD so it cannot re-fire later as a stale edge); other symbols
+ * are unaffected.
  */
 
 import type { Kysely } from 'kysely';
@@ -23,6 +53,14 @@ export interface RunnerResult {
   signalsCreated: number;
   entriesFilled: number;
   skipped: string[];
+  /** Timeframes actually scanned this loop (from engine.timeframes). */
+  timeframesScanned: Timeframe[];
+  /** symbols x timeframes actually visited. */
+  scanSlots: number;
+  /** CLOSED candles replayed by the catch-up path. */
+  caughtUp: number;
+  /** Edges suppressed by the one-active-signal-per-symbol policy. */
+  suppressedBySymbolPolicy: number;
 }
 
 export async function runEngineOnce(
@@ -30,7 +68,16 @@ export async function runEngineOnce(
   settings: Settings,
   log: Logger,
 ): Promise<RunnerResult> {
-  const result: RunnerResult = { evaluated: 0, signalsCreated: 0, entriesFilled: 0, skipped: [] };
+  const result: RunnerResult = {
+    evaluated: 0,
+    signalsCreated: 0,
+    entriesFilled: 0,
+    skipped: [],
+    timeframesScanned: [],
+    scanSlots: 0,
+    caughtUp: 0,
+    suppressedBySymbolPolicy: 0,
+  };
 
   if (!settings.bool('engine.enabled')) {
     result.skipped.push('engine disabled by settings');
@@ -61,41 +108,122 @@ export async function runEngineOnce(
 
   // ---- 2. capacity check ----
   const openCount = await countOpen(db);
+  const maxCatchup = Math.floor(settings.num('engine.max_catchup_candles'));
+
+  // Symbols already holding a live signal on ANY timeframe. One active signal
+  // per symbol: a second timeframe must not open a parallel position on the
+  // same asset.
+  const busySymbols = await symbolsWithLiveSignal(db);
+
+  // Exactly the selected timeframes are scanned — nothing else.
+  result.timeframesScanned = [...timeframes];
 
   for (const s of symbols) {
     for (const tf of timeframes) {
+      result.scanSlots++;
       const candles = await getCandles(db, s.symbol, tf, {
         closedOnly: true,
-        limit: lookback + 5,
+        limit: Math.max(lookback + 5, maxCatchup + lookback + 5),
       });
       if (candles.length < 40) {
         result.skipped.push(`${s.symbol} ${tf}: only ${candles.length} closed candles`);
         continue;
       }
 
-      let ev: Evaluation | null;
-      try {
-        ev = evaluate({ symbol: s.symbol, timeframe: tf, candles, settings });
-      } catch (err) {
-        log.error(`evaluate failed for ${s.symbol} ${tf}`, {
-          error: err instanceof Error ? err.message : String(err),
-        });
+      const state = await loadState(db, s.symbol, tf);
+
+      // ---- sequential catch-up ------------------------------------------
+      // Every CLOSED candle strictly newer than the cursor must be fed to the
+      // machine IN ORDER. Jumping to the newest bar would hide the
+      // intermediate observations and turn a long-standing condition into a
+      // bogus rising edge the moment a timeframe is re-enabled.
+      // A slot that has NEVER been observed must not replay history: every
+      // replayed bar after the first would be a real transition, so a cold
+      // start would emit immediately — precisely the bootstrap defect. An
+      // unseen slot therefore takes its baseline from the newest candle only.
+      const pending = state.initialised
+        ? candles.filter((c) => c.openTime > state.lastCandleTime)
+        : [];
+      const newestBar = candles[candles.length - 1];
+      const toProcess = pending.length > 0 ? pending : newestBar ? [newestBar] : [];
+
+      if (state.initialised && pending.length > maxCatchup) {
+        // Gap too large to replay honestly: re-baseline instead. This is the
+        // same guarantee as a cold start — silent, and incapable of emitting.
+        const newest = candles[candles.length - 1];
+        if (newest) {
+          await saveState(db, {
+            ...state,
+            state: 'REARM',
+            direction: null,
+            setupCandleTime: null,
+            setupScore: null,
+            lastCandleTime: newest.openTime,
+            initialised: true,
+          });
+          log.info(
+            `catch-up gap too large for ${s.symbol} ${tf} (${pending.length} > ${maxCatchup}); re-baselined to REARM without emitting`,
+          );
+          result.skipped.push(`${s.symbol} ${tf}: re-baselined after ${pending.length}-candle gap`);
+        }
         continue;
       }
-      if (!ev) continue;
-      result.evaluated++;
 
-      const state = await loadState(db, s.symbol, tf);
-      const { next, action } = step(state, ev);
+      let cursor = state;
+      let emitted = false;
+
+      for (const bar of toProcess) {
+        if (!bar) continue;
+        if (emitted) break;
+
+        // Evaluate AS OF this candle so a replayed bar sees only the data that
+        // existed at the time — never future candles.
+        const endIdx = candles.findIndex((c) => c.openTime === bar.openTime);
+        if (endIdx < 39) continue;
+        const windowStart = Math.max(0, endIdx + 1 - (lookback + 5));
+        const window = candles.slice(windowStart, endIdx + 1);
+
+        let ev: Evaluation | null;
+        try {
+          ev = evaluate({
+            symbol: s.symbol,
+            timeframe: tf,
+            candles: window,
+            settings,
+            atIndex: window.length - 1,
+          });
+        } catch (err) {
+          log.error(`evaluate failed for ${s.symbol} ${tf}`, {
+            error: err instanceof Error ? err.message : String(err),
+          });
+          break;
+        }
+        if (!ev) continue;
+        result.evaluated++;
+        if (bar.openTime > state.lastCandleTime && pending.length > 1) result.caughtUp++;
+
+        const { next, action } = step(cursor, ev);
+        cursor = next;
 
       if (action.kind === 'EMIT_SIGNAL') {
+        emitted = true;
+
+        // ---- one active signal per symbol (across ALL timeframes) ----
+        if (busySymbols.has(s.symbol)) {
+          log.info(
+            `symbol ${s.symbol} already has a live signal; suppressing ${tf} edge (one active signal per symbol)`,
+          );
+          result.suppressedBySymbolPolicy++;
+          cursor = settleEdge(next);
+          continue;
+        }
         if (openCount + result.signalsCreated >= maxConcurrent) {
           log.info(`max_concurrent reached, suppressing ${s.symbol} ${tf}`, { maxConcurrent });
           // Settle the edge into HOLD. Landing back in NEUTRAL would let the
           // SAME persisting condition read as a brand new rising edge on the
           // next loop — a delayed fake edge. The condition must actually fall
           // and return before it may emit again.
-          await saveState(db, settleEdge(next));
+          cursor = settleEdge(next);
           continue;
         }
 
@@ -103,7 +231,7 @@ export async function runEngineOnce(
         if (ev.atr === null || !(ev.atr > 0)) {
           log.warn(`no ATR for ${s.symbol} ${tf}, cannot size risk`, {});
           // Same reasoning as the capacity path: settle into HOLD.
-          await saveState(db, settleEdge(next));
+          cursor = settleEdge(next);
           continue;
         }
 
@@ -120,7 +248,7 @@ export async function runEngineOnce(
           log.info(
             `rejected ${s.symbol} ${tf}: R:R ${provisional?.rrTp1?.toFixed(6) ?? 'n/a'} < min_rr ${minRr}`,
           );
-          await saveState(db, settleEdge(next));
+          cursor = settleEdge(next);
           continue;
         }
 
@@ -169,21 +297,27 @@ export async function runEngineOnce(
 
         if (!inserted) {
           // Unique constraint hit => this edge was already recorded.
-          await saveState(db, settleEdge(next));
+          cursor = settleEdge(next);
           continue;
         }
 
         result.signalsCreated++;
+        // The symbol now holds a live signal: block every other timeframe for
+        // this symbol for the rest of the run, and on later runs via the
+        // busySymbols query.
+        busySymbols.add(s.symbol);
         // The edge has fired; persist it as the corresponding HOLD so a
         // still-passing condition cannot emit again on the next candle.
-        await saveState(db, settleEdge({ ...next, activeSignalId: Number(inserted.id) }));
+        cursor = settleEdge({ ...next, activeSignalId: Number(inserted.id) });
         log.info(
           `SIGNAL ${action.direction} ${s.symbol} ${tf} score=${action.score.toFixed(2)} (entry pending N+1)`,
           { signalId: Number(inserted.id), setupCandleTime: action.setupCandleTime },
         );
-      } else {
-        await saveState(db, next);
+        }
       }
+
+      // One durable write per slot per loop, after the whole catch-up walk.
+      await saveState(db, cursor);
     }
   }
 
@@ -245,6 +379,25 @@ export async function expireStaleSignals(
     );
   }
   return expired;
+}
+
+/**
+ * Symbols that currently hold a NON-TERMINAL signal, on any timeframe.
+ *
+ * Backs the one-active-signal-per-symbol rule. A symbol is busy while its
+ * signal is WAITING_ENTRY, OPEN, TP1_HIT or TP2_HIT (LIVE_SIGNAL_STATES) and
+ * becomes eligible again only once that signal reaches TP3_HIT / STOPPED /
+ * EXPIRED — and then only on a fresh genuine edge.
+ */
+export async function symbolsWithLiveSignal(db: Kysely<Database>): Promise<Set<string>> {
+  const rows = await db
+    .selectFrom('signals')
+    .select('symbol')
+    .distinct()
+    .where('state', 'in', [...LIVE_SIGNAL_STATES])
+    .where('source', '=', 'LIVE_ENGINE')
+    .execute();
+  return new Set(rows.map((r) => r.symbol));
 }
 
 async function countOpen(db: Kysely<Database>): Promise<number> {

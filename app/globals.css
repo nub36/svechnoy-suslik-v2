@@ -694,3 +694,39 @@ details summary:hover {
     font-size: 12px;
   }
 }
+
+/* ---- timeframe multi-select (engine.timeframes) ---- */
+.tf-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(58px, 1fr));
+  gap: 6px;
+}
+.tf-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+  background: var(--panel);
+}
+.tf-option:hover {
+  border-color: var(--accent);
+}
+.tf-option-on {
+  border-color: var(--accent);
+  background: rgba(88, 166, 255, 0.12);
+  font-weight: 600;
+}
+.tf-option input[disabled] {
+  cursor: not-allowed;
+}
+.tf-option input[disabled] + span {
+  opacity: 0.75;
+}
+@media (max-width: 560px) {
+  .tf-grid { grid-template-columns: repeat(4, 1fr); }
+}

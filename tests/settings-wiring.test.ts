@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
-import { SETTINGS_REGISTRY, Settings, coerceSettingValue, SETTINGS_BY_KEY } from '../src/core/settings';
+import { SETTINGS_REGISTRY, Settings, coerceSettingValue, SETTINGS_BY_KEY, DEFAULT_TIMEFRAMES } from '../src/core/settings';
 import { evaluate } from '../src/strategy/smart-money';
 import { buildRiskPlan } from '../src/strategy/risk';
 import { trackOutcome } from '../src/outcome/tracker';
@@ -255,8 +255,15 @@ describe('behavioural wiring: changing a setting changes engine behaviour', () =
 
   it('engine.timeframes is validated and drives the worker loop', () => {
     expect(Settings.fromEntries([['engine.timeframes', ['1m', '1w']]]).timeframes()).toEqual(['1m', '1w']);
-    // invalid entries are filtered, falling back to the default set
-    expect(Settings.fromEntries([['engine.timeframes', ['nope']]]).timeframes()).toEqual(['15m', '1h', '4h']);
+    // Invalid entries are filtered; when NOTHING valid remains we fall back to
+    // the full supported set rather than scanning nothing.
+    expect(Settings.fromEntries([['engine.timeframes', ['nope']]]).timeframes()).toEqual([
+      ...DEFAULT_TIMEFRAMES,
+    ]);
+    // Deduplicated and returned in canonical chronological order.
+    expect(
+      Settings.fromEntries([['engine.timeframes', ['1h', '15m', '1h']]]).timeframes(),
+    ).toEqual(['15m', '1h']);
   });
 });
 
@@ -280,7 +287,10 @@ describe('setting validation', () => {
     const def = SETTINGS_BY_KEY.get('engine.timeframes')!;
     expect(coerceSettingValue(def, ['1h', '4h'])).toEqual(['1h', '4h']);
     expect(() => coerceSettingValue(def, ['3h'])).toThrow(/unsupported timeframe/);
-    expect(() => coerceSettingValue(def, [])).toThrow(/non-empty/);
+    // Empty selection is refused with a Russian, user-facing message.
+    expect(() => coerceSettingValue(def, [])).toThrow(/хотя бы один таймфрейм/);
+    // Duplicates are collapsed and canonically ordered on save.
+    expect(coerceSettingValue(def, ['1h', '15m', '1h'])).toEqual(['15m', '1h']);
     expect(coerceSettingValue(def, '["1m"]')).toEqual(['1m']);
   });
 
