@@ -20,6 +20,8 @@
  */
 
 import type { Candle, FactorId, Evaluation, Timeframe } from '../core/types';
+import { evaluateV2IfEnabled } from '../strategy/v2';
+import type { V2Setup } from '../strategy/v2/types';
 import { FACTOR_LABEL } from '../core/types';
 import type { Settings } from '../core/settings';
 import { evaluate } from '../strategy/smart-money';
@@ -129,10 +131,160 @@ export interface ChartPayload {
     explainLong: string[];
     explainShort: string[];
   } | null;
+  /**
+   * SMC V2 research diagnostics. Null unless `v2.enabled` is switched on.
+   * V2 does NOT drive signals; this block is for inspection only, which is why
+   * `direction` may be WAIT and carries `waitReasons`.
+   */
+  v2: V2Diagnostics | null;
   /** The live signal for this symbol/timeframe, if one exists. */
   signal: SignalOverlay | null;
   /** How many of the returned candles are closed (the engine only sees these). */
   closedCount: number;
+}
+
+/** Compact, UI-ready view of a V2 setup. */
+export interface V2Diagnostics {
+  direction: 'LONG' | 'SHORT' | 'WAIT';
+  setup: 'REVERSAL' | 'CONTINUATION' | null;
+  location: 'HIGH' | 'LOW' | 'MID';
+  phase: string;
+  bias: string;
+  /** 0..1 evidence — NOT a probability, never render it as a percentage. */
+  longEvidence: number;
+  shortEvidence: number;
+  conflict: number;
+  range: { high: number; low: number; mid: number; confidence: number } | null;
+  equilibrium: number | null;
+  fibZone: string | null;
+  rows: Array<{ label: string; value: string; detail?: string }>;
+  reasons: string[];
+  waitReasons: string[];
+  levels: {
+    entry: number | null;
+    stop: number | null;
+    stopReason: string | null;
+    targets: Array<{ price: number; basis: string; r: number; reason: string }>;
+  };
+}
+
+const f2 = (v: number | null | undefined): string =>
+  v === null || v === undefined ? '—' : v.toFixed(2);
+
+/**
+ * Turn a V2 setup into the labelled diagnostic rows the spec asks for.
+ * Every row is a measured fact; nothing here is decorative.
+ */
+export function buildV2Diagnostics(s: V2Setup): V2Diagnostics {
+  const dirProfile = s.direction === 'SHORT' ? s.shortProfile : s.longProfile;
+  const rows: Array<{ label: string; value: string; detail?: string }> = [
+    {
+      label: 'Структура',
+      value: s.bias === 'BULLISH' ? 'Бычья' : s.bias === 'BEARISH' ? 'Медвежья' : 'Диапазон',
+      detail: s.structureBreak
+        ? `${s.structureBreak.wickOnly ? 'Только фитиль (не пробой)' : s.structureBreak.type} ${s.structureBreak.direction}`
+        : 'Нет подтверждённого слома',
+    },
+    {
+      label: 'Ликвидность',
+      value: s.sweep ? `Снятие ${s.sweep.side === 'BUY_SIDE' ? 'сверху' : 'снизу'}` : 'Нет снятия',
+      detail: s.sweep
+        ? `${f2(s.sweep.penetrationAtr)} ATR, возврат через ${s.sweep.reclaimBars} бар(ов), качество ${f2(s.sweep.quality)}`
+        : undefined,
+    },
+    {
+      label: 'Пробой',
+      value: s.breakout ? (s.breakout.held ? 'Удерживается' : 'Возврат внутрь') : 'Нет',
+      detail: s.breakout
+        ? `закрытие ${f2(s.breakout.closeBeyondAtr)} ATR за уровень, качество ${f2(s.breakout.quality)}`
+        : undefined,
+    },
+    {
+      label: 'Импульс (displacement)',
+      value: s.displacement ? `${f2(s.displacement.bodyAtr)} ATR` : 'Нет',
+      detail: s.displacement ? `сила ${f2(s.displacement.strength)}` : undefined,
+    },
+    {
+      label: 'OB / FVG',
+      value: `${s.orderBlock ? 'OB' : '—'} / ${s.fvg ? 'FVG' : '—'}`,
+      detail: [
+        s.orderBlock ? `OB ${s.orderBlock.state}` : null,
+        s.fvg ? `FVG ${s.fvg.state}` : null,
+      ].filter(Boolean).join(', ') || undefined,
+    },
+    {
+      label: 'Объём (RVOL)',
+      value: s.vol.rvol === null ? '—' : `${f2(s.vol.rvol)}x`,
+      detail: s.vol.spike ? 'всплеск объёма' : undefined,
+    },
+    {
+      label: 'Старший ТФ',
+      value:
+        s.htfAlignment === 'ALIGNED' ? 'По тренду'
+        : s.htfAlignment === 'COUNTER_TREND' ? 'Против тренда'
+        : s.htfAlignment === 'NEUTRAL' ? 'Нейтрально' : 'Нет данных',
+      detail: s.htf.filter((h) => h.available).map((h) => `${h.timeframe}: ${h.bias}`).join(', ') || undefined,
+    },
+    {
+      label: 'EMA',
+      value: s.ema.alignment === 'BULLISH' ? 'Бычья' : s.ema.alignment === 'BEARISH' ? 'Медвежья' : 'Смешанная',
+      detail: s.ema.ema20 !== null ? `EMA20 ${f2(s.ema.ema20)}` : undefined,
+    },
+    {
+      label: 'MACD',
+      value: s.macd.histogram === null ? '—' : s.macd.histogram > 0 ? 'Бычий' : 'Медвежий',
+      detail: s.macd.accelerating ? 'ускорение' : undefined,
+    },
+    {
+      label: 'RSI',
+      value: s.rsi.rsi === null ? '—' : f2(s.rsi.rsi),
+      detail: s.rsi.bullishDivergence ? 'бычья дивергенция'
+        : s.rsi.bearishDivergence ? 'медвежья дивергенция'
+        : s.rsi.overbought ? 'перекупленность (не сигнал на SHORT)'
+        : s.rsi.oversold ? 'перепроданность (не сигнал на LONG)' : undefined,
+    },
+    {
+      label: 'ADX / волатильность',
+      value: s.adx.adx === null ? '—' : `${f2(s.adx.adx)} (${s.adx.regime})`,
+      detail: `ATR режим: ${s.atr.regime}`,
+    },
+    {
+      label: 'Место до цели',
+      value: s.room ? `${f2(s.room.finalR)}R` : '—',
+      detail: s.room?.reason,
+    },
+  ];
+
+  return {
+    direction: s.direction,
+    setup: s.kind,
+    location: s.location,
+    phase: s.phase,
+    bias: s.bias,
+    longEvidence: s.longEvidence,
+    shortEvidence: s.shortEvidence,
+    conflict: s.conflict,
+    range: s.range
+      ? { high: s.range.high, low: s.range.low, mid: s.range.mid, confidence: s.range.confidence }
+      : null,
+    equilibrium: s.fib?.level500 ?? null,
+    fibZone: s.fib?.zone ?? null,
+    rows: rows.map((r) => ({
+      label: r.label,
+      value: r.value,
+      ...(r.detail === undefined ? {} : { detail: r.detail }),
+    })),
+    reasons: s.reasons,
+    waitReasons: s.waitReasons,
+    levels: {
+      entry: s.entry,
+      stop: s.stop?.price ?? null,
+      stopReason: s.stop?.reason ?? null,
+      targets: s.targets.map((t) => ({
+        price: t.price, basis: t.basis, r: t.r, reason: t.reason,
+      })),
+    },
+  };
 }
 
 /**
@@ -213,6 +365,9 @@ export function buildChartPayload(
   tickSize?: number | null,
 ): ChartPayload {
   const ev = evaluate({ symbol, timeframe, candles, settings });
+  // V2 diagnostics are computed only when the research engine is enabled.
+  // It never influences signals — it is an inspection surface.
+  const v2Setup = evaluateV2IfEnabled({ symbol, timeframe, candles, settings });
 
   let boxes: OverlayBox[] = [];
   let lines: OverlayLine[] = [];
@@ -327,6 +482,7 @@ export function buildChartPayload(
       isClosed: c.isClosed,
     })),
     overlays: { boxes, lines, markers, legend },
+    v2: v2Setup ? buildV2Diagnostics(v2Setup) : null,
     evaluation: ev
       ? {
           candleTime: ev.candleTime,

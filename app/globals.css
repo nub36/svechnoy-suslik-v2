@@ -1111,3 +1111,44 @@ main {
     padding: 10px;
   }
 }
+
+/* ---------- SMC V2 diagnostics panel ---------- */
+.v2-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.v2-dir {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+.v2-dir-long { color: var(--long); background: color-mix(in srgb, var(--long) 14%, transparent); }
+.v2-dir-short { color: var(--short); background: color-mix(in srgb, var(--short) 14%, transparent); }
+.v2-dir-wait { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.v2-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 6px 16px;
+  margin-top: 10px;
+}
+.v2-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.v2-label { color: var(--muted); }
+.v2-value { font-variant-numeric: tabular-nums; text-align: right; }
+.v2-detail {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+}

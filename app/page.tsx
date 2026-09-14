@@ -85,6 +85,30 @@ interface LegendEntry {
   color: string;
 }
 
+/** SMC V2 diagnostics as delivered by /api/chart. */
+interface V2Diag {
+  direction: 'LONG' | 'SHORT' | 'WAIT';
+  setup: 'REVERSAL' | 'CONTINUATION' | null;
+  location: 'HIGH' | 'LOW' | 'MID';
+  phase: string;
+  bias: string;
+  longEvidence: number;
+  shortEvidence: number;
+  conflict: number;
+  range: { high: number; low: number; mid: number; confidence: number } | null;
+  equilibrium: number | null;
+  fibZone: string | null;
+  rows: Array<{ label: string; value: string; detail?: string }>;
+  reasons: string[];
+  waitReasons: string[];
+  levels: {
+    entry: number | null;
+    stop: number | null;
+    stopReason: string | null;
+    targets: Array<{ price: number; basis: string; r: number; reason: string }>;
+  };
+}
+
 interface ChartData {
   symbol: string;
   timeframe: string;
@@ -98,6 +122,8 @@ interface ChartData {
     legend?: LegendEntry[];
   };
   signal?: ChartSignal | null;
+  /** SMC V2 research diagnostics; null unless v2.enabled is on. */
+  v2?: V2Diag | null;
   closedCount: number;
   empty?: boolean;
   evaluation: {
@@ -480,6 +506,112 @@ export default function HomePage(): React.ReactElement {
               </pre>
             </details>
           </div>
+        </div>
+      )}
+
+      {/* ============ 3b. SMC V2 DIAGNOSTICS (research engine) ============ */}
+      {chart?.v2 && (
+        <div className="panel" data-testid="v2-diagnostics">
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+            <h3 style={{ margin: 0 }}>Диагностика SMC V2</h3>
+            <span className="badge badge-muted" title="V2 не управляет сигналами">
+              исследовательский режим
+            </span>
+          </div>
+
+          <div className="v2-head">
+            <span
+              className={
+                chart.v2.direction === 'WAIT'
+                  ? 'v2-dir v2-dir-wait'
+                  : chart.v2.direction === 'LONG'
+                    ? 'v2-dir v2-dir-long'
+                    : 'v2-dir v2-dir-short'
+              }
+            >
+              {chart.v2.direction === 'WAIT' ? 'ЖДЁМ' : chart.v2.direction}
+            </span>
+            <span className="muted">
+              {chart.v2.setup === 'REVERSAL'
+                ? 'Разворот'
+                : chart.v2.setup === 'CONTINUATION'
+                  ? 'Продолжение'
+                  : 'Сетап не сформирован'}
+            </span>
+            <span className="muted">
+              Положение:{' '}
+              {chart.v2.location === 'HIGH'
+                ? 'у верхней границы'
+                : chart.v2.location === 'LOW'
+                  ? 'у нижней границы'
+                  : 'середина диапазона'}
+            </span>
+          </div>
+
+          {chart.v2.range && (
+            <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+              Диапазон: {fmtPrice(chart.v2.range.low, chart?.tickSize)} —{' '}
+              {fmtPrice(chart.v2.range.high, chart?.tickSize)} · равновесие 50%{' '}
+              {fmtPrice(chart.v2.range.mid, chart?.tickSize)}
+              {chart.v2.fibZone ? ` · зона ${chart.v2.fibZone}` : ''}
+            </div>
+          )}
+
+          <div className="v2-grid">
+            {chart.v2.rows.map((r) => (
+              <div className="v2-row" key={r.label}>
+                <span className="v2-label">{r.label}</span>
+                <span className="v2-value">{r.value}</span>
+                {r.detail ? <span className="v2-detail">{r.detail}</span> : null}
+              </div>
+            ))}
+          </div>
+
+          <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>
+            Доказательства (не вероятность): LONG {chart.v2.longEvidence.toFixed(2)} ·
+            SHORT {chart.v2.shortEvidence.toFixed(2)} · конфликт{' '}
+            {chart.v2.conflict.toFixed(2)}
+          </div>
+
+          {chart.v2.direction === 'WAIT' && chart.v2.waitReasons.length > 0 && (
+            <div className="alert alert-info" style={{ marginTop: 8 }}>
+              <b>Почему ждём:</b>
+              <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                {chart.v2.waitReasons.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {chart.v2.direction !== 'WAIT' && chart.v2.reasons.length > 0 && (
+            <div className="alert alert-info" style={{ marginTop: 8 }}>
+              <b>Основание:</b>
+              <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                {chart.v2.reasons.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {chart.v2.levels.stop !== null && (
+            <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>
+              Стоп {fmtPrice(chart.v2.levels.stop, chart?.tickSize)}
+              {chart.v2.levels.stopReason ? ` — ${chart.v2.levels.stopReason}` : ''}
+              {chart.v2.levels.targets.length > 0 && (
+                <>
+                  {' · цели: '}
+                  {chart.v2.levels.targets
+                    .map(
+                      (t) =>
+                        `${fmtPrice(t.price, chart?.tickSize)} (${t.r.toFixed(1)}R)`,
+                    )
+                    .join(' → ')}
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 

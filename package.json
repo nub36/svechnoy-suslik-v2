@@ -19,6 +19,7 @@
     "replay": "tsx src/replay/cli.ts",
     "lab": "tsx scripts/strategy-lab.ts",
     "lab:optimize": "tsx scripts/strategy-optimize.ts",
+    "v2:compare": "tsx scripts/v1-vs-v2.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "fixtures": "node scripts/make-fixtures.mjs",

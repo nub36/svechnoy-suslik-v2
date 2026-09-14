@@ -10,6 +10,29 @@ locked at the source level**.
 
 ---
 
+## Strategy documentation
+
+**[docs/STRATEGY.md](docs/STRATEGY.md)** is the full strategy reference — range
+detection, liquidity sweeps vs breakouts, BOS/CHoCH, order blocks, FVG,
+Fibonacci, every indicator formula, the state machine, entry/SL/TP rules and the
+anti-look-ahead guarantees.
+
+Two engines live in the repository:
+
+| | SMC V1 | SMC V2 |
+|---|---|---|
+| status | **ACTIVE** (production / FORWARD_TEST) | **RESEARCH ONLY**, `v2.enabled` defaults to `false` |
+| code | `src/strategy/smart-money.ts` | `src/strategy/v2/` |
+| output | LONG / SHORT | LONG / SHORT / **WAIT** |
+
+V2 answers "is this range edge a reversal or a continuation?" and treats WAIT as
+a real answer. It was measured against V1 (`npx tsx scripts/v1-vs-v2.ts`) and
+**was not activated**: its apparent edge on the synthetic corpus depends on
+TIMEOUT exits, and excluding those its expectancy is negative. See
+[docs/STRATEGY.md §15](docs/STRATEGY.md) for the numbers.
+
+---
+
 ## Architecture
 
 ```
@@ -36,8 +59,8 @@ One process per role, **exactly one writer per table**:
 | `settings` | admin UI |
 
 Deliberately **not** in this system: multi-exchange aggregation, quorum or
-voting between venues, a `minExchanges` threshold, a V1/V2 engine split, legacy
-signal workers, and the TradingView embed widget. Charts use the
+voting between venues, a `minExchanges` threshold, legacy signal workers, and
+the TradingView embed widget. Charts use the
 **TradingView Lightweight Charts** library, rendering data the backend computed.
 
 ### The seven Smart Money factors
