@@ -42,6 +42,15 @@ export default function AdminPage() {
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // --- Безопасность: смена пароля текущего администратора ---
+  const [curPwd, setCurPwd] = useState('');
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [pwdBusy, setPwdBusy] = useState(false);
+  const [pwdMessage, setPwdMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(
+    null,
+  );
+
   const checkSession = useCallback(async () => {
     const res = await fetch('/api/admin/session');
     const json = await res.json();
@@ -131,6 +140,53 @@ export default function AdminPage() {
     }
   };
 
+  const changePassword = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    setPwdMessage(null);
+
+    // Cheap client-side checks purely for responsiveness. The server repeats
+    // every one of them — this is never the actual enforcement point.
+    if (newPwd !== confirmPwd) {
+      setPwdMessage({ kind: 'error', text: 'Новый пароль и подтверждение не совпадают' });
+      return;
+    }
+    if (newPwd.length < 12) {
+      setPwdMessage({ kind: 'error', text: 'Новый пароль слишком короткий (минимум 12 символов)' });
+      return;
+    }
+
+    setPwdBusy(true);
+    try {
+      const res = await fetch('/api/admin/password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: curPwd,
+          newPassword: newPwd,
+          confirmPassword: confirmPwd,
+        }),
+      });
+      const json = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        data?: { message?: string };
+      };
+      if (!json.ok) {
+        setPwdMessage({ kind: 'error', text: json.error ?? 'Не удалось изменить пароль' });
+        return;
+      }
+      setPwdMessage({ kind: 'ok', text: json.data?.message ?? 'Пароль изменён' });
+      // Clear the inputs so the plaintext does not linger in the DOM.
+      setCurPwd('');
+      setNewPwd('');
+      setConfirmPwd('');
+    } catch {
+      setPwdMessage({ kind: 'error', text: 'Сеть недоступна' });
+    } finally {
+      setPwdBusy(false);
+    }
+  };
+
   if (authed === null) return <div className="loading">Загрузка...</div>;
 
   if (!authed) {
@@ -157,15 +213,10 @@ export default function AdminPage() {
             Войти
           </button>
         </form>
+        {/* The public login page must not disclose operational detail:
+            no table names, no env-var names, no recovery commands. */}
         <p className="muted" style={{ fontSize: 11, marginTop: 12 }}>
-          Учётная запись хранится в PostgreSQL (таблица <code>admin_users</code>). Переменные
-          ADMIN_USER / ADMIN_PASSWORD используются <b>только при первичном создании</b> админа.
-        </p>
-        <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
-          Изменение <code>.env</code> <b>не меняет</b> уже существующий пароль в базе. Чтобы
-          сменить пароль, выполните на сервере:{' '}
-          <code>npm run admin:reset-password</code> — команда возьмёт новые значения из окружения,
-          обновит запись в базе и завершит все активные сессии.
+          Для восстановления доступа обратитесь к администратору сервера.
         </p>
       </div>
     );
@@ -296,6 +347,63 @@ export default function AdminPage() {
         <button disabled={dirtyKeys.length === 0} onClick={() => setDraft({})}>
           Отменить
         </button>
+      </div>
+
+      <div className="panel" data-testid="security-panel" style={{ marginTop: 24 }}>
+        <h2>Безопасность</h2>
+        <p className="subtitle">
+          Смена пароля текущего администратора. Остальные активные сеансы будут завершены,
+          текущий сеанс сохранится.
+        </p>
+
+        {pwdMessage && (
+          <div className={`alert ${pwdMessage.kind === 'ok' ? 'alert-ok' : 'alert-error'}`}>
+            {pwdMessage.text}
+          </div>
+        )}
+
+        <form onSubmit={(e) => void changePassword(e)} style={{ maxWidth: 420 }}>
+          <div className="field">
+            <label htmlFor="cur-pwd">Текущий пароль</label>
+            <input
+              id="cur-pwd"
+              type="password"
+              value={curPwd}
+              onChange={(e) => setCurPwd(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="new-pwd">Новый пароль</label>
+            <input
+              id="new-pwd"
+              type="password"
+              value={newPwd}
+              onChange={(e) => setNewPwd(e.target.value)}
+              autoComplete="new-password"
+            />
+            <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+              Минимум 12 символов.
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="confirm-pwd">Повторите новый пароль</label>
+            <input
+              id="confirm-pwd"
+              type="password"
+              value={confirmPwd}
+              onChange={(e) => setConfirmPwd(e.target.value)}
+              autoComplete="new-password"
+            />
+          </div>
+          <button
+            className="primary"
+            type="submit"
+            disabled={pwdBusy || !curPwd || !newPwd || !confirmPwd}
+          >
+            {pwdBusy ? 'Сохранение...' : 'Изменить пароль'}
+          </button>
+        </form>
       </div>
     </div>
   );

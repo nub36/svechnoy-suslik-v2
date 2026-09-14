@@ -56,12 +56,21 @@ interface Signal {
   } | null;
 }
 
-const STATES = ['', 'WAITING_ENTRY', 'ACTIVE', 'CLOSED_TP', 'CLOSED_SL', 'CLOSED_TIMEOUT'];
+const STATES = [
+  '',
+  'WAITING_ENTRY',
+  'OPEN',
+  'TP1_HIT',
+  'TP2_HIT',
+  'TP3_HIT',
+  'STOPPED',
+  'EXPIRED',
+];
 
 function statePill(s: string): string {
-  if (s === 'CLOSED_TP') return 'pill-ok';
-  if (s === 'CLOSED_SL') return 'pill-err';
-  if (s === 'ACTIVE') return 'pill-warn';
+  if (s === 'TP1_HIT' || s === 'TP2_HIT' || s === 'TP3_HIT') return 'pill-ok';
+  if (s === 'STOPPED') return 'pill-err';
+  if (s === 'OPEN') return 'pill-warn';
   return 'pill-idle';
 }
 

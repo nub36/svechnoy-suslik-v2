@@ -138,7 +138,7 @@ describe('end-to-end live pipeline', () => {
     // Hand-built series guaranteeing a LONG TP.
     const base = 1_700_000_000_000;
     const sig = await db.insertInto('signals').values({
-      symbol: 'BTCUSDT', timeframe: '1h', direction: 'LONG', state: 'ACTIVE',
+      symbol: 'BTCUSDT', timeframe: '1h', direction: 'LONG', state: 'OPEN',
       mode: 'DRY_RUN', source: 'LIVE_ENGINE',
       score: 80, threshold: 40, breakdown: JSON.stringify({}), events: JSON.stringify([]),
       setup_candle_time: base, setup_close: 100,
@@ -148,7 +148,7 @@ describe('end-to-end live pipeline', () => {
     }).returning('id').executeTakeFirstOrThrow();
 
     await db.insertInto('strategy_state').values({
-      symbol: 'BTCUSDT', timeframe: '1h', state: 'ACTIVE', direction: 'LONG',
+      symbol: 'BTCUSDT', timeframe: '1h', state: 'HOLD_LONG', direction: 'LONG',
       last_candle_time: base + H, setup_candle_time: base, setup_score: 80,
       active_signal_id: Number(sig.id), payload: JSON.stringify({}),
     }).execute();
@@ -158,19 +158,43 @@ describe('end-to-end live pipeline', () => {
       candle(base + 2 * H, 100, 106, 99.5, 105.5), // TP1 @105
     ]);
 
+    // TP1 is a MILESTONE, not the end of the trade: the ladder still has 110
+    // outstanding, so the position stays open and the slot stays busy.
     const res = await processOutcomes(db, settings, log);
-    expect(res.closed).toBe(1);
+    expect(res.closed).toBe(0);
+
+    const afterTp1 = await db.selectFrom('signals').selectAll().executeTakeFirstOrThrow();
+    expect(afterTp1.state).toBe('TP1_HIT');
+    expect(afterTp1.tp_level).toBe(1);
+    expect(afterTp1.tp1_hit_at).not.toBeNull();
+    expect(afterTp1.stopped_at).toBeNull();
+    expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(0);
+
+    const busy = await loadState(db, 'BTCUSDT', '1h');
+    expect(busy.activeSignalId).toBe(Number(sig.id));
+
+    // Now the final rung is taken: TP3-equivalent completion for a 2-rung
+    // ladder is the LAST rung, which terminates the trade.
+    await upsertCandles(db, 'BTCUSDT', '1h', [
+      candle(base + 3 * H, 105, 111, 104, 110.5), // TP2 @110
+    ]);
+    const res2 = await processOutcomes(db, settings, log);
+    expect(res2.closed).toBe(1);
 
     const closed = await db.selectFrom('signals').selectAll().executeTakeFirstOrThrow();
-    expect(closed.state).toBe('CLOSED_TP');
+    expect(closed.state).toBe('TP2_HIT');
+    expect(closed.tp_level).toBe(2);
+    // The TP1 milestone is RETAINED.
+    expect(closed.tp1_hit_at).not.toBeNull();
+    expect(closed.tp2_hit_at).not.toBeNull();
 
     const out = await db.selectFrom('outcomes').selectAll().executeTakeFirstOrThrow();
     expect(out.result).toBe('TP');
-    expect(out.exit_price).toBe(105);
     expect(out.r_multiple).toBeGreaterThan(0);
 
     const st = await loadState(db, 'BTCUSDT', '1h');
-    expect(st.state).toBe('IDLE');
+    // A freed slot lands in REARM, never NEUTRAL — see releaseSlot().
+    expect(st.state).toBe('REARM');
     expect(st.activeSignalId).toBeNull();
   });
 
@@ -179,7 +203,7 @@ describe('end-to-end live pipeline', () => {
     const settings = await loosen();
     const base = 1_700_000_000_000;
     await db.insertInto('signals').values({
-      symbol: 'BTCUSDT', timeframe: '1h', direction: 'SHORT', state: 'ACTIVE',
+      symbol: 'BTCUSDT', timeframe: '1h', direction: 'SHORT', state: 'OPEN',
       mode: 'FORWARD_TEST', source: 'LIVE_ENGINE',
       score: 70, threshold: 40, breakdown: JSON.stringify({}), events: JSON.stringify([]),
       setup_candle_time: base, setup_close: 100,
@@ -197,7 +221,8 @@ describe('end-to-end live pipeline', () => {
     expect(out.result).toBe('SL');
     expect(out.r_multiple).toBeLessThan(0);
     const sig = await db.selectFrom('signals').selectAll().executeTakeFirstOrThrow();
-    expect(sig.state).toBe('CLOSED_SL');
+    expect(sig.state).toBe('STOPPED');
+    expect(sig.stopped_at).not.toBeNull();
   });
 
   it('honours engine.enabled = false', async () => {

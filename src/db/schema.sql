@@ -208,3 +208,79 @@ CREATE TABLE IF NOT EXISTS replay_runs (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   finished_at    TIMESTAMPTZ
 );
+
+-- ===================================================================
+-- Signal lifecycle v2 + strategy-state semantics v2.
+-- Additive and idempotent: safe to re-run on a populated production DB.
+-- ===================================================================
+
+-- Persistent milestone timestamps. A trade that reaches TP1 and is later
+-- stopped keeps tp1_hit_at forever; the milestones are an audit trail, not a
+-- mutable "current state" mirror.
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS opened_at  TIMESTAMPTZ;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS tp1_hit_at TIMESTAMPTZ;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS tp2_hit_at TIMESTAMPTZ;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS tp3_hit_at TIMESTAMPTZ;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS stopped_at TIMESTAMPTZ;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS expired_at TIMESTAMPTZ;
+-- Highest take-profit index reached so far (0 = none). Lets the outcome worker
+-- resume progressively without re-deriving history.
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS tp_level INTEGER NOT NULL DEFAULT 0;
+
+-- --- signal state migration ----------------------------------------
+-- Old lifecycle -> new lifecycle. Data is PRESERVED: score, breakdown, events,
+-- entry, SL/TP and timestamps are untouched; only `state` is renamed and the
+-- corresponding milestone timestamp is backfilled from existing columns.
+UPDATE signals SET state = 'OPEN'    WHERE state = 'ACTIVE';
+UPDATE signals SET state = 'STOPPED' WHERE state = 'CLOSED_SL';
+UPDATE signals SET state = 'EXPIRED' WHERE state IN ('CLOSED_TIMEOUT', 'CANCELLED');
+-- A legacy CLOSED_TP closed the whole trade at the FIRST take-profit, so it maps
+-- to TP1_HIT unless the recorded outcome says a further TP was reached.
+UPDATE signals s SET state = 'TP1_HIT' WHERE s.state = 'CLOSED_TP';
+UPDATE signals s SET state = 'TP2_HIT'
+  FROM outcomes o WHERE o.signal_id = s.id AND s.state = 'TP1_HIT' AND o.tp_hit_index = 1;
+UPDATE signals s SET state = 'TP3_HIT'
+  FROM outcomes o WHERE o.signal_id = s.id AND s.state = 'TP1_HIT' AND o.tp_hit_index >= 2;
+-- Any unknown legacy value must not silently survive as an invalid state.
+UPDATE signals SET state = 'EXPIRED'
+  WHERE state NOT IN ('WAITING_ENTRY','OPEN','TP1_HIT','TP2_HIT','TP3_HIT','STOPPED','EXPIRED');
+
+-- Backfill milestones from data that already exists.
+UPDATE signals SET opened_at = COALESCE(entry_at, updated_at)
+  WHERE opened_at IS NULL AND entry_price IS NOT NULL;
+UPDATE signals SET tp1_hit_at = updated_at
+  WHERE tp1_hit_at IS NULL AND state IN ('TP1_HIT','TP2_HIT','TP3_HIT');
+UPDATE signals SET tp2_hit_at = updated_at
+  WHERE tp2_hit_at IS NULL AND state IN ('TP2_HIT','TP3_HIT');
+UPDATE signals SET tp3_hit_at = updated_at
+  WHERE tp3_hit_at IS NULL AND state = 'TP3_HIT';
+UPDATE signals SET stopped_at = updated_at WHERE stopped_at IS NULL AND state = 'STOPPED';
+UPDATE signals SET expired_at = updated_at WHERE expired_at IS NULL AND state = 'EXPIRED';
+UPDATE signals SET tp_level = 1 WHERE tp_level = 0 AND state = 'TP1_HIT';
+UPDATE signals SET tp_level = 2 WHERE tp_level < 2 AND state = 'TP2_HIT';
+UPDATE signals SET tp_level = 3 WHERE tp_level < 3 AND state = 'TP3_HIT';
+
+-- --- strategy_state migration ---------------------------------------
+-- `initialised` distinguishes "never observed" from "observed, currently
+-- NEUTRAL". Every pre-existing row HAS been observed, so it defaults to TRUE
+-- and cannot bootstrap a fake signal after deployment.
+ALTER TABLE strategy_state ADD COLUMN IF NOT EXISTS initialised BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- Slots that were mid-trade migrate to the matching HOLD so the persisting
+-- condition cannot be re-read as a fresh rising edge after deploy.
+UPDATE strategy_state SET state = 'HOLD_LONG'
+  WHERE state IN ('ACTIVE','WAITING_ENTRY','SETUP') AND direction = 'LONG';
+UPDATE strategy_state SET state = 'HOLD_SHORT'
+  WHERE state IN ('ACTIVE','WAITING_ENTRY','SETUP') AND direction = 'SHORT';
+-- Mid-trade but no recorded direction: REARM is the safe landing — it requires
+-- the condition to be observed absent before anything can fire.
+UPDATE strategy_state SET state = 'REARM'
+  WHERE state IN ('ACTIVE','WAITING_ENTRY','SETUP');
+-- Idle/terminal legacy slots become an observed NEUTRAL baseline.
+UPDATE strategy_state SET state = 'NEUTRAL'
+  WHERE state IN ('IDLE','CLOSED_TP','CLOSED_SL','CLOSED_TIMEOUT','CANCELLED');
+UPDATE strategy_state SET state = 'NEUTRAL'
+  WHERE state NOT IN ('NEUTRAL','EDGE_LONG','EDGE_SHORT','HOLD_LONG','HOLD_SHORT','REARM');
+-- An EDGE is a momentary transition and must never be left persisted.
+UPDATE strategy_state SET state = 'HOLD_LONG'  WHERE state = 'EDGE_LONG';
+UPDATE strategy_state SET state = 'HOLD_SHORT' WHERE state = 'EDGE_SHORT';

@@ -196,3 +196,165 @@ export function aggregate(
     maxDrawdownR: round(maxDd, 6),
   };
 }
+
+/* ===================================================================
+ * PROGRESSIVE MILESTONE TRACKING
+ *
+ * `trackOutcome` above answers "how did this trade finally end?" and is what
+ * the replay statistics need. It is NOT enough for the live lifecycle, which
+ * must record TP1 -> TP2 -> TP3 as they happen and keep every milestone even
+ * if the trade is later stopped.
+ *
+ * `trackMilestones` walks the same CLOSED candles and returns the FULL ladder
+ * of events in order, so the caller can persist each timestamp exactly once.
+ * =================================================================== */
+
+import type { SignalState } from '../core/types';
+
+export type MilestoneKind = 'TP1' | 'TP2' | 'TP3' | 'SL' | 'TIMEOUT';
+
+export interface Milestone {
+  kind: MilestoneKind;
+  /** openTime of the CLOSED candle on which it happened. */
+  candleTime: number;
+  price: number;
+  /** Index into the sorted bar list (0 = entry bar). */
+  barIndex: number;
+}
+
+export interface MilestoneTrack {
+  /** In chronological order. At most one terminal entry, always last. */
+  milestones: Milestone[];
+  /** Highest TP index reached (0..3). */
+  tpLevel: 0 | 1 | 2 | 3;
+  /** Terminal milestone, or null when the trade is still running. */
+  terminal: Milestone | null;
+  /** Resulting signal state after applying every milestone. */
+  state: SignalState;
+  maxFavorablePct: number;
+  maxAdversePct: number;
+  barsHeld: number;
+}
+
+export interface MilestoneInput {
+  direction: Direction;
+  entryPrice: number;
+  stopLoss: number;
+  takeProfits: readonly number[];
+  entryCandleTime: number;
+  candles: readonly Candle[];
+  settings: Settings;
+  /** Milestones already persisted — used only to keep the walk idempotent. */
+  alreadyReachedTp?: number;
+}
+
+/**
+ * Walk CLOSED candles and produce the ordered milestone ladder.
+ *
+ * Rules mirror `trackOutcome` exactly so live and replay cannot diverge:
+ *  - CLOSED candles only, at/after the entry candle.
+ *  - An ambiguous bar (touches both a TP and the stop) resolves to SL when
+ *    `outcome.sl_priority_on_ambiguous_bar` is set, because OHLC cannot tell
+ *    us the intrabar order and we refuse to bias the statistics upward.
+ *  - TP3 is terminal success; SL -> STOPPED; timeout -> EXPIRED.
+ */
+export function trackMilestones(input: MilestoneInput): MilestoneTrack {
+  const { direction, entryPrice, stopLoss, settings } = input;
+  const timeoutBars = Math.floor(settings.num('outcome.timeout_bars'));
+  const slPriority = settings.bool('outcome.sl_priority_on_ambiguous_bar');
+
+  // Ladder ordered by distance from entry: TP1 nearest.
+  const tps = [...input.takeProfits]
+    .filter((t) => Number.isFinite(t))
+    .sort((a, b) => Math.abs(a - entryPrice) - Math.abs(b - entryPrice))
+    .slice(0, 3);
+
+  const bars = input.candles
+    .filter((c) => c.isClosed && c.openTime >= input.entryCandleTime)
+    .sort((a, b) => a.openTime - b.openTime);
+
+  const milestones: Milestone[] = [];
+  let tpLevel: 0 | 1 | 2 | 3 = 0;
+  let terminal: Milestone | null = null;
+  let maxFav = 0;
+  let maxAdv = 0;
+  let barsHeld = 0;
+
+  for (let i = 0; i < bars.length && terminal === null; i++) {
+    const c = bars[i];
+    if (!c) continue;
+    barsHeld = i + 1;
+
+    const favPrice = direction === 'LONG' ? c.high : c.low;
+    const advPrice = direction === 'LONG' ? c.low : c.high;
+    maxFav = Math.max(maxFav, pnlPct(direction, entryPrice, favPrice));
+    maxAdv = Math.min(maxAdv, pnlPct(direction, entryPrice, advPrice));
+
+    const hitSl = direction === 'LONG' ? c.low <= stopLoss : c.high >= stopLoss;
+
+    // Every TP newly reached on this bar (a big bar can clear several).
+    const reachedHere: number[] = [];
+    for (let t = tpLevel; t < tps.length; t++) {
+      const tp = tps[t];
+      if (tp === undefined) continue;
+      const reached = direction === 'LONG' ? c.high >= tp : c.low <= tp;
+      if (reached) reachedHere.push(t);
+      else break; // ladder is ordered; stop at the first unreached rung
+    }
+
+    const slWins = hitSl && (reachedHere.length === 0 || slPriority);
+
+    if (!slWins) {
+      for (const t of reachedHere) {
+        const tp = tps[t];
+        if (tp === undefined) continue;
+        tpLevel = (t + 1) as 0 | 1 | 2 | 3;
+        const m: Milestone = {
+          kind: (`TP${t + 1}` as MilestoneKind),
+          candleTime: c.openTime,
+          price: tp,
+          barIndex: i,
+        };
+        milestones.push(m);
+        // The trade completes when the LAST rung of the configured ladder is
+        // taken. With the standard 3-TP ladder that is TP3; with a shorter
+        // ladder it is whatever the final rung happens to be — otherwise a
+        // fully-won trade would hang open forever waiting for a TP3 that the
+        // risk plan never defined.
+        if (tpLevel >= tps.length || tpLevel === 3) terminal = m;
+      }
+    }
+
+    if (terminal !== null) break;
+
+    if (hitSl) {
+      terminal = { kind: 'SL', candleTime: c.openTime, price: stopLoss, barIndex: i };
+      milestones.push(terminal);
+      break;
+    }
+
+    if (i + 1 >= timeoutBars) {
+      terminal = { kind: 'TIMEOUT', candleTime: c.openTime, price: c.close, barIndex: i };
+      milestones.push(terminal);
+      break;
+    }
+  }
+
+  let state: SignalState;
+  if (terminal?.kind === 'SL') state = 'STOPPED';
+  else if (terminal?.kind === 'TIMEOUT') state = 'EXPIRED';
+  else if (tpLevel === 3) state = 'TP3_HIT';
+  else if (tpLevel === 2) state = 'TP2_HIT';
+  else if (tpLevel === 1) state = 'TP1_HIT';
+  else state = 'OPEN';
+
+  return {
+    milestones,
+    tpLevel,
+    terminal,
+    state,
+    maxFavorablePct: round(maxFav, 6),
+    maxAdversePct: round(maxAdv, 6),
+    barsHeld,
+  };
+}

@@ -162,19 +162,23 @@ describe('candles', () => {
 });
 
 describe('strategy state persistence', () => {
-  it('returns a fresh IDLE state when nothing is stored', async () => {
+  it('returns a fresh, UNINITIALISED NEUTRAL state when nothing is stored', async () => {
     const st = await loadState(db, 'BTCUSDT', '1h');
-    expect(st.state).toBe('IDLE');
+    expect(st.state).toBe('NEUTRAL');
+    // Crucial: an unseen slot is NOT initialised, which is what prevents a
+    // bootstrap signal on the first evaluation after a fresh deploy.
+    expect(st.initialised).toBe(false);
     expect(st.lastCandleTime).toBe(0);
   });
 
   it('round-trips the machine state', async () => {
     await saveState(db, {
-      symbol: 'BTCUSDT', timeframe: '1h', state: 'WAITING_ENTRY', direction: 'LONG',
+      symbol: 'BTCUSDT', timeframe: '1h', state: 'EDGE_LONG', direction: 'LONG',
+      initialised: true,
       lastCandleTime: T0, setupCandleTime: T0, setupScore: 72.5, activeSignalId: null,
     });
     const st = await loadState(db, 'BTCUSDT', '1h');
-    expect(st.state).toBe('WAITING_ENTRY');
+    expect(st.state).toBe('EDGE_LONG');
     expect(st.direction).toBe('LONG');
     expect(st.lastCandleTime).toBe(T0);
     expect(st.setupScore).toBeCloseTo(72.5, 6);
@@ -182,23 +186,26 @@ describe('strategy state persistence', () => {
 
   it('survives a simulated restart (state is durable, not in-memory)', async () => {
     await saveState(db, {
-      symbol: 'ETHUSDT', timeframe: '4h', state: 'ACTIVE', direction: 'SHORT',
+      symbol: 'ETHUSDT', timeframe: '4h', state: 'HOLD_SHORT', direction: 'SHORT',
+      initialised: true,
       lastCandleTime: T0 + 5 * H, setupCandleTime: T0, setupScore: 66, activeSignalId: 42,
     });
     // A brand-new load (as a restarted worker would do)
     const st = await loadState(db, 'ETHUSDT', '4h');
-    expect(st.state).toBe('ACTIVE');
+    expect(st.state).toBe('HOLD_SHORT');
     expect(st.activeSignalId).toBe(42);
     expect(st.lastCandleTime).toBe(T0 + 5 * H);
   });
 
   it('lists all states', async () => {
     await saveState(db, {
-      symbol: 'A', timeframe: '1h', state: 'IDLE', direction: null,
+      symbol: 'A', timeframe: '1h', state: 'NEUTRAL', direction: null,
+      initialised: true,
       lastCandleTime: 1, setupCandleTime: null, setupScore: null, activeSignalId: null,
     });
     await saveState(db, {
-      symbol: 'B', timeframe: '1h', state: 'ACTIVE', direction: 'LONG',
+      symbol: 'B', timeframe: '1h', state: 'HOLD_LONG', direction: 'LONG',
+      initialised: true,
       lastCandleTime: 2, setupCandleTime: 1, setupScore: 60, activeSignalId: 7,
     });
     expect(await listStates(db)).toHaveLength(2);

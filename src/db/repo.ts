@@ -5,7 +5,7 @@
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 import type { Database } from './types';
-import type { Candle, Direction, SignalState, Timeframe } from '../core/types';
+import type { Candle, Direction, SignalState, StrategyState, Timeframe } from '../core/types';
 import type { MachineState } from '../strategy/state-machine';
 import { initialState } from '../strategy/state-machine';
 import type { RankedSymbol } from '../market/top-symbols';
@@ -208,8 +208,9 @@ export async function loadState(
   return {
     symbol: row.symbol,
     timeframe: row.timeframe as Timeframe,
-    state: row.state as SignalState,
+    state: row.state as StrategyState,
     direction: (row.direction as Direction | null) ?? null,
+    initialised: row.initialised !== false,
     lastCandleTime: Number(row.last_candle_time),
     setupCandleTime: row.setup_candle_time === null ? null : Number(row.setup_candle_time),
     setupScore: row.setup_score,
@@ -229,6 +230,7 @@ export async function saveState(db: Kysely<Database>, s: MachineState): Promise<
       setup_candle_time: s.setupCandleTime,
       setup_score: s.setupScore,
       active_signal_id: s.activeSignalId,
+      initialised: s.initialised,
       payload: JSON.stringify({}),
       updated_at: new Date(),
     })
@@ -240,6 +242,7 @@ export async function saveState(db: Kysely<Database>, s: MachineState): Promise<
         setup_candle_time: s.setupCandleTime,
         setup_score: s.setupScore,
         active_signal_id: s.activeSignalId,
+        initialised: s.initialised,
         updated_at: new Date(),
       }),
     )

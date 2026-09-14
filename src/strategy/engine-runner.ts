@@ -10,10 +10,10 @@
 import type { Kysely } from 'kysely';
 import type { Database } from '../db/types';
 import type { Evaluation, Timeframe } from '../core/types';
-import { tfMs } from '../core/types';
+import { LIVE_SIGNAL_STATES, tfMs } from '../core/types';
 import type { Settings } from '../core/settings';
 import { evaluate } from './smart-money';
-import { resolveEntry, step } from './state-machine';
+import { resolveEntry, settleEdge, step } from './state-machine';
 import { buildRiskPlan } from './risk';
 import { getActiveSymbols, getCandles, loadState, saveState } from '../db/repo';
 import type { Logger } from '../core/logger';
@@ -91,15 +91,19 @@ export async function runEngineOnce(
       if (action.kind === 'EMIT_SIGNAL') {
         if (openCount + result.signalsCreated >= maxConcurrent) {
           log.info(`max_concurrent reached, suppressing ${s.symbol} ${tf}`, { maxConcurrent });
-          // Advance the cursor but stay IDLE so we do not lose the edge forever.
-          await saveState(db, { ...next, state: 'IDLE', direction: null, setupCandleTime: null, setupScore: null });
+          // Settle the edge into HOLD. Landing back in NEUTRAL would let the
+          // SAME persisting condition read as a brand new rising edge on the
+          // next loop — a delayed fake edge. The condition must actually fall
+          // and return before it may emit again.
+          await saveState(db, settleEdge(next));
           continue;
         }
 
         // ATR is required for the RISK plan only.
         if (ev.atr === null || !(ev.atr > 0)) {
           log.warn(`no ATR for ${s.symbol} ${tf}, cannot size risk`, {});
-          await saveState(db, { ...next, state: 'IDLE', direction: null, setupCandleTime: null, setupScore: null });
+          // Same reasoning as the capacity path: settle into HOLD.
+          await saveState(db, settleEdge(next));
           continue;
         }
 
@@ -116,7 +120,7 @@ export async function runEngineOnce(
           log.info(
             `rejected ${s.symbol} ${tf}: R:R ${provisional?.rrTp1?.toFixed(6) ?? 'n/a'} < min_rr ${minRr}`,
           );
-          await saveState(db, { ...next, state: 'IDLE', direction: null, setupCandleTime: null, setupScore: null });
+          await saveState(db, settleEdge(next));
           continue;
         }
 
@@ -165,12 +169,14 @@ export async function runEngineOnce(
 
         if (!inserted) {
           // Unique constraint hit => this edge was already recorded.
-          await saveState(db, next);
+          await saveState(db, settleEdge(next));
           continue;
         }
 
         result.signalsCreated++;
-        await saveState(db, { ...next, activeSignalId: Number(inserted.id) });
+        // The edge has fired; persist it as the corresponding HOLD so a
+        // still-passing condition cannot emit again on the next candle.
+        await saveState(db, settleEdge({ ...next, activeSignalId: Number(inserted.id) }));
         log.info(
           `SIGNAL ${action.direction} ${s.symbol} ${tf} score=${action.score.toFixed(2)} (entry pending N+1)`,
           { signalId: Number(inserted.id), setupCandleTime: action.setupCandleTime },
@@ -226,7 +232,7 @@ export async function expireStaleSignals(
 
     await db
       .updateTable('signals')
-      .set({ state: 'CANCELLED', updated_at: new Date() })
+      .set({ state: 'EXPIRED', expired_at: new Date(), updated_at: new Date() })
       .where('id', '=', sig.id)
       .where('state', '=', 'WAITING_ENTRY')
       .execute();
@@ -245,7 +251,7 @@ async function countOpen(db: Kysely<Database>): Promise<number> {
   const row = await db
     .selectFrom('signals')
     .select((eb) => eb.fn.countAll<number>().as('n'))
-    .where('state', 'in', ['WAITING_ENTRY', 'ACTIVE'])
+    .where('state', 'in', [...LIVE_SIGNAL_STATES])
     .where('source', '=', 'LIVE_ENGINE')
     .executeTakeFirst();
   return Number(row?.n ?? 0);
@@ -295,7 +301,7 @@ export async function fillPendingEntries(
     if (!plan) {
       await db
         .updateTable('signals')
-        .set({ state: 'CANCELLED', updated_at: new Date() })
+        .set({ state: 'EXPIRED', expired_at: new Date(), updated_at: new Date() })
         .where('id', '=', sig.id)
         .execute();
       await releaseSlot(db, sig.symbol, tf);
@@ -305,10 +311,11 @@ export async function fillPendingEntries(
     await db
       .updateTable('signals')
       .set({
-        state: 'ACTIVE',
+        state: 'OPEN',
         entry_candle_time: entry.entryCandleTime,
         entry_price: entry.entryPrice,
         entry_at: new Date(),
+        opened_at: new Date(),
         stop_loss: plan.stopLoss,
         take_profits: JSON.stringify(plan.takeProfits),
         rr_tp1: plan.rrTp1,
@@ -321,7 +328,7 @@ export async function fillPendingEntries(
 
     await db
       .updateTable('strategy_state')
-      .set({ state: 'ACTIVE', updated_at: new Date() })
+      .set({ updated_at: new Date() })
       .where('symbol', '=', sig.symbol)
       .where('timeframe', '=', tf)
       .where('active_signal_id', '=', sig.id)
@@ -344,11 +351,15 @@ export async function releaseSlot(
   await db
     .updateTable('strategy_state')
     .set({
-      state: 'IDLE',
+      // The slot is observed and free again. It lands in REARM, not NEUTRAL:
+      // if the condition that produced the closed trade is STILL true, the
+      // next evaluation must not read it as a fresh rising edge.
+      state: 'REARM',
       direction: null,
       setup_candle_time: null,
       setup_score: null,
       active_signal_id: null,
+      initialised: true,
       updated_at: new Date(),
     })
     .where('symbol', '=', symbol)

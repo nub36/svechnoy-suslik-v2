@@ -15,6 +15,7 @@ import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool, types } from 'pg';
 import type { Database } from '../src/db/types';
 import { migrate, setDb } from '../src/db';
+import { SETTINGS_REGISTRY } from '../src/core/settings';
 
 types.setTypeParser(20, (v) => Number(v));
 types.setTypeParser(1700, (v) => Number(v));
@@ -120,4 +121,42 @@ export async function resetDb(db: Kysely<Database>): Promise<void> {
              settings
     RESTART IDENTITY CASCADE
   `.execute(db);
+}
+
+/**
+ * Override one setting value, creating the row if `resetDb()` truncated it.
+ *
+ * seedSettings() fills in the registry metadata (type/category/label/...), so
+ * a test that only wants to change a VALUE must not have to restate all of it;
+ * a raw upsert keyed on `key` keeps the metadata columns out of the test.
+ */
+export async function setSetting(
+  db: Kysely<Database>,
+  key: string,
+  value: unknown,
+): Promise<void> {
+  const json = JSON.stringify(value);
+  const updated = await db
+    .updateTable('settings')
+    .set({ value: json, updated_at: new Date() })
+    .where('key', '=', key)
+    .executeTakeFirst();
+  if (Number(updated?.numUpdatedRows ?? 0) > 0) return;
+
+  const def = SETTINGS_REGISTRY.find((d) => d.key === key);
+  if (!def) throw new Error(`unknown setting ${key}`);
+  await db
+    .insertInto('settings')
+    .values({
+      key,
+      value: json,
+      type: def.type,
+      category: def.category,
+      label: def.label,
+      description: def.description,
+      editable: def.editable !== false,
+      updated_at: new Date(),
+    })
+    .onConflict((oc) => oc.column('key').doUpdateSet({ value: json, updated_at: new Date() }))
+    .execute();
 }

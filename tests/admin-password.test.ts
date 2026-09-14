@@ -234,11 +234,25 @@ describe('the reset script and docs', () => {
     expect(src).toMatch(/process\.env\['ADMIN_PASSWORD'\]/);
   });
 
-  it('the login page no longer claims that editing .env changes the password', async () => {
+  it('the PUBLIC login page discloses nothing operational', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync('app/admin/page.tsx', 'utf8');
-    expect(src).toContain('admin:reset-password');
-    // The help text must state the .env caveat explicitly.
-    expect(src).toMatch(/не меняет/);
+
+    // The only recovery text allowed on the unauthenticated page.
+    expect(src).toContain('Для восстановления доступа обратитесь к администратору сервера.');
+
+    // Operational detail must NOT be exposed to an anonymous visitor: no
+    // recovery command, no env-var names, no table names. Technical reset
+    // instructions belong in the README.
+    expect(src).not.toContain('admin:reset-password');
+    expect(src).not.toContain('ADMIN_PASSWORD');
+    expect(src).not.toContain('admin_users');
+  });
+
+  it('the README carries the technical reset procedure instead', async () => {
+    const { readFileSync } = await import('node:fs');
+    const readme = readFileSync('README.md', 'utf8');
+    expect(readme).toContain('admin:reset-password');
+    expect(readme).toMatch(/ADMIN_PASSWORD/);
   });
 });

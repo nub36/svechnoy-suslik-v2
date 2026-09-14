@@ -53,26 +53,119 @@ export interface Candle {
 
 export type Direction = 'LONG' | 'SHORT';
 
-/** Signal lifecycle states, persisted in DB. */
+/**
+ * SIGNAL lifecycle — the life of ONE trade record, persisted in `signals.state`.
+ *
+ * WAITING_ENTRY -> OPEN -> TP1_HIT -> TP2_HIT -> TP3_HIT
+ *                    \        \         \
+ *                     +--------+---------+--> STOPPED
+ *                     +-------------------------> EXPIRED
+ *
+ * TP milestones are PROGRESSIVE, not terminal: a trade that reaches TP1 and is
+ * later stopped ends in STOPPED while `tp1_hit_at` stays populated forever.
+ * Only TP3_HIT, STOPPED and EXPIRED are terminal.
+ *
+ * This is deliberately SEPARATE from StrategyState (below). A signal is a
+ * trade; a strategy state is the per-slot detector memory. Conflating the two
+ * is what previously allowed a bootstrap observation to emit a signal.
+ */
 export type SignalState =
-  | 'IDLE'
-  | 'SETUP'
   | 'WAITING_ENTRY'
-  | 'ACTIVE'
-  | 'CLOSED_TP'
-  | 'CLOSED_SL'
-  | 'CLOSED_TIMEOUT'
-  | 'CANCELLED';
+  | 'OPEN'
+  | 'TP1_HIT'
+  | 'TP2_HIT'
+  | 'TP3_HIT'
+  | 'STOPPED'
+  | 'EXPIRED';
 
-export const TERMINAL_STATES: readonly SignalState[] = [
-  'CLOSED_TP',
-  'CLOSED_SL',
-  'CLOSED_TIMEOUT',
-  'CANCELLED',
+export const SIGNAL_STATES: readonly SignalState[] = [
+  'WAITING_ENTRY',
+  'OPEN',
+  'TP1_HIT',
+  'TP2_HIT',
+  'TP3_HIT',
+  'STOPPED',
+  'EXPIRED',
 ];
+
+/** Terminal signal states — no further milestone may be recorded. */
+export const TERMINAL_STATES: readonly SignalState[] = ['TP3_HIT', 'STOPPED', 'EXPIRED'];
 
 export function isTerminal(s: SignalState): boolean {
   return TERMINAL_STATES.includes(s);
+}
+
+/** States in which a signal still occupies a concurrency slot. */
+export const LIVE_SIGNAL_STATES: readonly SignalState[] = [
+  'WAITING_ENTRY',
+  'OPEN',
+  'TP1_HIT',
+  'TP2_HIT',
+];
+
+/** Signal states in which the position is actually filled and running. */
+export const IN_POSITION_STATES: readonly SignalState[] = [
+  'OPEN',
+  'TP1_HIT',
+  'TP2_HIT',
+];
+
+/** How far the trade progressed through its take-profit ladder. 0 = none. */
+export function tpMilestoneLevel(s: SignalState): 0 | 1 | 2 | 3 {
+  if (s === 'TP1_HIT') return 1;
+  if (s === 'TP2_HIT') return 2;
+  if (s === 'TP3_HIT') return 3;
+  return 0;
+}
+
+/**
+ * STRATEGY state — persistent per (strategy, symbol, timeframe) detector memory.
+ *
+ * NEUTRAL     — baseline: the condition is NOT currently satisfied.
+ * EDGE_LONG   — the transition NEUTRAL/REARM -> long condition just fired.
+ * EDGE_SHORT  — same for the short side.
+ * HOLD_LONG   — the long condition persists; must NOT emit again.
+ * HOLD_SHORT  — same for the short side.
+ * REARM       — the condition dropped away and the slot is waiting to return
+ *               to NEUTRAL; guarantees a passing condition must first FALL
+ *               before it can produce another edge.
+ *
+ * UNINITIALISED is NOT a stored state: absence of a row means "never seen".
+ * The first observation of an unseen slot only establishes the baseline.
+ */
+export type StrategyState =
+  | 'NEUTRAL'
+  | 'EDGE_LONG'
+  | 'EDGE_SHORT'
+  | 'HOLD_LONG'
+  | 'HOLD_SHORT'
+  | 'REARM';
+
+export const STRATEGY_STATES: readonly StrategyState[] = [
+  'NEUTRAL',
+  'EDGE_LONG',
+  'EDGE_SHORT',
+  'HOLD_LONG',
+  'HOLD_SHORT',
+  'REARM',
+];
+
+export function isEdgeState(s: StrategyState): boolean {
+  return s === 'EDGE_LONG' || s === 'EDGE_SHORT';
+}
+
+export function holdFor(d: Direction): StrategyState {
+  return d === 'LONG' ? 'HOLD_LONG' : 'HOLD_SHORT';
+}
+
+export function edgeFor(d: Direction): StrategyState {
+  return d === 'LONG' ? 'EDGE_LONG' : 'EDGE_SHORT';
+}
+
+export function directionOfStrategyState(s: StrategyState): Direction | null {
+  if (s === 'EDGE_LONG' || s === 'HOLD_LONG') return 'LONG';
+  if (s === 'EDGE_SHORT' || s === 'HOLD_SHORT') return 'SHORT';
+  return null;
 }
 
 /** Trading mode. LIVE is intentionally NOT part of the union — it is locked. */

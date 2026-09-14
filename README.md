@@ -147,6 +147,58 @@ everywhere (chart, engine, replay). Which ones the engine trades is the
 
 ---
 
+## Strategy state machine and signal lifecycle
+
+Two SEPARATE state machines. Conflating them is what once allowed a cold start
+to emit a batch of signals.
+
+### Strategy state — per (symbol, timeframe) detector memory
+
+```
+NEUTRAL --pass--> EDGE_LONG/EDGE_SHORT --(settle)--> HOLD_LONG/HOLD_SHORT
+   ^                                                        |
+   |                                                     fail|
+   +---------------- fail ------------------ REARM <---------+
+```
+
+A signal is emitted **only on a genuine rising edge** — an evaluation that
+passes immediately after an observed evaluation that did not.
+
+* **Bootstrap rule.** A slot with no persisted row has never been observed, so
+  its first evaluation only records a baseline; if the condition already passes
+  it parks in `HOLD_*`, never `EDGE_*`. Without this, starting the worker made
+  every currently-true condition look like a transition.
+* **No re-emission.** While the condition persists the slot stays in `HOLD_*`.
+* **REARM.** After the condition drops, the slot must be observed absent before
+  it can fire again — so a flickering condition cannot spam signals.
+* **Suppression is not a deferral.** When an edge is suppressed (capacity,
+  missing ATR, R:R below `risk.min_rr`) it is settled into `HOLD_*`, not back
+  to `NEUTRAL`. Returning to NEUTRAL would let the same persisting condition
+  read as a fresh edge on the next loop — a delayed fake edge.
+* A direction flip out of a hold IS a genuine new edge.
+
+### Signal lifecycle — the life of one trade
+
+```
+WAITING_ENTRY -> OPEN -> TP1_HIT -> TP2_HIT -> TP3_HIT
+                   \        \          \
+                    +--------+----------+--> STOPPED
+                    +------------------------> EXPIRED
+```
+
+Take-profits are **progressive milestones, not terminal states**. Each writes
+its own timestamp exactly once (`tp1_hit_at`, `tp2_hit_at`, `tp3_hit_at`,
+`stopped_at`, `expired_at`, `opened_at`) and those timestamps are **never
+cleared**. A trade that reaches TP1 and is later stopped ends in `STOPPED`
+while `tp1_hit_at` remains — so "won then gave it back" stays distinguishable
+from "lost immediately". Only `TP3_HIT`, `STOPPED` and `EXPIRED` are terminal,
+and only then is the `outcomes` row written and the slot released.
+
+Outcome processing reads **closed candles only**; the entry is always the OPEN
+of candle N+1 and is never fabricated.
+
+---
+
 ## Admin
 
 `/admin`, protected by a bcrypt password and an HTTP-only session cookie.
@@ -161,7 +213,15 @@ account only when it is absent — otherwise every deploy would silently reset a
 rotated credential. This is why a changed `.env` still produced
 "Invalid credentials" in production.
 
-To actually rotate it:
+There are two ways to change it.
+
+**1. From the UI (normal case).** Sign in and use the **Безопасность** section
+at the bottom of `/admin`: current password, new password, confirmation. It
+requires a valid session, verifies the current password, enforces the same
+policy as the CLI, and revokes every OTHER session while keeping you signed in.
+Repeated wrong attempts are rate-limited.
+
+**2. From the CLI (recovery, when nobody can sign in):**
 
 ```bash
 cd /root/svechnoy-suslik-v2
@@ -192,8 +252,14 @@ cd /root/svechnoy-suslik-v2
 git pull
 npm ci --legacy-peer-deps
 npm run build
+# db:migrate is additive and idempotent. It also performs the lifecycle
+# migration (ACTIVE -> OPEN, CLOSED_* -> STOPPED/EXPIRED, legacy strategy
+# states -> HOLD_*/NEUTRAL) while preserving every existing row.
+# TAKE A DATABASE BACKUP FIRST:
+#   pg_dump -Fc "$DATABASE_URL" > backup-$(date +%F-%H%M).dump
 npm run db:migrate && npm run db:seed
-# Only when the admin password must change (does not happen automatically):
+# Only when the admin password must change (does not happen automatically).
+# Normally use Admin -> Безопасность instead; this is the recovery path.
 # ADMIN_USER=admin ADMIN_PASSWORD='<new-strong-password>' npm run admin:reset-password
 pm2 start ecosystem.config.js
 pm2 save
@@ -215,7 +281,7 @@ record.
 ## Testing
 
 ```bash
-npm test                                                   # 457 tests
+npm test                                                   # 506 tests
 SMOKE_BASE_URL=http://127.0.0.1:3000 npx vitest run        # + live HTTP tests
 ```
 

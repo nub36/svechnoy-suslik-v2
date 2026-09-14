@@ -38,6 +38,13 @@ export async function GET(req: Request): Promise<Response> {
         'signals.rr_tp1 as rr_tp1',
         'signals.qty as qty',
         'signals.created_at as created_at',
+        'signals.tp_level as tp_level',
+        'signals.opened_at as opened_at',
+        'signals.tp1_hit_at as tp1_hit_at',
+        'signals.tp2_hit_at as tp2_hit_at',
+        'signals.tp3_hit_at as tp3_hit_at',
+        'signals.stopped_at as stopped_at',
+        'signals.expired_at as expired_at',
         'outcomes.result as outcome_result',
         'outcomes.exit_price as outcome_exit_price',
         'outcomes.exit_candle_time as outcome_exit_time',
@@ -57,13 +64,20 @@ export async function GET(req: Request): Promise<Response> {
 
     const rows = await q.execute();
 
+    const inState = (...states: string[]): number =>
+      rows.filter((r) => states.includes(r.state)).length;
+
     const summary = {
       total: rows.length,
-      waiting: rows.filter((r) => r.state === 'WAITING_ENTRY').length,
-      active: rows.filter((r) => r.state === 'ACTIVE').length,
-      tp: rows.filter((r) => r.state === 'CLOSED_TP').length,
-      sl: rows.filter((r) => r.state === 'CLOSED_SL').length,
-      timeout: rows.filter((r) => r.state === 'CLOSED_TIMEOUT').length,
+      waiting: inState('WAITING_ENTRY'),
+      // "active" = filled and still running, including trades that have
+      // already banked TP1/TP2 but are not finished.
+      active: inState('OPEN', 'TP1_HIT', 'TP2_HIT'),
+      // "tp" counts trades that reached at least one take-profit, which is why
+      // a stopped trade that first hit TP1 is still counted here.
+      tp: rows.filter((r) => r.tp_level !== null && Number(r.tp_level) > 0).length,
+      sl: inState('STOPPED'),
+      timeout: inState('EXPIRED'),
     };
 
     return ok({
@@ -89,6 +103,17 @@ export async function GET(req: Request): Promise<Response> {
         rrTp1: r.rr_tp1,
         qty: r.qty,
         createdAt: r.created_at,
+        // Persistent milestone audit trail. These survive a later STOP: a
+        // trade stopped after TP1 still reports tp1HitAt.
+        tpLevel: Number(r.tp_level ?? 0),
+        milestones: {
+          openedAt: r.opened_at,
+          tp1HitAt: r.tp1_hit_at,
+          tp2HitAt: r.tp2_hit_at,
+          tp3HitAt: r.tp3_hit_at,
+          stoppedAt: r.stopped_at,
+          expiredAt: r.expired_at,
+        },
         outcome:
           r.outcome_result === null
             ? null

@@ -41,6 +41,9 @@ export interface StrategyStateTable {
   setup_candle_time: ColumnType<number | null, number | null | undefined, number | null>;
   setup_score: number | null;
   active_signal_id: ColumnType<number | null, number | null | undefined, number | null>;
+  /** FALSE only for rows written before an observation; absence of a row means
+   *  "never seen" and is what blocks bootstrap signals. */
+  initialised: ColumnType<boolean, boolean | undefined, boolean>;
   payload: JSONColumnType<Record<string, unknown>, string | undefined, string>;
   updated_at: Ts;
 }
@@ -72,6 +75,15 @@ export interface SignalsTable {
   rr_tp1: number | null;
   qty: number | null;
   position_quote: number | null;
+  /** Persistent milestone timestamps — never cleared once set. */
+  opened_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  tp1_hit_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  tp2_hit_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  tp3_hit_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  stopped_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  expired_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  /** Highest TP index reached so far (0..3). */
+  tp_level: ColumnType<number, number | undefined, number>;
   created_at: Ts;
   updated_at: Ts;
 }

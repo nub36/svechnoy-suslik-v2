@@ -1,8 +1,21 @@
 /**
- * OUTCOME worker — the ONLY writer of `outcomes` and of terminal signal states.
+ * OUTCOME worker — the ONLY writer of `outcomes` and of signal milestones.
  *
- * Walks CLOSED candles after each ACTIVE signal's entry candle and resolves
- * TP / SL / TIMEOUT, then frees the state-machine slot.
+ * Walks CLOSED candles after each in-position signal's entry candle and
+ * records the take-profit ladder PROGRESSIVELY:
+ *
+ *     OPEN -> TP1_HIT -> TP2_HIT -> TP3_HIT
+ *                \         \
+ *                 +---------+--> STOPPED     (TP milestones are RETAINED)
+ *
+ * Reaching TP1 no longer closes the trade. Each milestone writes its own
+ * timestamp exactly once and those timestamps are never cleared, so a trade
+ * that hit TP1 and was later stopped still proves it reached TP1.
+ *
+ * Only TP3_HIT, STOPPED and EXPIRED are terminal; only then is the `outcomes`
+ * row written and the state-machine slot released.
+ *
+ * CLOSED CANDLES ONLY — a forming bar must never resolve a milestone.
  */
 
 import type { Kysely } from 'kysely';
@@ -10,11 +23,11 @@ import { getDb, closeDb, migrate } from '../db';
 import type { Database } from '../db/types';
 import { loadSettings, type Settings } from '../core/settings';
 import { createLogger, type Logger } from '../core/logger';
-import { trackOutcome } from '../outcome/tracker';
+import { trackMilestones, trackOutcome, type MilestoneKind } from '../outcome/tracker';
 import { getCandles, heartbeat } from '../db/repo';
 import { releaseSlot } from '../strategy/engine-runner';
 import { config } from '../core/config';
-import type { Direction, SignalState, Timeframe } from '../core/types';
+import { IN_POSITION_STATES, type Direction, type SignalState, type Timeframe } from '../core/types';
 
 const WORKER = 'outcome';
 
@@ -26,7 +39,7 @@ export async function processOutcomes(
   const active = await db
     .selectFrom('signals')
     .selectAll()
-    .where('state', '=', 'ACTIVE')
+    .where('state', 'in', [...IN_POSITION_STATES])
     .where('source', '=', 'LIVE_ENGINE')
     .execute();
 
@@ -47,6 +60,54 @@ export async function processOutcomes(
 
     const takeProfits = Array.isArray(sig.take_profits) ? (sig.take_profits as number[]) : [];
 
+    const track = trackMilestones({
+      direction: sig.direction as Direction,
+      entryPrice,
+      stopLoss,
+      takeProfits,
+      entryCandleTime: entryTime,
+      candles,
+      settings,
+    });
+
+    const prevLevel = Number(sig.tp_level ?? 0);
+    const prevState = sig.state as SignalState;
+
+    // Build the milestone timestamp patch. Each column is written ONCE: the
+    // `IS NULL` guard in SQL plus these checks make reprocessing idempotent.
+    const now = new Date();
+    const patch: Record<string, unknown> = {};
+    const reached = (k: MilestoneKind): boolean =>
+      track.milestones.some((m) => m.kind === k);
+
+    if (reached('TP1') && sig.tp1_hit_at === null) patch['tp1_hit_at'] = now;
+    if (reached('TP2') && sig.tp2_hit_at === null) patch['tp2_hit_at'] = now;
+    if (reached('TP3') && sig.tp3_hit_at === null) patch['tp3_hit_at'] = now;
+    if (track.terminal?.kind === 'SL' && sig.stopped_at === null) patch['stopped_at'] = now;
+    if (track.terminal?.kind === 'TIMEOUT' && sig.expired_at === null) patch['expired_at'] = now;
+    if (track.tpLevel > prevLevel) patch['tp_level'] = track.tpLevel;
+    if (track.state !== prevState) patch['state'] = track.state;
+
+    const isTerminalNow = track.terminal !== null || track.state === 'TP3_HIT';
+
+    if (Object.keys(patch).length === 0 && !isTerminalNow) continue; // nothing new
+
+    if (!isTerminalNow) {
+      // Progressive milestone only — the trade stays open.
+      patch['updated_at'] = now;
+      await db.updateTable('signals').set(patch).where('id', '=', sig.id).execute();
+      if (track.state !== prevState) {
+        log.info(
+          `MILESTONE ${track.state} ${sig.symbol} ${tf} ${sig.direction} (trade still open)`,
+          { signalId: Number(sig.id), tpLevel: track.tpLevel },
+        );
+      }
+      continue;
+    }
+
+    // --- terminal: write the outcome row and release the slot -----------
+    // trackOutcome() stays the single source of truth for the P&L figures so
+    // live statistics and replay cannot drift apart.
     const out = trackOutcome({
       direction: sig.direction as Direction,
       entryPrice,
@@ -57,10 +118,9 @@ export async function processOutcomes(
       settings,
       qty: sig.qty ?? 0,
     });
-    if (!out) continue; // still open
+    if (!out) continue;
 
-    const newState: SignalState =
-      out.result === 'TP' ? 'CLOSED_TP' : out.result === 'SL' ? 'CLOSED_SL' : 'CLOSED_TIMEOUT';
+    patch['updated_at'] = now;
 
     await db.transaction().execute(async (trx) => {
       await trx
@@ -82,18 +142,15 @@ export async function processOutcomes(
         .onConflict((oc) => oc.column('signal_id').doNothing())
         .execute();
 
-      await trx
-        .updateTable('signals')
-        .set({ state: newState, updated_at: new Date() })
-        .where('id', '=', sig.id)
-        .execute();
+      await trx.updateTable('signals').set(patch).where('id', '=', sig.id).execute();
     });
 
     await releaseSlot(db, sig.symbol, tf);
     closed++;
     log.info(
-      `OUTCOME ${out.result} ${sig.symbol} ${tf} ${sig.direction} R=${out.rMultiple.toFixed(3)} pnl=${out.pnlPct.toFixed(3)}%`,
-      { signalId: sig.id, barsHeld: out.barsHeld, exitPrice: out.exitPrice },
+      `OUTCOME ${track.state} (${out.result}) ${sig.symbol} ${tf} ${sig.direction} ` +
+        `R=${out.rMultiple.toFixed(3)} pnl=${out.pnlPct.toFixed(3)}% tpLevel=${track.tpLevel}`,
+      { signalId: Number(sig.id), barsHeld: out.barsHeld, exitPrice: out.exitPrice },
     );
   }
 

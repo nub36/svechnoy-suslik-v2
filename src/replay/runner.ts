@@ -10,10 +10,10 @@
 import type { Kysely } from 'kysely';
 import type { Database } from '../db/types';
 import type { Candle, Timeframe } from '../core/types';
-import { tfMs } from '../core/types';
+import { holdFor, tfMs } from '../core/types';
 import type { Settings } from '../core/settings';
 import { evaluate } from '../strategy/smart-money';
-import { initialState, resolveEntry, step, type MachineState } from '../strategy/state-machine';
+import { initialState, resolveEntry, settleEdge, step, type MachineState } from '../strategy/state-machine';
 import { buildRiskPlan } from '../strategy/risk';
 import { aggregate, trackOutcome } from '../outcome/tracker';
 import { getCandles } from '../db/repo';
@@ -117,12 +117,16 @@ export function replaySeries(args: ReplayArgs): ReplayResult {
             riskPerUnit: plan.riskPerUnit,
             entryIndex: i,
           };
-          machine = { ...machine, state: 'ACTIVE' };
+          // Position open: the slot is busy. Mirror the live engine, which
+          // keeps the slot in the HOLD matching the traded direction.
+          machine = { ...machine, state: holdFor(open.direction) };
         } else {
-          machine = { ...machine, state: 'IDLE', direction: null, setupCandleTime: null };
+          // Risk plan rejected: settle the fired edge into HOLD, exactly like
+          // the live engine, so the same persisting condition cannot re-fire.
+          machine = settleEdge({ ...machine, setupCandleTime: null });
         }
       } else {
-        machine = { ...machine, state: 'IDLE', direction: null, setupCandleTime: null };
+        machine = settleEdge({ ...machine, setupCandleTime: null });
       }
       pending = null;
     }
@@ -151,7 +155,9 @@ export function replaySeries(args: ReplayArgs): ReplayResult {
           pnlPct: out.pnlPct,
         });
         open = null;
-        machine = { ...machine, state: 'IDLE', direction: null, setupCandleTime: null, activeSignalId: null };
+        // Matches releaseSlot() in the live engine: a freed slot lands in
+        // REARM, never NEUTRAL, so a still-true condition cannot look new.
+        machine = { ...machine, state: 'REARM', direction: null, setupCandleTime: null, activeSignalId: null };
       }
     }
 
@@ -188,7 +194,7 @@ export function replaySeries(args: ReplayArgs): ReplayResult {
           },
         };
       } else {
-        machine = { ...machine, state: 'IDLE', direction: null, setupCandleTime: null };
+        machine = settleEdge({ ...machine, setupCandleTime: null });
       }
     }
   }
