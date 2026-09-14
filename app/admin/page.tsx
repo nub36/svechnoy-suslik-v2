@@ -142,6 +142,9 @@ function TimeframePicker({
   );
 }
 
+/** Settings whose control is too wide for the narrow value column. */
+const WIDE_SETTINGS = new Set(['engine.timeframes']);
+
 interface Setting {
   key: string;
   value: unknown;
@@ -399,8 +402,13 @@ export default function AdminPage() {
             {visible.length} настроек · изменения применяются на следующем цикле воркера
           </span>
         </h2>
+        {/* Wide controls (the timeframe picker) get a full-width row so the
+            label does not sit centred beside a tall stack of checkboxes. */}
         {visible.map((s) => (
-          <div className="setting-row" key={s.key}>
+          <div
+            className={`setting-row${WIDE_SETTINGS.has(s.key) ? ' setting-row-wide' : ''}`}
+            key={s.key}
+          >
             <div>
               <div className="setting-label">
                 {settingLabel(s.key, s.label)}

@@ -61,9 +61,37 @@ strategy, the settings registry or the UI.
 re-adds the weight of its OB/FVG parents. One factor contributes at most once
 per direction per evaluation (strongest kept).
 
-Score: `contribution = strength x weight`, then
+### Registry default vs live runtime value
+
+The table above lists **registry defaults** — what a fresh install ships. It is
+*not* necessarily what production is scoring with right now.
+
+`loadSettings()` reads the `settings` table and layers stored rows on top of the
+registry defaults, so any weight an operator saves in Admin wins over the
+default. A production instance showing `ORDER_BLOCK=18, FVG=12` while this table
+says `20 / 15` is **not a bug**: the registry ships 20/15 and the operator
+saved 18/12 into the DB. Both numbers are correct at their own layer.
+
+To see the values actually in force, read the `settings` table (or the Admin
+page) — never assume the README numbers are live.
+
+### Score: what it does and does not mean
+
+`contribution = strength x weight`, then
 `score = 100 * Σcontribution / Σweight` over **counted** components only, so the
 result is always in `[0, 100]` and weights can be retuned without rescaling.
+
+Because the denominator sums **only the factors that fired**, score is *average
+conviction per factor*, **not** *amount of evidence*. A setup where a single
+strong factor fires scores 100; a setup where four factors fire at mixed
+strength may score 70. Score and evidence are therefore only loosely related —
+measured across the fixture corpus, `corr(score, confirmations) = -0.36`, i.e.
+higher score tends to mean **fewer** confirmations.
+
+`engine.min_components` is consequently the real guard against thin evidence;
+`engine.score_threshold` is not a substitute for it. See
+[docs/strategy-evidence.md](docs/strategy-evidence.md) for the measurements
+behind this.
 
 ATR is used for **risk sizing only** — never as a confirmation component.
 

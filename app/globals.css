@@ -798,9 +798,25 @@ input[type='checkbox'] {
   display: grid;
   grid-template-columns: 1fr 200px;
   gap: 12px;
-  align-items: center;
+  /* start, not center: a tall control (the timeframe picker) must not push
+     its own label into the vertical middle and leave a large empty gap. */
+  align-items: start;
   padding: 10px 0;
   border-bottom: 1px solid #1c2030;
+}
+
+/**
+ * Wide controls that do not fit the narrow 200px value column.
+ *
+ * The timeframe picker is a grid of 8 checkboxes plus two buttons and two
+ * help notes. Squeezed into 200px it wrapped into a tall stack on the right
+ * while the label stayed centred on the left, leaving a large empty area at
+ * 1280px. Such a row becomes a single full-width block: label and help on
+ * top, controls underneath.
+ */
+.setting-row-wide {
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 .setting-row:last-child {
   border-bottom: none;
@@ -924,8 +940,11 @@ details summary:hover {
 /* ---- timeframe multi-select (engine.timeframes) ---- */
 .tf-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(58px, 1fr));
+  /* Auto-fit lets all 8 options sit on one row when there is room and wrap
+     tidily when there is not, instead of a fixed 4-column stack. */
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
   gap: 6px;
+  max-width: 720px;
 }
 .tf-option {
   display: flex;
