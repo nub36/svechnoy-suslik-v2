@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+logs/
+*.log
+.DS_Store
+
+# Generated Binance fixtures (recreate with `npm run fixtures`).
+# Kept out of git: ~6 MB of regenerable data.
+fixtures/
+
+# Local throwaway Postgres data dir used by tests
+.pgdata/
+
+# Next.js generated types
+next-env.d.ts

@@ -1,0 +1,55 @@
+{
+  "name": "svechnoy-suslik-v2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Smart Money signal engine on Binance Spot USDT (DRY_RUN / FORWARD_TEST only, LIVE locked)",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:backend": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "build:web": "next build",
+    "build": "npm run build:backend && npm run build:web",
+    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "start": "next start -H 0.0.0.0 -p 3000",
+    "worker:market": "node dist/workers/market.worker.js",
+    "worker:strategy": "node dist/workers/strategy.worker.js",
+    "worker:outcome": "node dist/workers/outcome.worker.js",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts",
+    "replay": "tsx src/replay/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fixtures": "node scripts/make-fixtures.mjs",
+    "fixtures:real": "node scripts/fetch-fixtures.mjs",
+    "bootstrap": "tsx scripts/bootstrap.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "seed:history": "tsx scripts/seed-history.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "2.4.3",
+    "kysely": "0.29.5",
+    "lightweight-charts": "5.2.1",
+    "next": "15.5.25",
+    "pg": "8.16.3",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@embedded-postgres/linux-x64": "^17.4.0-beta.15",
+    "@types/bcryptjs": "2.4.6",
+    "@types/node": "22.15.3",
+    "@types/pg": "8.15.5",
+    "@types/react": "19.1.9",
+    "@types/react-dom": "19.1.7",
+    "tsx": "4.20.6",
+    "typescript": "5.9.2",
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.4"
+  }
+}
