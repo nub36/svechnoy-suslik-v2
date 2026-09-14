@@ -72,6 +72,19 @@ export interface V2Range {
   /** 0..1 — how well-formed the range is. */
   confidence: number;
   sourceTimeframe: Timeframe;
+  /**
+   * Has price ACCEPTED (closed decisively) beyond one of the boundaries? A
+   * range whose edge has been broken is stale on that side: the broken edge is
+   * no longer resistance/support and the OPPOSITE edge is no longer a valid
+   * structural target for a continuation trade.
+   *
+   *   null   - range intact, both edges usable
+   *   'HIGH' - accepted above the high; the LOW is a stale target
+   *   'LOW'  - accepted below the low;  the HIGH is a stale target
+   */
+  brokenSide: 'HIGH' | 'LOW' | null;
+  /** Index of the bar whose close broke the range, when `brokenSide` is set. */
+  brokenAtIndex: number | null;
 }
 
 export type RangeLocation = 'HIGH' | 'LOW' | 'MID';
@@ -377,15 +390,32 @@ export interface TargetPlan {
   reason: string;
   /** R multiple this target represents, given entry and stop. */
   r: number;
+  /**
+   * Directional distance from entry to this target, in ATR units. Always
+   * measured along the trade direction, never as an absolute price.
+   */
+  atrDistance: number;
 }
 
 export interface RoomToTarget {
   /** Distance from entry to the final target, in R. */
   finalR: number;
-  /** Distance to the nearest target, in R. */
+  /** Distance to the nearest (first) target, in R. */
   firstR: number;
-  /** Distance to the final target in ATR units. */
+  /**
+   * Distance to the NEXT structural target after TP1, in R. Equals `finalR`
+   * when the ladder only has two rungs, and `firstR` when it has one.
+   */
+  nextStructuralR: number;
+  /**
+   * Directional distance from entry to the FINAL target in ATR units:
+   *   LONG  (targetPrice - entryPrice) / ATR
+   *   SHORT (entryPrice - targetPrice) / ATR
+   * This is a real distance — never `abs(price) / ATR`.
+   */
   atrDistance: number;
+  /** Directional distance from entry to the FIRST target, in ATR units. */
+  firstAtrDistance: number;
   /** Is there enough room for the trade to be worth taking? */
   adequate: boolean;
   reason: string;

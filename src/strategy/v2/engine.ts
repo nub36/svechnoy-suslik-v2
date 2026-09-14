@@ -30,7 +30,8 @@ import {
 import { buildHtfContexts, htfAlignment, htfScore } from './htf';
 import type {
   ComponentProfile, FairValueGap, OrderBlock, RoomToTarget, SetupKind,
-  SetupPhase, StructuralStop, TargetPlan, V2Direction, V2EvaluateArgs, V2Setup,
+  SetupPhase, StructuralStop, TargetPlan, V2Direction, V2EvaluateArgs, V2Range,
+  V2Setup,
 } from './types';
 import { COMPONENT_KEYS, emptyProfile } from './types';
 
@@ -59,6 +60,7 @@ export interface V2Params {
   minEvidence: number;
   minNetEvidence: number;
   minRoomR: number;
+  minFirstTargetR: number;
   stopBufferAtr: number;
   rsiPeriod: number;
   atrPeriod: number;
@@ -94,6 +96,7 @@ export function paramsFromSettings(s: Settings): V2Params {
     minEvidence: n('v2.min_evidence', 0.45),
     minNetEvidence: n('v2.min_net_evidence', 0.12),
     minRoomR: n('v2.min_room_r', 1.5),
+    minFirstTargetR: n('v2.min_first_target_r', 0.5),
     stopBufferAtr: n('v2.stop_buffer_atr', 0.25),
     rsiPeriod: Math.floor(n('v2.rsi_period', 14)),
     atrPeriod: Math.floor(n('risk.atr_period', 14)),
@@ -140,114 +143,209 @@ export function aggregateEvidence(p: ComponentProfile): number {
 /* ------------------------------------------------------------------ */
 
 /**
- * Targets are STRUCTURAL, not arbitrary R multiples:
- *   TP1 nearest internal liquidity in the direction of travel
- *   TP2 range equilibrium (50%)
- *   TP3 the opposite range edge / external liquidity
- * If structure cannot supply a level, we fall back to an R multiple and say so.
+ * Targets are STRUCTURAL, not arbitrary R multiples, and — crucially — they are
+ * the NEXT levels the move must actually pass through:
+ *
+ *   TP1 nearest internal liquidity ahead of entry
+ *   TP2 the next structural level after TP1. Equilibrium qualifies ONLY when it
+ *       really is the next level; if other liquidity sits between entry and the
+ *       50% line, that liquidity is the next target, not equilibrium.
+ *   TP3 the next structural level after TP2 — opposite range edge / external
+ *       liquidity, but only while the range is still valid on that side.
+ *
+ * Two rules keep the ladder honest, and both are structural rather than a
+ * cosmetic R cap:
+ *
+ *  1. RANGE INVALIDATION. Once price has accepted beyond a boundary, the range
+ *     is stale on that side and its opposite edge is no longer a level this
+ *     move is travelling toward. A continuation trade that just broke out does
+ *     not aim back across the whole old range.
+ *
+ *  2. NEXT-LEVEL ORDERING. Every rung must be the nearest remaining structural
+ *     level beyond the previous rung. That is what stops TP2 skipping a dozen
+ *     liquidity pools to land on equilibrium 25R away.
+ *
+ * If structure genuinely supplies nothing, we fall back to R multiples and say
+ * so in `basis`/`reason`. The fallback multiples are fixed (1R/2R/3R) and were
+ * NOT fitted to any slice.
  */
-function buildTargets(
+export function buildTargets(
   direction: Direction,
   entry: number,
   stop: number,
-  range: { high: number; low: number; mid: number } | null,
+  range: V2Range | null,
   pools: readonly { side: 'BUY_SIDE' | 'SELL_SIDE'; price: number }[],
+  atr: number | null,
 ): TargetPlan[] {
   const risk = Math.abs(entry - stop);
   if (!(risk > 0)) return [];
-  const out: TargetPlan[] = [];
+
   const rOf = (p: number): number =>
     (direction === 'LONG' ? p - entry : entry - p) / risk;
-
+  const atrOf = (p: number): number => {
+    if (!atr || atr <= 0) return 0;
+    return (direction === 'LONG' ? p - entry : entry - p) / atr;
+  };
+  /** Strictly beyond entry, in the direction of the trade. */
   const ahead = (p: number): boolean =>
     direction === 'LONG' ? p > entry : p < entry;
 
-  // TP1 — nearest internal liquidity ahead of price.
+  /* ---- collect every structurally valid CANDIDATE ahead of entry ---- */
+  interface Candidate {
+    price: number;
+    basis: TargetPlan['basis'];
+    reason: string;
+  }
+  const candidates: Candidate[] = [];
+
+  // Internal liquidity on the side we are travelling toward.
   const wantSide = direction === 'LONG' ? 'BUY_SIDE' : 'SELL_SIDE';
-  const internal = pools
-    .filter((p) => p.side === wantSide && ahead(p.price))
-    .sort((a, b) => (direction === 'LONG' ? a.price - b.price : b.price - a.price));
-  if (internal.length > 0) {
-    const p = internal[0]!.price;
-    out.push({
-      price: p,
+  for (const p of pools) {
+    if (p.side !== wantSide) continue;
+    if (!ahead(p.price)) continue;
+    candidates.push({
+      price: p.price,
       basis: 'INTERNAL_LIQUIDITY',
-      reason: 'Nearest resting liquidity in the direction of travel',
-      r: rOf(p),
+      reason: 'Resting liquidity in the direction of travel',
     });
   }
 
-  // TP2 — equilibrium.
-  if (range && ahead(range.mid)) {
-    out.push({
-      price: range.mid,
-      basis: 'EQUILIBRIUM',
-      reason: 'Range equilibrium (50% Fibonacci)',
-      r: rOf(range.mid),
-    });
-  }
-
-  // TP3 — opposite range edge.
   if (range) {
+    // Equilibrium is a candidate only when it lies AHEAD of entry. Behind
+    // entry, already passed, or on the wrong side => not a target at all.
+    if (ahead(range.mid)) {
+      candidates.push({
+        price: range.mid,
+        basis: 'EQUILIBRIUM',
+        reason: 'Range equilibrium (50% of the range)',
+      });
+    }
+
+    // The opposite edge is a candidate only while the range is still VALID on
+    // the side we would be aiming at. If price has already accepted beyond a
+    // boundary, the old container is stale and its far edge is not the level
+    // this move is heading for.
     const far = direction === 'LONG' ? range.high : range.low;
-    if (ahead(far)) {
-      out.push({
+    const farSide: 'HIGH' | 'LOW' = direction === 'LONG' ? 'HIGH' : 'LOW';
+    const rangeStale = range.brokenSide !== null;
+    if (ahead(far) && !rangeStale) {
+      candidates.push({
         price: far,
         basis: 'RANGE_EDGE',
-        reason: 'Opposite side of the range — external liquidity',
-        r: rOf(far),
+        reason: `Opposite side of the range (${farSide}) — external liquidity`,
       });
     }
   }
 
-  // Fall back to R multiples only where structure gave us nothing.
+  /* ---- order by distance, de-duplicate, keep only NEXT levels ---- */
+  candidates.sort((a, b) =>
+    direction === 'LONG' ? a.price - b.price : b.price - a.price);
+
+  // Near-duplicate collapsing: two levels within 0.15 ATR (or 0.05% of price
+  // when ATR is unusable) are the same structural level in practice.
+  const nearTol = atr && atr > 0 ? atr * 0.15 : Math.abs(entry) * 0.0005;
+
+  const out: TargetPlan[] = [];
+  for (const c of candidates) {
+    if (out.length >= 3) break;
+    const r = rOf(c.price);
+    if (!(r > 0)) continue; // must be ahead of entry
+    const prev = out[out.length - 1];
+    if (prev && Math.abs(c.price - prev.price) <= nearTol) continue; // duplicate
+    out.push({
+      price: c.price,
+      basis: c.basis,
+      reason: c.reason,
+      r,
+      atrDistance: atrOf(c.price),
+    });
+  }
+
+  // Fall back to R multiples ONLY where structure gave us nothing at all.
   const fallback = [1, 2, 3];
   while (out.length < 3) {
     const r = fallback[out.length] ?? out.length + 1;
     const p = direction === 'LONG' ? entry + risk * r : entry - risk * r;
+    const prev = out[out.length - 1];
+    // Never emit a fallback that sits behind a structural rung we already have.
+    if (prev && ((direction === 'LONG' && p <= prev.price) || (direction === 'SHORT' && p >= prev.price))) {
+      break;
+    }
     out.push({
       price: p,
       basis: 'R_MULTIPLE',
       reason: `No structural level available; ${r}R fallback`,
       r,
+      atrDistance: atrOf(p),
     });
   }
 
-  // Enforce monotonic ordering away from entry and drop duplicates.
+  // Final guarantee: strictly increasing R, no duplicates, at most 3 rungs.
   const seen = new Set<number>();
-  const ordered = out
+  return out
     .filter((t) => {
       const k = Math.round(t.price * 1e8);
       if (seen.has(k)) return false;
       seen.add(k);
       return t.r > 0;
     })
-    .sort((a, b) => a.r - b.r);
-  return ordered.slice(0, 3);
+    .sort((a, b) => a.r - b.r)
+    .slice(0, 3);
 }
 
-function assessRoom(
+/**
+ * Room assessment. A trade is NOT acceptable merely because a distant final
+ * target produces a large `finalR`: the nearest structural target must itself
+ * leave workable room, otherwise the ladder is "TP1 at 0.2R then a 50R moon
+ * shot", which is exactly the pathology the audit found.
+ */
+export function assessRoom(
   targets: readonly TargetPlan[],
+  entry: number,
   atr: number | null,
   minRoomR: number,
+  minFirstR: number,
 ): RoomToTarget {
+  void entry;
   if (targets.length === 0) {
     return {
-      finalR: 0, firstR: 0, atrDistance: 0, adequate: false,
+      finalR: 0, firstR: 0, nextStructuralR: 0, atrDistance: 0,
+      firstAtrDistance: 0, adequate: false,
       reason: 'No reachable target could be derived',
     };
   }
-  const finalR = targets[targets.length - 1]!.r;
-  const firstR = targets[0]!.r;
-  const adequate = finalR >= minRoomR;
+  const last = targets[targets.length - 1]!;
+  const first = targets[0]!;
+  const finalR = last.r;
+  const firstR = first.r;
+  const nextStructuralR = (targets[1] ?? last).r;
+
+  const finalOk = finalR >= minRoomR;
+  const firstOk = firstR >= minFirstR;
+  const adequate = finalOk && firstOk;
+
+  let reason: string;
+  if (!finalOk) {
+    reason = `Only ${finalR.toFixed(2)}R to the final target, below the ${minRoomR}R floor`;
+  } else if (!firstOk) {
+    reason =
+      `First target is only ${firstR.toFixed(2)}R away (floor ${minFirstR}R) — ` +
+      `the nearest structural level leaves too little room, even though the final target is ${finalR.toFixed(2)}R`;
+  } else {
+    reason =
+      `First target ${firstR.toFixed(2)}R, next ${nextStructuralR.toFixed(2)}R, ` +
+      `final ${finalR.toFixed(2)}R`;
+  }
+
   return {
     finalR,
     firstR,
-    atrDistance: atr && atr > 0 ? Math.abs(targets[targets.length - 1]!.price) / atr : 0,
+    nextStructuralR,
+    // REAL directional distance, not abs(price)/ATR.
+    atrDistance: last.atrDistance,
+    firstAtrDistance: first.atrDistance,
     adequate,
-    reason: adequate
-      ? `Final target is ${finalR.toFixed(2)}R away`
-      : `Only ${finalR.toFixed(2)}R to the final target, below the ${minRoomR}R floor`,
+    reason,
   };
 }
 
@@ -484,8 +582,8 @@ export function evaluateV2(args: V2EvaluateArgs): V2Setup | null {
     }
 
     if (stop) {
-      targets = buildTargets(candidate, entry, stop.price, range, pools);
-      room = assessRoom(targets, atr, p.minRoomR);
+      targets = buildTargets(candidate, entry, stop.price, range, pools, atr);
+      room = assessRoom(targets, entry, atr, p.minRoomR, p.minFirstTargetR);
       const rScore = clamp01(room.finalR / (p.minRoomR * 2));
       if (candidate === 'LONG') longP.roomToTarget = rScore;
       else shortP.roomToTarget = rScore;
@@ -535,7 +633,7 @@ export function evaluateV2(args: V2EvaluateArgs): V2Setup | null {
     time: bar.openTime,
     close: bar.close,
     direction,
-    kind: direction === 'WAIT' ? kind : kind,
+    kind,
     phase,
     location,
     range,

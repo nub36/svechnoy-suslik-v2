@@ -67,6 +67,7 @@ export function loadFixtureCandles(
 /* ------------------------------------------------------------------ */
 
 export interface Metrics {
+  /** Number of CLOSED trades. OPEN trades are excluded from every metric here. */
   n: number;
   long: number;
   short: number;
@@ -74,7 +75,30 @@ export interface Metrics {
   losses: number;
   timeouts: number;
   open: number;
+  /**
+   * DEPRECATED NAME — kept so existing callers keep compiling.
+   * Equals `tpExitRate`: the share of closed trades whose exit reason was TP.
+   * Do NOT present this as "win rate" next to `positiveRRate`; they measure
+   * different things and differed by 4x in the b8825d1 audit.
+   */
   winRatePct: number;
+  /** TP exits / closed trades, in %. */
+  tpExitRate: number;
+  /** Trades with R > 0 / closed trades, in %. Includes profitable TIMEOUTs. */
+  positiveRRate: number;
+  /** SL exits / closed trades, in %. */
+  slRate: number;
+  /** TIMEOUT exits / closed trades, in %. */
+  timeoutRate: number;
+  /** Count of trades still OPEN at the end of the window (not in `n`). */
+  openCount: number;
+  /**
+   * Expectancy over closed trades EXCLUDING time exits. Diagnostic only: it
+   * answers "does the edge survive without mark-to-market at the bar limit?".
+   */
+  expectancyExTimeout: number;
+  /** Sample size behind `expectancyExTimeout`. */
+  nExTimeout: number;
   stopRatePct: number;
   expiredRatePct: number;
   avgR: number;
@@ -91,7 +115,9 @@ export interface Metrics {
 
 const EMPTY: Metrics = {
   n: 0, long: 0, short: 0, wins: 0, losses: 0, timeouts: 0, open: 0,
-  winRatePct: 0, stopRatePct: 0, expiredRatePct: 0, avgR: 0, medianR: 0,
+  winRatePct: 0, tpExitRate: 0, positiveRRate: 0, slRate: 0, timeoutRate: 0,
+  openCount: 0, expectancyExTimeout: 0, nExTimeout: 0,
+  stopRatePct: 0, expiredRatePct: 0, avgR: 0, medianR: 0,
   totalR: 0, profitFactor: 0, maxDrawdownR: 0, expectancy: 0, avgBarsHeld: 0,
   tp1Rate: 0, tp2Rate: 0, tp3Rate: 0,
 };
@@ -116,8 +142,9 @@ function reachedTp(t: ReplayTrade, k: number): boolean {
 
 export function computeMetrics(trades: readonly ReplayTrade[]): Metrics {
   const finished = trades.filter((t) => t.result !== 'OPEN');
+  const openCount = trades.length - finished.length;
   const n = finished.length;
-  if (n === 0) return { ...EMPTY, open: trades.length };
+  if (n === 0) return { ...EMPTY, open: openCount, openCount };
 
   const rs = finished.map((t) => t.rMultiple).sort((a, b) => a - b);
   const wins = finished.filter((t) => t.result === 'TP').length;
@@ -138,6 +165,7 @@ export function computeMetrics(trades: readonly ReplayTrade[]): Metrics {
 
   const mid = Math.floor(n / 2);
   const medianR = n % 2 === 0 ? ((rs[mid - 1] ?? 0) + (rs[mid] ?? 0)) / 2 : (rs[mid] ?? 0);
+  const exTimeout = finished.filter((t) => t.result !== 'TIMEOUT');
 
   return {
     n,
@@ -146,8 +174,17 @@ export function computeMetrics(trades: readonly ReplayTrade[]): Metrics {
     wins,
     losses,
     timeouts,
-    open: trades.length - n,
+    open: openCount,
+    openCount,
     winRatePct: r2((wins / n) * 100),
+    tpExitRate: r2((wins / n) * 100),
+    positiveRRate: r2((finished.filter((t) => t.rMultiple > 0).length / n) * 100),
+    slRate: r2((losses / n) * 100),
+    timeoutRate: r2((timeouts / n) * 100),
+    expectancyExTimeout: exTimeout.length > 0
+      ? r2(exTimeout.reduce((s2, t) => s2 + t.rMultiple, 0) / exTimeout.length)
+      : 0,
+    nExTimeout: exTimeout.length,
     stopRatePct: r2((losses / n) * 100),
     expiredRatePct: r2((timeouts / n) * 100),
     avgR: r2(totalR / n),

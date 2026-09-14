@@ -283,6 +283,7 @@ describe('V2 range and Fibonacci', () => {
       high: 110, low: 90, mid: 100, size: 20, age: 5, knownAtIndex: 0,
       highIndex: 1, lowIndex: 2, touchCountHigh: 2, touchCountLow: 2,
       position, confidence: 0.8, sourceTimeframe: '1h' as Timeframe,
+      brokenSide: null, brokenAtIndex: null,
     });
     expect(rangeLocation(mk(0.95), 0.25)).toBe('HIGH');
     expect(rangeLocation(mk(0.05), 0.25)).toBe('LOW');
@@ -294,6 +295,7 @@ describe('V2 range and Fibonacci', () => {
       high: 200, low: 100, mid: 150, size: 100, age: 5, knownAtIndex: 0,
       highIndex: 1, lowIndex: 2, touchCountHigh: 2, touchCountLow: 2,
       position: 0.5, confidence: 0.8, sourceTimeframe: '1h' as Timeframe,
+      brokenSide: null, brokenAtIndex: null,
     };
     const f = buildFib(r, 150)!;
     expect(f.level0).toBe(100);

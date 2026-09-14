@@ -250,8 +250,12 @@ export function buildV2Diagnostics(s: V2Setup): V2Diagnostics {
     },
     {
       label: 'Место до цели',
-      value: s.room ? `${f2(s.room.finalR)}R` : '—',
-      detail: s.room?.reason,
+      value: s.room
+        ? `TP1 ${f2(s.room.firstR)}R / далее ${f2(s.room.nextStructuralR)}R / итог ${f2(s.room.finalR)}R`
+        : '—',
+      detail: s.room
+        ? `${s.room.reason}. Расстояние до финальной цели: ${f2(s.room.atrDistance)} ATR`
+        : undefined,
     },
   ];
 
@@ -363,11 +367,29 @@ export function buildChartPayload(
   settings: Settings,
   signal?: SignalOverlay | null,
   tickSize?: number | null,
+  /**
+   * Higher-timeframe candles for the V2 diagnostic panel only.
+   *
+   * The caller supplies these ONLY when `v2.enabled` is true, so a disabled
+   * research engine costs nothing. The engine itself still enforces causality:
+   * `closedHtfCandles()` keeps a bar only when `openTime + tfMs(htf)` is at or
+   * before the close time of the evaluated LTF bar, so an unclosed higher-
+   * timeframe candle can never be consulted. When this is omitted or a needed
+   * timeframe is missing, the panel honestly reports UNKNOWN rather than
+   * inventing a bias.
+   */
+  htfCandles?: Partial<Record<Timeframe, readonly Candle[]>>,
 ): ChartPayload {
   const ev = evaluate({ symbol, timeframe, candles, settings });
   // V2 diagnostics are computed only when the research engine is enabled.
   // It never influences signals — it is an inspection surface.
-  const v2Setup = evaluateV2IfEnabled({ symbol, timeframe, candles, settings });
+  const v2Setup = evaluateV2IfEnabled({
+    symbol,
+    timeframe,
+    candles,
+    settings,
+    ...(htfCandles ? { htfCandles } : {}),
+  });
 
   let boxes: OverlayBox[] = [];
   let lines: OverlayLine[] = [];

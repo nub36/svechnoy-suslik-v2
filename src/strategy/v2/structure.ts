@@ -221,6 +221,32 @@ export function buildRange(
   const establishedAt = Math.max(topSwing.confirmedIndex, botSwing.confirmedIndex);
   const age = index - establishedAt;
 
+  // RANGE INVALIDATION.
+  //
+  // The boundaries come from confirmed swings, so price can (and does) trade
+  // and CLOSE beyond them afterwards. When that happens the range is stale on
+  // that side: a continuation trade that just broke out above the high must not
+  // aim back at the low as if the old range still contained price.
+  //
+  // Acceptance = a CLOSE beyond the boundary by more than a noise allowance
+  // (10% of the range), on a bar at or after the boundary was confirmed and at
+  // or before the evaluation bar. Wicks alone never invalidate a range —
+  // consistent with the BOS rule that a wick is not a break.
+  let brokenSide: 'HIGH' | 'LOW' | null = null;
+  let brokenAtIndex: number | null = null;
+  const acceptTol = size * 0.1;
+  for (let i = Math.max(0, establishedAt); i <= index; i++) {
+    const c = candles[i];
+    if (!c) continue;
+    if (c.close > high + acceptTol) {
+      brokenSide = 'HIGH';
+      brokenAtIndex = i;
+    } else if (c.close < low - acceptTol) {
+      brokenSide = 'LOW';
+      brokenAtIndex = i;
+    }
+  }
+
   // Confidence: needs real size vs ATR, and evidence both edges are respected.
   const sizeScore = atr !== null && atr > 0 ? Math.min(1, size / (atr * 4)) : 0.5;
   const touchScore = Math.min(1, (Math.min(touchHigh, touchLow) + 1) / 3);
@@ -241,6 +267,8 @@ export function buildRange(
     position: Math.max(0, Math.min(1, (bar.close - low) / size)),
     confidence,
     sourceTimeframe: timeframe,
+    brokenSide,
+    brokenAtIndex,
   };
 }
 

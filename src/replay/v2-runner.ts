@@ -27,7 +27,18 @@ export interface V2Trade extends ReplayTrade {
   setupKind: SetupKind | null;
   location: 'HIGH' | 'LOW' | 'MID';
   htfAlignment: string;
+  /**
+   * Aggregated directional evidence on a 0..1 scale.
+   *
+   * This is NOT a probability and NOT a percentage. `ReplayTrade.score` carries
+   * `round(evidence * 100)` purely so V1 tooling keeps working; read `evidence`
+   * (0..1), `displayEvidence` (0..100) and `notProbability` instead.
+   */
   evidence: number;
+  /** `evidence * 100`, for display only. Never render it with a % sign. */
+  displayEvidence: number;
+  /** Always true — a marker so no report can silently treat evidence as P(win). */
+  notProbability: true;
   conflict: number;
   netEvidence: number;
   adxRegime: string;
@@ -41,6 +52,38 @@ export interface V2Trade extends ReplayTrade {
   sweepQuality: number | null;
   breakoutQuality: number | null;
   roomR: number;
+
+  /* ---- target diagnostics (§12), recorded at SETUP time ---- */
+  /** ATR at the setup bar — the normaliser every distance below uses. */
+  atrAtSetup: number | null;
+  /** abs(entry - structural stop), in price. */
+  riskDistance: number;
+  /** Risk in ATR units. */
+  riskAtr: number | null;
+  /** Reason text and anchor of the structural stop. */
+  stopAnchor: string | null;
+  stopReason: string | null;
+  /** Per-rung diagnostics. Null when the ladder has fewer rungs. */
+  tp1Price: number | null;
+  tp1Source: string | null;
+  tp1R: number | null;
+  tp1AtrDistance: number | null;
+  tp2Price: number | null;
+  tp2Source: string | null;
+  tp2R: number | null;
+  tp2AtrDistance: number | null;
+  tp3Price: number | null;
+  tp3Source: string | null;
+  tp3R: number | null;
+  tp3AtrDistance: number | null;
+  /** Room metrics carried from the engine. */
+  firstTargetR: number;
+  nextStructuralR: number;
+  finalTargetR: number;
+  /** `outcome.timeout_bars` in force for this trade. */
+  timeoutBars: number;
+  /** Was the range already stale on one side when the setup was built? */
+  rangeBrokenSide: 'HIGH' | 'LOW' | null;
 }
 
 export interface V2ReplayArgs {
@@ -76,6 +119,35 @@ const macdState = (s: V2Setup): string => {
   return h > 0 ? (s.macd.accelerating ? 'BULL_ACCEL' : 'BULL') : (s.macd.accelerating ? 'BEAR_ACCEL' : 'BEAR');
 };
 
+
+/**
+ * The ladder that is actually executable from a given fill, plus the reward
+ * ratio of its FIRST rung.
+ *
+ * Acceptance must be decided on TP1 alone: a far TP2/TP3 may never drag a
+ * setup past `risk.min_rr` when the nearest target does not pay for the risk.
+ * Targets that are not strictly ahead of the fill are dropped outright — they
+ * are not executable, so they cannot be "the first target".
+ */
+export function executableLadder(
+  direction: 'LONG' | 'SHORT',
+  entryPrice: number,
+  stopPrice: number,
+  takeProfits: readonly number[],
+): { targets: number[]; rr1: number; risk: number } {
+  const risk = Math.abs(entryPrice - stopPrice);
+  const ahead = (t: number): boolean =>
+    direction === 'LONG' ? t > entryPrice : t < entryPrice;
+  const targets = takeProfits
+    .filter((t) => Number.isFinite(t) && ahead(t))
+    .sort((a, b) => Math.abs(a - entryPrice) - Math.abs(b - entryPrice));
+  const first = targets[0];
+  const reward1 = first === undefined
+    ? 0
+    : (direction === 'LONG' ? first - entryPrice : entryPrice - first);
+  return { targets, rr1: risk > 0 ? reward1 / risk : 0, risk };
+}
+
 /**
  * Walk one series chronologically. One position at a time, mirroring the live
  * engine's single-slot behaviour.
@@ -91,6 +163,7 @@ export function replayV2Series(args: V2ReplayArgs): { trades: V2Trade[]; evaluat
   let waits = 0;
 
   const minRr = settings.num('risk.min_rr');
+  const timeoutBars = Math.floor(settings.num('outcome.timeout_bars'));
   const swing = Math.floor(settings.num('engine.swing_lookback'));
   const minBars = Math.max(80, swing * 6 + 40);
 
@@ -121,12 +194,15 @@ export function replayV2Series(args: V2ReplayArgs): { trades: V2Trade[]; evaluat
           const stopPrice = stop + shift;
           const tps = s.targets.map((t) => t.price + shift);
           const riskPerUnit = Math.abs(entry.entryPrice - stopPrice);
-          const rr1 = tps.length > 0
-            ? Math.abs(tps[0]! - entry.entryPrice) / (riskPerUnit || 1)
-            : 0;
+
+          // RR ACCEPTANCE (§5) — see `executableLadder`.
+          const ladder = executableLadder(s.direction, entry.entryPrice, stopPrice, tps);
+          const aheadTps = ladder.targets;
+          const rr1 = ladder.rr1;
+
           const valid = riskPerUnit > 0 &&
             (s.direction === 'LONG' ? stopPrice < entry.entryPrice : stopPrice > entry.entryPrice) &&
-            tps.length > 0 && rr1 >= minRr;
+            aheadTps.length > 0 && rr1 >= minRr;
 
           if (valid) {
             open = {
@@ -140,7 +216,7 @@ export function replayV2Series(args: V2ReplayArgs): { trades: V2Trade[]; evaluat
               entryCandleTime: entry.entryCandleTime,
               entryPrice: entry.entryPrice,
               stopLoss: stopPrice,
-              takeProfits: tps,
+              takeProfits: aheadTps,
               result: 'OPEN',
               exitPrice: null,
               exitCandleTime: null,
@@ -157,6 +233,9 @@ export function replayV2Series(args: V2ReplayArgs): { trades: V2Trade[]; evaluat
               location: s.location,
               htfAlignment: s.htfAlignment,
               evidence: s.direction === 'LONG' ? s.longEvidence : s.shortEvidence,
+              displayEvidence: Math.round(
+                (s.direction === 'LONG' ? s.longEvidence : s.shortEvidence) * 100),
+              notProbability: true,
               conflict: s.conflict,
               netEvidence: s.netEvidence,
               adxRegime: s.adx.regime,
@@ -170,6 +249,34 @@ export function replayV2Series(args: V2ReplayArgs): { trades: V2Trade[]; evaluat
               sweepQuality: s.sweep?.quality ?? null,
               breakoutQuality: s.breakout?.quality ?? null,
               roomR: s.room?.finalR ?? 0,
+
+              atrAtSetup: s.atr.atr,
+              riskDistance: riskPerUnit,
+              riskAtr: s.atr.atr && s.atr.atr > 0 ? riskPerUnit / s.atr.atr : null,
+              stopAnchor: s.stop?.anchor ?? null,
+              stopReason: s.stop?.reason ?? null,
+              tp1Price: aheadTps[0] ?? null,
+              tp1Source: s.targets[0]?.basis ?? null,
+              tp1R: aheadTps[0] === undefined ? null : rr1,
+              tp1AtrDistance: s.targets[0]?.atrDistance ?? null,
+              tp2Price: aheadTps[1] ?? null,
+              tp2Source: s.targets[1]?.basis ?? null,
+              tp2R: aheadTps[1] === undefined
+                ? null
+                : Math.abs(aheadTps[1]! - entry.entryPrice) / riskPerUnit,
+              tp2AtrDistance: s.targets[1]?.atrDistance ?? null,
+              tp3Price: aheadTps[2] ?? null,
+              tp3Source: s.targets[2]?.basis ?? null,
+              tp3R: aheadTps[2] === undefined
+                ? null
+                : Math.abs(aheadTps[2]! - entry.entryPrice) / riskPerUnit,
+              tp3AtrDistance: s.targets[2]?.atrDistance ?? null,
+              firstTargetR: s.room?.firstR ?? 0,
+              nextStructuralR: s.room?.nextStructuralR ?? 0,
+              finalTargetR: s.room?.finalR ?? 0,
+              timeoutBars,
+              rangeBrokenSide: s.range?.brokenSide ?? null,
+
               riskPerUnit,
               entryIndex: i,
             };
@@ -221,6 +328,22 @@ export function replayV2Series(args: V2ReplayArgs): { trades: V2Trade[]; evaluat
         else pending = { setup, setupCandleTime: setup.time };
       }
     }
+  }
+
+  // DATASET BOUNDARY (§1). A position still running when the replay window ends
+  // is reported as OPEN, exactly like src/replay/runner.ts does for V1.
+  //
+  // It is NOT converted into a TIMEOUT: the timeout is a real, dated time exit
+  // that happens at a specific bar, whereas this trade simply has no more data.
+  // Silently dropping it (the previous V2 behaviour) made the V1/V2 comparison
+  // asymmetric at the window edge; silently timing it out would invent an exit
+  // price that the market never printed. `result` stays 'OPEN', entry / stop /
+  // targets are preserved, and `computeMetrics` excludes OPEN from every closed
+  // -trade statistic.
+  if (open) {
+    const { riskPerUnit: _r, entryIndex: _e, ...rest } = open;
+    trades.push(rest as V2Trade);
+    open = null;
   }
 
   return { trades, evaluations, waits };

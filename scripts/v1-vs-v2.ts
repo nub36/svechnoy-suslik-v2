@@ -76,13 +76,11 @@ function runV2(
       if (candles.length < 100) continue;
       // Supply higher-timeframe candles; the engine itself enforces that only
       // CLOSED HTF bars may be consulted.
-      const htfCandles: Partial<Record<Timeframe, readonly Timeframe[] | never>> = {};
       const htf: Partial<Record<Timeframe, ReturnType<typeof loadFixtureCandles>>> = {};
       for (const h of HTF_MAP[tf] ?? []) {
         const hc = loadFixtureCandles('fixtures', symbol, h);
         if (hc.length > 0) htf[h] = hc;
       }
-      void htfCandles;
       const w = windowFor(slice, splitPoints(candles));
       const res = replayV2Series({
         symbol, timeframe: tf, candles, settings, htfCandles: htf, ...w,
@@ -128,17 +126,63 @@ function medianFirstTpR(trades: readonly ReplayTrade[]): number {
   return rs.length === 0 ? 0 : (rs[Math.floor(rs.length / 2)] ?? 0);
 }
 
+/**
+ * One reporting row. Deliberately prints tpExitRate and positiveRRate SIDE BY
+ * SIDE and never labels either of them "win rate" — the audit of b8825d1 showed
+ * the same strategy could be described as 10% or 47.5% "wins" depending on
+ * which definition was silently used.
+ */
 const row = (label: string, m: Metrics): string =>
   [
     label.padEnd(22),
-    `n=${String(m.n).padStart(4)}`,
+    `closed=${String(m.n).padStart(4)}`,
+    `open=${String(m.openCount).padStart(3)}`,
     `L/S=${String(m.long).padStart(3)}/${String(m.short).padEnd(3)}`,
-    `win=${String(m.winRatePct).padStart(7)}%`,
+    `tpExit=${String(m.tpExitRate).padStart(6)}`,
+    `posR=${String(m.positiveRRate).padStart(6)}`,
     `exp=${String(m.expectancy).padStart(8)}R`,
     `totR=${String(m.totalR).padStart(9)}`,
     `PF=${String(m.profitFactor).padStart(6)}`,
     `maxDD=${String(m.maxDrawdownR).padStart(9)}`,
   ].join('  ');
+
+/** Quantiles of a numeric sample, for target-geometry diagnostics. */
+function quantiles(xs: readonly number[]): string {
+  if (xs.length === 0) return 'n/a';
+  const a = [...xs].sort((x, y) => x - y);
+  const q = (f: number): string => (a[Math.floor(f * (a.length - 1))] ?? 0).toFixed(2);
+  return `min=${q(0)} p25=${q(0.25)} median=${q(0.5)} p75=${q(0.75)} max=${q(1)}`;
+}
+
+/**
+ * Target-geometry report (§13). The point is NOT profitability: it is whether
+ * the ladder still produces unreachable 10R-45R final targets.
+ */
+function targetGeometry(label: string, trades: readonly V2Trade[]): void {
+  const closed = trades.filter((t) => t.result !== 'OPEN');
+  if (closed.length === 0) return;
+  const risk = (t: V2Trade): number => Math.abs(t.entryPrice - t.stopLoss);
+  const tp1R = closed
+    .map((t) => {
+      const tp = t.takeProfits[0];
+      return tp === undefined || risk(t) <= 0 ? NaN : Math.abs(tp - t.entryPrice) / risk(t);
+    })
+    .filter((x) => Number.isFinite(x));
+  const finalR = closed
+    .map((t) => {
+      const tp = t.takeProfits[t.takeProfits.length - 1];
+      return tp === undefined || risk(t) <= 0 ? NaN : Math.abs(tp - t.entryPrice) / risk(t);
+    })
+    .filter((x) => Number.isFinite(x));
+  const over = (x: number): string => {
+    const c = finalR.filter((v) => v > x).length;
+    return `${c} (${((c / finalR.length) * 100).toFixed(1)}%)`;
+  };
+  console.log(`\n--- ${label}: target geometry ---`);
+  console.log(`  TP1 R      ${quantiles(tp1R)}`);
+  console.log(`  final R    ${quantiles(finalR)}`);
+  console.log(`  final >5R  ${over(5)}   >10R ${over(10)}   >20R ${over(20)}`);
+}
 
 function breakdown(title: string, trades: readonly V2Trade[], key: (t: V2Trade) => string): void {
   const groups = [...groupBy(trades, key)].sort((a, b) => a[0].localeCompare(b[0]));
@@ -188,11 +232,29 @@ function main(): void {
       `    median first-target distance: V1 ${medianFirstTpR(v1.trades).toFixed(2)}R  ` +
         `V2 ${medianFirstTpR(v2.trades).toFixed(2)}R`,
     );
+
+    // Exit-state accounting (§2 A-G). OPEN is reported but never folded into
+    // any closed-trade statistic; expectancy-excluding-TIMEOUT is a diagnostic
+    // sensitivity metric, not the headline.
+    for (const [name, m] of [['V1', m1], ['V2', m2]] as const) {
+      console.log(
+        `    ${name} states: TP=${m.wins} SL=${m.losses} TIMEOUT=${m.timeouts} ` +
+          `OPEN=${m.openCount} | tpExitRate=${m.tpExitRate}% positiveRRate=${m.positiveRRate}% ` +
+          `slRate=${m.slRate}% timeoutRate=${m.timeoutRate}%`,
+      );
+      console.log(
+        `    ${name} expectancy: all closed=${m.expectancy}R  ` +
+          `excluding TIMEOUT=${m.expectancyExTimeout}R (n=${m.nExTimeout}, diagnostic)`,
+      );
+    }
     console.log('');
     out[slice] = {
       v1: m1, v2: m2, v2Evaluations: v2.evaluations, v2Waits: v2.waits,
       v2Trades: v2.trades,
     };
+
+    targetGeometry(`${slice.toUpperCase()} V2`, v2.trades);
+    console.log('');
 
     if (slice === 'test') {
       // Research slices, TEST only, purely descriptive.
@@ -221,7 +283,9 @@ function main(): void {
   // Additional integrity check: profit must come from TARGETS being hit, not
   // from mark-to-market at the timeout bar. A strategy whose edge evaporates
   // when TIMEOUT trades are excluded has not proven its targets work.
-  const testV2 = (out['test'] as { v2Trades?: ReplayTrade[] }).v2Trades ?? [];
+  const testV2All = (out['test'] as { v2Trades?: ReplayTrade[] }).v2Trades ?? [];
+  // OPEN trades have no realised R and must never dilute either statistic.
+  const testV2 = testV2All.filter((x) => x.result !== 'OPEN');
   const nonTimeout = testV2.filter((x) => x.result !== 'TIMEOUT');
   const nonTimeoutExp = nonTimeout.length > 0
     ? nonTimeout.reduce((a, x) => a + x.rMultiple, 0) / nonTimeout.length
@@ -241,7 +305,8 @@ function main(): void {
   console.log('');
   console.log(
     `  V2 excluding TIMEOUT exits: n=${nonTimeout.length} expectancy=${nonTimeoutExp.toFixed(4)}R ` +
-      `(TIMEOUT share ${(timeoutShare * 100).toFixed(1)}%)`,
+      `(TIMEOUT share ${(timeoutShare * 100).toFixed(1)}% of ${testV2.length} closed; ` +
+      `${testV2All.length - testV2.length} OPEN excluded)`,
   );
   console.log('');
   if (beats && targetsWork) {

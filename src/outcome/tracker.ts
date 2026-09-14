@@ -45,8 +45,36 @@ export interface TrackOutput {
 }
 
 /**
- * Returns null when the trade is still OPEN (no TP/SL hit and the timeout has
- * not elapsed yet).
+ * Walk a trade forward bar by bar and decide how it ended.
+ *
+ * EXIT SEMANTICS — the three states are distinct and must stay distinct:
+ *
+ *   TP      the FINAL rung of the ladder was reached. Intermediate rungs are
+ *           milestones only: this build has no partial-exit accounting, so
+ *           touching TP1/TP2 neither realises PnL nor closes the position.
+ *
+ *   SL      the stop was touched.
+ *
+ *   TIMEOUT a FORCED TIME EXIT. The position reached neither the terminal TP
+ *           nor the SL within `outcome.timeout_bars` bars, so it is closed at
+ *           the CLOSE of the timeout bar — that bar being the last one the
+ *           trade is permitted to occupy (`i + 1 >= timeoutBars`, zero-based,
+ *           so `barsHeld === timeoutBars` exactly). The exit price is that
+ *           candle's close: a real printed price from a CLOSED candle, never an
+ *           extreme, never a target, never a future bar. TIMEOUT is NOT a
+ *           take-profit and must never be reported as one, even when its R is
+ *           positive. On the timeout bar itself SL and the final TP still take
+ *           priority, resolved by the same deterministic intrabar policy used
+ *           everywhere else (`outcome.sl_priority_on_ambiguous_bar`).
+ *
+ * Returns null when the trade is still OPEN — no TP/SL hit and the timeout has
+ * not elapsed yet, which is also what happens when the supplied data simply
+ * runs out first. A dataset boundary therefore yields OPEN, never TIMEOUT: the
+ * caller must record it as OPEN and exclude it from closed-trade statistics.
+ *
+ * Only candles at or after the entry candle are considered, and the function
+ * returns the moment an exit condition is met, so no candle beyond the exit is
+ * ever inspected.
  */
 export function trackOutcome(input: TrackInput): TrackOutput | null {
   const { direction, entryPrice, stopLoss, settings } = input;

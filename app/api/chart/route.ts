@@ -2,6 +2,9 @@ import { getDb } from '@/db';
 import { getCandles } from '@/db/repo';
 import { loadSettings } from '@/core/settings';
 import { buildChartPayload, buildSignalLevels, type SignalOverlay } from '@/web/overlays';
+import { v2Enabled } from '@/strategy/v2';
+import { HTF_MAP } from '@/strategy/v2/htf';
+import type { Candle, Timeframe } from '@/core/types';
 import { ok, fail, parseTimeframe, parseIntParam, errorMessage } from '@/web/api-utils';
 import { LIVE_SIGNAL_STATES, TERMINAL_STATES } from '@/core/types';
 
@@ -113,7 +116,37 @@ export async function GET(req: Request): Promise<Response> {
       };
     }
 
-    return ok(buildChartPayload(symbol, timeframe, candles, settings, signal, tickSize));
+    // V2 DIAGNOSTIC HTF CONTEXT.
+    //
+    // Market ingestion covers all supported timeframes, so the higher-timeframe
+    // candles this needs are already in the database. We load them ONLY when the
+    // research engine is enabled — with `v2.enabled = false` (the default) this
+    // block does no work at all and the payload is byte-identical to before.
+    //
+    // No look-ahead is introduced here: we hand over raw closed candles and the
+    // engine's `closedHtfCandles()` filter decides which of them had actually
+    // closed by the evaluated bar. Missing data stays missing, and the panel
+    // shows UNKNOWN rather than a fabricated bias.
+    let htfCandles: Partial<Record<Timeframe, readonly Candle[]>> | undefined;
+    if (v2Enabled(settings)) {
+      const wanted = HTF_MAP[timeframe] ?? [];
+      if (wanted.length > 0) {
+        const loaded = await Promise.all(
+          wanted.map(async (htf) => [
+            htf,
+            await getCandles(db, symbol, htf, { limit, closedOnly: true }),
+          ] as const),
+        );
+        htfCandles = {};
+        for (const [htf, rows] of loaded) {
+          if (rows.length > 0) htfCandles[htf] = rows;
+        }
+      }
+    }
+
+    return ok(buildChartPayload(
+      symbol, timeframe, candles, settings, signal, tickSize, htfCandles,
+    ));
   } catch (err) {
     return fail(errorMessage(err), 500);
   }

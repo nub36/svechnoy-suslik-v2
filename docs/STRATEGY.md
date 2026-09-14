@@ -153,7 +153,8 @@ confirmed swing low** in the lookback window — explicitly *not* a raw
 `max/min` of the last N candles.
 
 Stored fields: `high`, `low`, `mid`, `size`, `age`, `knownAtIndex`,
-`touchCountHigh`, `touchCountLow`, `position`, `confidence`, `sourceTimeframe`.
+`touchCountHigh`, `touchCountLow`, `position`, `confidence`, `sourceTimeframe`,
+`brokenSide`, `brokenAtIndex`.
 
 ```
 position   = (close - low) / (high - low)                     ∈ [0,1]
@@ -187,6 +188,42 @@ EQUILIBRIUM. Bullish setups are preferred from discount, bearish from premium.
 
 **Fibonacci never generates a signal.** It is confluence, a position map, and a
 source of targets.
+
+---
+
+### 3.4 Range invalidation
+
+The boundaries come from confirmed swings, so price can trade — and **close** —
+beyond them afterwards. When that happens the range is **stale on that side**
+and must not keep serving as a structural target.
+
+```
+acceptTol = 0.10 * range.size
+for every bar i in [establishedAt .. evalIndex]:      # causal, never future
+    if close[i] > high + acceptTol:  brokenSide = 'HIGH'; brokenAtIndex = i
+    if close[i] < low  - acceptTol:  brokenSide = 'LOW';  brokenAtIndex = i
+```
+
+Rules that follow from it:
+
+* **A wick beyond the boundary never invalidates a range.** Only a CLOSE does —
+  the same principle as "a wick is not a BOS" (§2.3).
+* **The opposite edge of an invalidated range is not a target.** `buildTargets()`
+  drops the `RANGE_EDGE` candidate whenever `brokenSide !== null`. This is the
+  direct answer to "can TP3 reference a range already invalidated by the current
+  breakout?" — it cannot.
+* **A continuation trade does not aim back at the old opposite structure.**
+  After acceptance above the high, the far side of the broken container carries
+  no structural claim on price, so the ladder falls back to real liquidity ahead
+  (or to `R_MULTIPLE` if there is none).
+* **A new external HH/LL replaces the old boundary** on the next evaluation:
+  `buildRange()` is recomputed from scratch on every bar from the currently
+  confirmed swings, so once the breakout high is itself confirmed as a swing it
+  becomes the new `high`. Invalidation covers the window between acceptance and
+  that confirmation.
+
+The flag is diagnostic elsewhere: it is reported on each replay trade as
+`rangeBrokenSide` so real-data analysis can slice by it.
 
 ---
 
@@ -440,6 +477,25 @@ Alignment is **labelled, not enforced**:
 A counter-trend setup is penalised but **not banned** — whether to filter it out
 is a question for statistics, not for an assumption.
 
+### 7.1 HTF in the UI diagnostic panel
+
+The replay supplies higher-timeframe candles, so replay-time HTF context is
+real. The chart payload historically did **not**, which meant the V2 diagnostic
+panel could show `UNKNOWN` where the replay saw a genuine bias.
+
+`app/api/chart/route.ts` now loads the timeframes listed in `HTF_MAP` from the
+database (ingestion already covers all supported timeframes) and passes them to
+`buildChartPayload()`. Constraints held:
+
+* The load happens **only when `v2.enabled` is true**. With the default `false`
+  no extra query runs and the payload is unchanged.
+* Only `closedOnly: true` rows are read, and the engine's `closedHtfCandles()`
+  filter still decides which of them had closed by the evaluated bar — the
+  causal rule in Part 7 is unchanged, so no look-ahead is introduced.
+* Missing data stays missing: the panel reports `UNKNOWN` rather than a
+  fabricated bias.
+* This is diagnostic only. V2 still does not influence any production signal.
+
 ---
 
 ## Part 8 — Component scoring and conflict
@@ -533,26 +589,85 @@ fixed-percentage stop.
 
 ### 9.3 Structural targets
 
-| target | basis |
-|---|---|
-| TP1 | `INTERNAL_LIQUIDITY` — nearest pool ahead of price |
-| TP2 | `EQUILIBRIUM` — range mid / 50% Fib |
-| TP3 | `RANGE_EDGE` — opposite side of the range |
-| fallback | `R_MULTIPLE` — 1R/2R/3R, only when structure supplies nothing |
+Targets are the **next levels the move must actually travel through** — not a
+fixed TP1/TP2/TP3 template, and not arbitrary R multiples.
 
-So a short from the high targets: internal liquidity → 50% → range low.
-Targets are de-duplicated, must have `r > 0`, and are sorted ascending by R.
+| rung | basis | rule |
+|---|---|---|
+| TP1 | `INTERNAL_LIQUIDITY` | nearest resting pool ahead of entry |
+| next | `EQUILIBRIUM` | range mid, **only if it is genuinely the next level ahead** |
+| next | `RANGE_EDGE` | opposite edge, **only while the range is still valid on that side** |
+| fallback | `R_MULTIPLE` | 1R/2R/3R, only when structure supplies nothing |
+
+Construction, in `buildTargets()` (`src/strategy/v2/engine.ts`):
+
+1. **Collect candidates** ahead of entry: same-side liquidity pools, the range
+   mid, the opposite range edge.
+2. **Side / direction filter.** A level behind entry, on the wrong side, or
+   already passed is never a candidate. Equilibrium is *not* automatically TP2:
+   a LONG entered above the 50% line has no equilibrium target at all.
+3. **Range-invalidation filter.** If `range.brokenSide !== null`, the opposite
+   edge is dropped — see §3.4. A continuation trade that just broke out does not
+   aim back across the stale range.
+4. **Order by distance** from entry, then keep only the **nearest three**. This
+   is what prevents TP2 from skipping a dozen pools to land on equilibrium.
+5. **Collapse near-duplicates** within `0.15 × ATR` (or 0.05% of price when ATR
+   is unusable).
+6. **Guarantee** strictly positive, strictly increasing R.
+
+Each rung carries `price`, `basis`, `reason`, `r`, and `atrDistance` (a real
+directional distance — see §9.4).
+
+**Why this replaced the old ladder.** The audit of `b8825d1` found final targets
+at 10R–45R: the opposite edge of a 300-bar envelope (median ~35 ATR wide)
+divided by a ~1 ATR sweep stop. The fix is structural, not a cap: the ladder now
+stops at the nearest real levels, and a stale range contributes no target at
+all. On the same synthetic fixtures the TEST-slice final-R median fell from
+8.40R to 3.00R and the maximum from 45.19R to 21.03R.
 
 ### 9.4 Room to target
 
 ```
-finalR   = R multiple of the furthest target
-adequate = finalR >= v2.min_room_r      (1.5)
+firstR          = R multiple of the NEAREST target
+nextStructuralR = R multiple of the second rung (falls back to the last)
+finalR          = R multiple of the FURTHEST target
+
+atrDistance      = directional distance to the final target, in ATR:
+                     LONG  (target - entry) / ATR
+                     SHORT (entry - target) / ATR
+firstAtrDistance = the same measure for the first target
+
+adequate = finalR >= v2.min_room_r         (1.5)
+       AND firstR >= v2.min_first_target_r  (0.5)
 ```
 
-Inadequate room → WAIT. Note the interaction documented in §22: when the stop is
-tight and the opposite range edge is far, `finalR` can reach 40R+, which makes
-the final target effectively unreachable within the timeout.
+Both floors matter. A trade is **not** admitted merely because a distant final
+target inflates `finalR`: if the nearest structural level sits 0.2R away, the
+setup is rejected with an explicit reason. Inadequate room → WAIT.
+
+> **Fixed bug.** `atrDistance` previously computed `abs(targetPrice) / ATR` —
+> an absolute price divided by ATR, which for BTC produced values in the
+> thousands. It is now a genuine directional distance and is covered by tests
+> with explicit numbers.
+
+### 9.5 RR acceptance
+
+`src/replay/v2-runner.ts` re-anchors the structural plan to the **actual** fill
+(the OPEN of N+1), then calls `executableLadder()`:
+
+```
+risk    = abs(entry - structuralSL)
+ladder  = take-profits strictly ahead of the fill, sorted by distance
+reward1 = directionalDistance(entry, ladder[0])
+rr1     = reward1 / risk
+accept  = risk > 0 AND stop on the correct side AND ladder non-empty
+                    AND rr1 >= risk.min_rr
+```
+
+`rr1` is measured on the **first executable target only**. A generous TP2 or TP3
+can never carry a setup past `min_rr` when TP1 itself does not pay for the risk.
+Targets left behind by a gap fill are dropped from the ladder before TP1 is
+chosen.
 
 ---
 
@@ -621,6 +736,93 @@ TEST, by time. Per-series rather than global because 600 candles spans ~11 years
 on `1w` and ~10 hours on `1m`; a single global cut put nearly all intraday
 trades in one slice.
 
+### 12.1 Exit states — TP, SL, TIMEOUT, OPEN
+
+Four states, and they are **not** interchangeable.
+
+| state | meaning | exit price |
+|---|---|---|
+| `TP` | the **final** rung of the ladder was reached | that target's price |
+| `SL` | the stop was touched | the stop price |
+| `TIMEOUT` | **forced time exit** — neither terminal TP nor SL within `outcome.timeout_bars` | **close of the timeout candle** |
+| `OPEN` | the replay window ended while the trade was still running | **none** (`exitPrice = null`) |
+
+**TIMEOUT is a time exit, never a take-profit.** Mechanics, in
+`src/outcome/tracker.ts`:
+
+* The timeout bar is the one where `i + 1 >= outcome.timeout_bars` (zero-based
+  from the entry candle), so `barsHeld === timeout_bars` exactly.
+* The exit price is that candle's **close** — a real printed price from a
+  **closed** candle. Never an extreme, never a target, never an interpolation.
+* `rMultiple = (directional move from entry to that close) / risk − fees`.
+* On the timeout candle itself **SL and the final TP still take priority**,
+  resolved by the same deterministic intrabar policy used everywhere
+  (`outcome.sl_priority_on_ambiguous_bar`, default `true`).
+* **No future candle is touched.** The function returns at the timeout bar, and
+  the caller only ever passes candles up to the current index.
+* A positive TIMEOUT R is *unrealised drift booked at the bar limit*. It must
+  never be presented as a target being hit.
+
+**Dataset boundary ⇒ OPEN, never TIMEOUT.** If the data runs out before the
+timeout elapses, `trackOutcome()` returns `null` and the runner records the
+trade as `OPEN`, preserving entry, stop and targets with `exitPrice = null`,
+`exitCandleTime = null`, `rMultiple = 0`. Inventing a timeout there would
+fabricate an exit price the market never printed.
+
+Both runners now do this identically — `src/replay/runner.ts` (V1) and
+`src/replay/v2-runner.ts` (V2). Before this fix V2 **silently discarded** the
+trailing open position, which made the window edge asymmetric between the two
+engines.
+
+### 12.2 Reported metrics — two different "win rates"
+
+The audit of `b8825d1` showed the same strategy could be described as having a
+10% or a 47.5% win rate depending on which definition was used silently. The
+report therefore prints both, under distinct names, and uses neither the word
+"win rate" nor a `%` sign for evidence:
+
+| metric | definition |
+|---|---|
+| `tpExitRate` | `TP exits / closed trades` |
+| `positiveRRate` | `trades with R > 0 / closed trades` (includes profitable timeouts) |
+| `slRate` | `SL exits / closed trades` |
+| `timeoutRate` | `TIMEOUT exits / closed trades` |
+| `openCount` | trades still running at the window edge — **excluded from every closed metric** |
+| `expectancy` | mean R over **all closed** exits |
+| `expectancyExTimeout` | mean R over closed exits **excluding TIMEOUT** — a *diagnostic sensitivity* metric |
+
+`expectancyExTimeout` answers one question: does the edge survive without
+mark-to-market at the bar limit? It is a diagnostic, not the headline, and
+`scripts/v1-vs-v2.ts` keeps it as an automatic integrity gate.
+
+`OPEN` trades carry no realised R and are excluded from `n`, expectancy, profit
+factor, drawdown and every rate above.
+
+### 12.3 Per-trade target diagnostics
+
+Every V2 replay trade records, for later analysis on real history: `setupKind`,
+`direction`, `entryPrice`, `stopLoss`, `riskDistance`, `riskAtr`, `atrAtSetup`,
+`stopAnchor`, `stopReason`, `tp1Price/tp1Source/tp1R/tp1AtrDistance` (and the
+same for TP2/TP3), `firstTargetR`, `nextStructuralR`, `finalTargetR`,
+`timeoutBars`, `rangeBrokenSide`, `result`, `exitPrice`, `barsHeld`,
+`rMultiple`.
+
+### 12.4 Evidence is not probability
+
+`evidence` is a 0..1 weighted aggregate of the ten component scores. It is
+**not** a probability and **not** a percentage.
+
+* `evidence` — 0..1, the value the engine actually gates on.
+* `displayEvidence` — `round(evidence * 100)`, for display only, rendered
+  **without** a `%` sign.
+* `notProbability: true` — a literal marker on every V2 trade so no downstream
+  report can quietly reinterpret the number.
+* `ReplayTrade.score` still carries `displayEvidence` for compatibility with V1
+  tooling. That is the *only* reason it exists on a V2 trade.
+
+Calibration has never been performed, so no probability language is permitted
+anywhere in the UI or the reports.
+
 ---
 
 ## Part 13 — Parameters and their exact runtime source
@@ -647,7 +849,8 @@ actually read by its declared consumer.
 | `v2.liquidity_tol_atr` | 0.25 | equal-level clustering |
 | `v2.min_evidence` | 0.45 | direction gate |
 | `v2.min_net_evidence` | 0.12 | conflict gate |
-| `v2.min_room_r` | 1.5 | room-to-target floor |
+| `v2.min_room_r` | 1.5 | room-to-target floor (FINAL target) |
+| `v2.min_first_target_r` | 0.5 | room-to-target floor (FIRST target) |
 | `v2.stop_buffer_atr` | 0.25 | structural stop buffer |
 | `v2.rsi_period` | 14 | RSI |
 | `v2.adx_period` | 14 | ADX |
@@ -718,89 +921,100 @@ swing high 115 confirmed;  bar 26: O 100  H 118  L 99  C 101
 
 ### 15.1 The limitation that governs everything
 
-**No number below comes from real market history.** All crypto-market egress is
-blocked from this environment (`api.binance.com`, `data-api.binance.vision`,
-`data.binance.vision`, bybit, kraken, coingecko, coinbase, cryptocompare — all
-curl code 000; npm/github/pypi return 200). `fixtures/` is **synthetic**, from a
-seeded mulberry32 PRNG.
+`fixtures/` is **synthetic** — a seeded PRNG (`scripts/make-fixtures.mjs`), not
+market data. Binance egress is blocked from the build environment, so every
+number below measures the engines against a generator. **Nothing here is
+evidence of an edge**, and no parameter was selected using any of it.
 
-These results measure the engines **against a random generator**. They are
-sufficient to prove the machinery runs, is causal and is deterministic. They are
-**not** evidence of a market edge.
+### 15.2 V1 vs V2 after the methodology fixes
 
-### 15.2 V1 vs V2, 6 symbols, 15m/1h/4h
+6 symbols x 15m/1h/4h, `npx tsx scripts/v1-vs-v2.ts --tf=15m,1h,4h`.
+OPEN trades are listed but excluded from every closed statistic.
 
-| slice | engine | n | win | expectancy | total R | PF | maxDD |
-|---|---|---|---|---|---|---|---|
-| TRAIN | V1 | 382 | 23.82% | −0.0239 | −9.12 | 0.969 | −33.69 |
-| TRAIN | V2 | 97 | 18.56% | +0.9910 | +96.13 | 3.153 | −10.31 |
-| VALIDATION | V1 | 128 | 27.34% | +0.0737 | +9.44 | 1.098 | −31.78 |
-| VALIDATION | V2 | 31 | 9.68% | +0.4643 | +14.39 | 1.874 | −7.16 |
-| **TEST** | **V1** | **144** | **23.61%** | **−0.0796** | **−11.46** | **0.900** | **−24.88** |
-| **TEST** | **V2** | **40** | **10.00%** | **+0.8673** | **+34.69** | **2.571** | **−5.82** |
+| slice | engine | closed | open | tpExitRate | positiveRRate | expectancy | excl. TIMEOUT | PF | maxDD |
+|---|---|---|---|---|---|---|---|---|---|
+| TRAIN | V1 | 382 | 15 | 23.82% | 28.53% | −0.0239R | −0.0849R (n=359) | 0.969 | −33.69 |
+| TRAIN | V2 | 98 | 12 | 26.53% | 56.12% | +0.7872R | +0.7256R (n=60) | 2.765 | −10.40 |
+| VALID | V1 | 128 | 14 | 27.34% | 31.25% | +0.0737R | +0.0430R (n=123) | 1.098 | −31.78 |
+| VALID | V2 | 29 | 13 | 17.24% | 58.62% | +0.5655R | +0.2413R (n=16) | 2.272 | −6.13 |
+| TEST | V1 | 144 | 13 | 23.61% | 27.78% | −0.0796R | −0.1124R (n=138) | 0.900 | −24.88 |
+| TEST | V2 | 45 | 8 | 24.44% | 48.89% | +0.5635R | +0.2938R (n=31) | 2.064 | −6.33 |
 
-V2 is far more selective: **53.9%** of evaluations returned WAIT.
+TEST exit composition — V1: TP 34, SL 104, TIMEOUT 6, OPEN 13.
+V2: TP 11, SL 20, TIMEOUT 14, OPEN 8.
 
-### 15.3 Why V2 was NOT activated
+V2 selectivity rose sharply after the room floors were added: **91.5–92.3% of
+evaluations now return WAIT** (previously ~52%).
 
-The headline numbers favour V2 — and they do not survive scrutiny.
+### 15.3 Target geometry — the pathology is gone
 
-**Exit composition, TEST slice:**
+The point of the re-run was not profitability but whether the ladder still
+produces unreachable targets.
 
-| exit | n | total R | avg R |
-|---|---|---|---|
-| SL | 19 | −21.8 | −1.15 |
-| TP | 4 | +18.7 | +4.68 |
-| **TIMEOUT** | **17** | **+37.8** | **+2.22** |
+| slice | TP1 R median | final R median | final R max | >5R | >10R | >20R |
+|---|---|---|---|---|---|---|
+| TRAIN | 1.03 | 3.00 | 14.76 | 10.2% | 5.1% | 0.0% |
+| VALID | 1.09 | 3.00 | 15.10 | 17.2% | 6.9% | 0.0% |
+| TEST | 1.06 | 3.00 | 21.03 | 31.1% | 11.1% | 2.2% |
 
-**42.5% of V2's trades end in TIMEOUT, and that is where the profit is.**
-Excluding timeouts:
+Before / after on the TEST slice:
 
-```
-V2 TEST excluding TIMEOUT:  n = 23,  expectancy = -0.1332R
-```
+| | before (`b8825d1`) | after |
+|---|---|---|
+| final R median | 8.40 | **3.00** |
+| final R p75 | 21.31 | **6.49** |
+| final R max | 45.19 | **21.03** |
+| share > 10R | 50.0% | **11.1%** |
+| share > 20R | 30.0% | **2.2%** |
+| TIMEOUT share | 42.5% | **31.1%** |
+| expectancy excl. TIMEOUT | **−0.1332R** | **+0.2938R** |
 
-The edge inverts. V2's apparent performance comes from being marked to market at
-bar 48 while still in an open position, **not** from its targets being reached.
-Combined with §9.4 — `finalR` values above 40R because the opposite range edge
-is divided by a very tight sweep stop — the diagnosis is that **the target
-ladder is not working**: TP3 is unreachable within the timeout, so trades drift
-to the bar limit and are booked at whatever unrealised R they happen to hold.
+The 10R–45R cluster is gone, and the edge no longer inverts when time exits are
+removed. A small tail above 10R remains where a genuinely wide range still sits
+ahead of a tight structural stop; that is a real market geometry rather than the
+old artefact, so it is left alone rather than capped.
 
-The comparison script encodes this as an automatic integrity gate, so the
-conclusion cannot be quietly lost:
+### 15.4 Why V2 is STILL not activated
 
-> V2 beats V1 on headline metrics, BUT its positive expectancy depends on
-> TIMEOUT exits — excluding them the edge is not positive. That means the
-> TARGETS are not demonstrably working. NOT a basis for activation.
+**It is not activated, and these numbers are not a reason to activate it.**
 
-### 15.4 Where V2 is better / worse
+1. The data is synthetic. A generator has no order flow, no liquidity, no
+   session structure. Beating V1 here says nothing about the market.
+2. The samples are tiny — 45 closed TEST trades for V2.
+3. Timeouts still account for 31.1% of V2 exits.
+4. No parameter has ever been validated on real history.
 
-Better: selectivity (WAIT is real), drawdown (−5.8R vs −24.9R on TEST),
-explicit reasoning, structural rather than arbitrary stops and targets, no
-score-inversion pathology.
-
-Worse: win rate (10% vs 23.6%), sample size (40 vs 144), dependence on TIMEOUT,
-and unreachable far targets.
-
----
+Activation requires the same comparison on **real Binance Spot candles**, run by
+an operator in an environment with market-data egress. Until then `v2.enabled`
+stays `false` and V1 remains the production strategy.
 
 ## Part 16 — Current limitations
 
 1. **No real market data.** Everything above is synthetic. The whole comparison
    must be repeated on real Binance Spot history before any activation.
-2. **The V2 target ladder is not validated** — see §15.3. This is the first
-   thing to fix, before any weighting work.
+2. **The V2 target ladder is structurally repaired but still unvalidated.** The
+   10R-45R artefact is gone (§15.3), yet the corrected ladder has only been
+   exercised against a generator. Whether the nearest-levels rule picks *useful*
+   targets is a question only real history can answer.
 3. **Component weights are untuned by design** and should be fitted only on
-   real data, with a held-out TEST slice.
-4. **`outcome.timeout_bars = 48`** interacts badly with far structural targets;
-   the timeout may be truncating winners, or the targets may be unreachable.
-   Both hypotheses are open.
-5. **No retracement entry model** — only the reproducible OPEN N+1 baseline.
-6. **RSI divergence** uses a simple two-extreme comparison.
-7. **V2 is not wired into the strategy worker**, by design.
-8. **Browser verification of the UI diagnostics is not possible** in this
-   sandbox (Playwright downloads blocked).
+   real data, with a held-out TEST slice. They were deliberately NOT touched by
+   the methodology fixes, and neither were `min_evidence` / `min_net_evidence`.
+4. **`outcome.timeout_bars = 48`** still ends 31% of V2 trades. That share fell
+   from 42.5% once the targets came closer, but a time exit remains the second
+   most common way a V2 trade finishes.
+5. **Selectivity is now very high** — over 91% of evaluations return WAIT after
+   the first-target room floor was added. On real data this may prove too
+   strict; `v2.min_first_target_r` is the knob, and it must be examined on real
+   history rather than on fixtures.
+6. **Partial exits, breakeven stops and trailing are deliberately absent.** Exit
+   models will be compared only after real data is available, so today a TP1
+   touch realises nothing.
+7. **No retracement entry model** — only the reproducible OPEN N+1 baseline.
+8. **RSI divergence** uses a simple two-extreme comparison.
+9. **V2 is not wired into the strategy worker**, by design.
+10. **Browser verification of the UI diagnostics is not possible** in this
+    sandbox (Playwright downloads blocked), so the HTF panel fix in §7.1 is
+    verified by tests and by code inspection only.
 
 ---
 
