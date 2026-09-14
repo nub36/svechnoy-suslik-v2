@@ -15,7 +15,7 @@ import { getBinance } from '../market/binance';
 import { selectTopSymbols } from '../market/top-symbols';
 import { heartbeat, trimCandles, upsertCandles, upsertSymbols, getActiveSymbols } from '../db/repo';
 import { config } from '../core/config';
-import { tfMs, type Timeframe } from '../core/types';
+import { tfMs, TIMEFRAMES, type Timeframe } from '../core/types';
 
 const WORKER = 'market';
 
@@ -47,7 +47,17 @@ async function tick(state: { loops: number; errors: number; lastTopRefresh: numb
   }
 
   const symbols = await getActiveSymbols(db);
-  const timeframes = settings.timeframes();
+  // INGESTION COVERS EVERY SUPPORTED TIMEFRAME — deliberately NOT
+  // settings.timeframes().
+  //
+  // `engine.timeframes` selects which timeframes the STRATEGY scans for new
+  // signals; it is not a data-collection switch. If market data followed that
+  // selection, turning a timeframe off for scanning would also starve its
+  // chart, and the UI would show stale or empty candles for a timeframe the
+  // user can still open. Charts must stay usable for all 8 supported
+  // timeframes at all times, so ingestion uses the supported-TIMEFRAMES
+  // constant and the strategy worker alone honours the selection.
+  const timeframes = TIMEFRAMES;
   const limit = Math.floor(settings.num('market.candle_limit'));
   const retention = Math.floor(settings.num('system.candle_retention_per_series'));
 
@@ -77,7 +87,9 @@ async function tick(state: { loops: number; errors: number; lastTopRefresh: numb
     db,
     WORKER,
     state.errors > 0 ? 'DEGRADED' : 'OK',
-    `${symbols.length} symbols x ${timeframes.length} tf${binance.usingFixtures ? ' (fixtures)' : ''}`,
+    `${symbols.length} symbols x ${timeframes.length} tf (all supported; ` +
+      `scanning is filtered separately by engine.timeframes)` +
+      `${binance.usingFixtures ? ' (fixtures)' : ''}`,
     state.loops,
     state.errors,
   );

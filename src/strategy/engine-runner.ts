@@ -18,6 +18,10 @@
  * `strategy_state` rows or its signals — the cursor is preserved so the
  * timeframe can resume later.
  *
+ * This selection applies to SCANNING ONLY. The market worker keeps ingesting
+ * candles for every supported timeframe, so charts stay live for timeframes
+ * that are not currently scanned.
+ *
  * SEQUENTIAL CATCH-UP
  * -------------------
  * Re-enabling a timeframe (or worker downtime) leaves a gap between the

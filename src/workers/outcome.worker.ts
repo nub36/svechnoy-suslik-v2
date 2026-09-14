@@ -31,6 +31,17 @@ import { IN_POSITION_STATES, type Direction, type SignalState, type Timeframe } 
 
 const WORKER = 'outcome';
 
+/**
+ * The outcome `result` implied by each TERMINAL signal state. Used to assert
+ * that the milestone walk and the P&L walk cannot disagree on new data.
+ * Non-terminal states are absent because they never write an outcome row.
+ */
+const EXPECTED_RESULT_FOR: Partial<Record<SignalState, 'TP' | 'SL' | 'TIMEOUT'>> = {
+  TP3_HIT: 'TP',
+  STOPPED: 'SL',
+  EXPIRED: 'TIMEOUT',
+};
+
 export async function processOutcomes(
   db: Kysely<Database>,
   settings: Settings,
@@ -119,6 +130,30 @@ export async function processOutcomes(
       qty: sig.qty ?? 0,
     });
     if (!out) continue;
+
+    // CONSISTENCY GUARD (see FIX 12).
+    // Production contains a legacy row where signal.state=EXPIRED sits next to
+    // outcome.result=TP, created by the pre-progressive logic. That historical
+    // data is left alone, but NEW rows must never be self-contradictory.
+    // trackMilestones() and trackOutcome() walk the same bars under the same
+    // rules, so a disagreement means a real bug — skip the write and shout,
+    // rather than persisting a STOPPED signal carrying a winning outcome.
+    const expected = EXPECTED_RESULT_FOR[track.state];
+    if (expected !== undefined && expected !== out.result) {
+      log.error(
+        `outcome/state mismatch for signal ${sig.id}: state=${track.state} ` +
+          `implies result=${expected} but tracker returned ${out.result}; skipping write`,
+        { signalId: Number(sig.id), symbol: sig.symbol, timeframe: tf },
+      );
+      continue;
+    }
+    if (out.result === 'SL' && out.rMultiple > 0) {
+      log.error(
+        `refusing to write a STOPPED outcome with positive R for signal ${sig.id}`,
+        { signalId: Number(sig.id), rMultiple: out.rMultiple },
+      );
+      continue;
+    }
 
     patch['updated_at'] = now;
 

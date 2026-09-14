@@ -73,8 +73,10 @@ describe('chart toolbar', () => {
   it('defaults to BTCUSDT and 15m', () => {
     expect(home).toMatch(/DEFAULT_SYMBOL\s*=\s*'BTCUSDT'/);
     expect(home).toMatch(/DEFAULT_TIMEFRAME:\s*Tf\s*=\s*'15m'/);
-    expect(home).toMatch(/useState<string>\(DEFAULT_SYMBOL\)/);
-    expect(home).toMatch(/useState<Tf>\(DEFAULT_TIMEFRAME\)/);
+    // The defaults are still the fallback, now behind the ?symbol=/?timeframe=
+    // deep link used by the «На график» button on /signals.
+    expect(home).toMatch(/useState<string>\(initial\.current\.symbol \?\? DEFAULT_SYMBOL\)/);
+    expect(home).toMatch(/useState<Tf>\(initial\.current\.timeframe \?\? DEFAULT_TIMEFRAME\)/);
   });
 
   it('shows the current price and the connection status', () => {

@@ -3,6 +3,7 @@ import { getCandles } from '@/db/repo';
 import { loadSettings } from '@/core/settings';
 import { buildChartPayload, buildSignalLevels, type SignalOverlay } from '@/web/overlays';
 import { ok, fail, parseTimeframe, parseIntParam, errorMessage } from '@/web/api-utils';
+import { LIVE_SIGNAL_STATES, TERMINAL_STATES } from '@/core/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,22 +39,49 @@ export async function GET(req: Request): Promise<Response> {
       });
     }
 
-    // Attach the most recent live signal for this symbol/timeframe so the
-    // chart can draw ENTRY / SL / TP1-3. An entry is NEVER fabricated: while
-    // the signal is WAITING_ENTRY, entryPrice stays null.
-    const sigRow = await db
+    // Attach the current live signal for THIS symbol AND THIS timeframe so the
+    // chart can draw ENTRY / SL / TP1-3.
+    //
+    // Scope: both `symbol` and `timeframe` are filtered, so a BTC 1m signal can
+    // never appear on a BTC 15m chart and a BTC signal can never appear on an
+    // ETH chart.
+    //
+    // State: only NON-TERMINAL signals describe a position that is actually
+    // live. A STOPPED/EXPIRED/TP3_HIT trade is history and must not keep
+    // painting an active ENTRY/SL/TP set forever. If there is no live signal we
+    // fall back to the most recent terminal one, flagged `historical` so the
+    // client can render it distinctly (and without active price lines).
+    //
+    // An entry is NEVER fabricated: while WAITING_ENTRY, entryPrice stays null.
+    const sigCols = [
+      'id', 'direction', 'state', 'score', 'setup_candle_time',
+      'entry_candle_time', 'entry_price', 'stop_loss', 'take_profits',
+    ] as const;
+
+    const baseSigQuery = db
       .selectFrom('signals')
-      .select([
-        'id', 'direction', 'state', 'score', 'setup_candle_time',
-        'entry_candle_time', 'entry_price', 'stop_loss', 'take_profits',
-      ])
+      .select([...sigCols])
       .where('symbol', '=', symbol)
       .where('timeframe', '=', timeframe)
-      .where('source', '=', 'LIVE_ENGINE')
+      .where('source', '=', 'LIVE_ENGINE');
+
+    let sigRow = await baseSigQuery
+      .where('state', 'in', [...LIVE_SIGNAL_STATES])
       .orderBy('setup_candle_time', 'desc')
       .orderBy('id', 'desc')
       .limit(1)
       .executeTakeFirst();
+
+    let historical = false;
+    if (!sigRow) {
+      sigRow = await baseSigQuery
+        .where('state', 'in', [...TERMINAL_STATES])
+        .orderBy('setup_candle_time', 'desc')
+        .orderBy('id', 'desc')
+        .limit(1)
+        .executeTakeFirst();
+      historical = sigRow !== undefined;
+    }
 
     let signal: SignalOverlay | null = null;
     if (sigRow) {
@@ -67,8 +95,11 @@ export async function GET(req: Request): Promise<Response> {
         entryCandleTime:
           sigRow.entry_candle_time === null ? null : Number(sigRow.entry_candle_time),
         entryPrice: sigRow.entry_price === null ? null : Number(sigRow.entry_price),
-        levels: waiting ? [] : buildSignalLevels(sigRow),
+        // No active price levels for a finished trade or one still waiting for
+        // its N+1 entry.
+        levels: waiting || historical ? [] : buildSignalLevels(sigRow),
         waitingForEntry: waiting,
+        historical,
       };
     }
 

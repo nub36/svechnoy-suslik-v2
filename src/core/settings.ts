@@ -89,11 +89,16 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     key: 'engine.timeframes',
     type: 'json',
     category: 'engine',
-    label: 'Active timeframes',
-    description: 'Timeframes evaluated by the strategy worker.',
+    label: 'Strategy timeframes',
+    description:
+      'Timeframes the strategy scans for new signals. Market data is ingested ' +
+      'for ALL supported timeframes regardless of this setting, so charts stay ' +
+      'live for timeframes that are not scanned.',
     default: [...DEFAULT_TIMEFRAMES],
     accessor: 'timeframes(',
-    consumedBy: ['src/core/settings.ts', 'src/strategy/engine-runner.ts', 'src/workers/market.worker.ts'],
+    // The market worker deliberately no longer consumes this setting: it
+    // ingests every supported timeframe so charts never go stale.
+    consumedBy: ['src/core/settings.ts', 'src/strategy/engine-runner.ts'],
   },
   {
     key: 'engine.max_catchup_candles',

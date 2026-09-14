@@ -13,7 +13,7 @@ const s = Settings.fromEntries([
 ]);
 
 describe('outcome tracking', () => {
-  it('detects a take-profit hit', () => {
+  it('detects a take-profit hit on the FINAL rung of the ladder', () => {
     const out = trackOutcome({
       direction: 'LONG',
       entryPrice: 100,
@@ -22,15 +22,55 @@ describe('outcome tracking', () => {
       entryCandleTime: T0,
       candles: [
         candle(T0, 100, 102, 99, 101),
-        candle(T0 + H, 101, 106, 100, 105.5), // hits TP1 at 105
+        candle(T0 + H, 101, 111, 100, 110.5), // clears BOTH rungs -> exits at 110
       ],
       settings: s,
     });
     expect(out).not.toBeNull();
     expect(out!.result).toBe('TP');
-    expect(out!.exitPrice).toBe(105);
+    expect(out!.exitPrice).toBe(110);
     expect(out!.barsHeld).toBe(2);
-    expect(out!.rMultiple).toBeCloseTo(1, 6); // 5 gain / 5 risk
+    expect(out!.rMultiple).toBeCloseTo(2, 6); // 10 gain / 5 risk
+  });
+
+  it('an INTERMEDIATE take-profit does not close the trade', () => {
+    // Touching TP1 is a milestone, not an exit: there is no partial-exit
+    // accounting, so the position keeps running with the same stop.
+    const out = trackOutcome({
+      direction: 'LONG',
+      entryPrice: 100,
+      stopLoss: 95,
+      takeProfits: [105, 110],
+      entryCandleTime: T0,
+      candles: [
+        candle(T0, 100, 102, 99, 101),
+        candle(T0 + H, 101, 106, 100, 105.5), // TP1 only
+      ],
+      settings: s,
+    });
+    expect(out).toBeNull(); // still open
+  });
+
+  it('TP1 touched and then STOPPED yields a NEGATIVE R, never a positive one', () => {
+    // This is the production defect: signal showed "Стоп" while the outcome
+    // row carried R = +0.23, because the walk exited at TP1.
+    const out = trackOutcome({
+      direction: 'SHORT',
+      entryPrice: 100,
+      stopLoss: 105,
+      takeProfits: [95, 90, 85],
+      entryCandleTime: T0,
+      candles: [
+        candle(T0, 100, 101, 94, 96), // dips through TP1
+        candle(T0 + H, 96, 106, 95, 105.5), // then rips through the stop
+      ],
+      settings: s,
+    });
+    expect(out).not.toBeNull();
+    expect(out!.result).toBe('SL');
+    expect(out!.exitPrice).toBe(105);
+    expect(out!.rMultiple).toBeLessThan(0);
+    expect(out!.pnlPct).toBeLessThan(0);
   });
 
   it('detects a stop-loss hit', () => {
@@ -156,7 +196,7 @@ describe('outcome tracking', () => {
     expect(out).toBeNull();
   });
 
-  it('picks the nearest TP when several are on the same bar', () => {
+  it('stays open when the final rung is not reached, even if earlier ones are', () => {
     const out = trackOutcome({
       direction: 'LONG',
       entryPrice: 100,
@@ -166,10 +206,23 @@ describe('outcome tracking', () => {
       candles: [candle(T0, 100, 112, 99, 111)],
       settings: s,
     });
-    // 115 not reached; furthest reached is 110 (index 1 after distance sort)
+    // TP1 and TP2 cleared but 115 was not: the trade is still running.
+    expect(out).toBeNull();
+  });
+
+  it('closes at the final rung once it is reached', () => {
+    const out = trackOutcome({
+      direction: 'LONG',
+      entryPrice: 100,
+      stopLoss: 95,
+      takeProfits: [105, 110, 115],
+      entryCandleTime: T0,
+      candles: [candle(T0, 100, 116, 99, 115.5)],
+      settings: s,
+    });
     expect(out!.result).toBe('TP');
-    expect(out!.exitPrice).toBe(110);
-    expect(out!.tpHitIndex).toBe(1);
+    expect(out!.exitPrice).toBe(115);
+    expect(out!.tpHitIndex).toBe(2);
   });
 
   it('tracks max favorable and adverse excursion', () => {

@@ -14,7 +14,7 @@
  * immediately at 1366x768 without scrolling.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type {
   ChartBox,
@@ -142,14 +142,43 @@ const STATUS_RU: Record<string, string> = {
   stale: 'Нет данных',
 };
 
+/**
+ * Read `?symbol=` / `?timeframe=` written by the «На график» button on
+ * /signals. Both are validated: an unknown timeframe or a malformed symbol
+ * silently falls back to the default rather than requesting garbage. Whether
+ * the symbol actually exists is settled later against the loaded list.
+ */
+function readQueryParams(): { symbol: string | null; timeframe: Tf | null } {
+  if (typeof window === 'undefined') return { symbol: null, timeframe: null };
+  const q = new URLSearchParams(window.location.search);
+
+  const rawSymbol = (q.get('symbol') ?? '').toUpperCase();
+  const symbol = /^[A-Z0-9]{2,16}USDT$/.test(rawSymbol) ? rawSymbol : null;
+
+  const rawTf = q.get('timeframe');
+  const timeframe = TIMEFRAMES.includes(rawTf as Tf) ? (rawTf as Tf) : null;
+
+  return { symbol, timeframe };
+}
+
 export default function HomePage(): React.ReactElement {
+  // Read once on mount so later manual selection is never overridden.
+  const initial = useRef<{ symbol: string | null; timeframe: Tf | null } | null>(null);
+  initial.current ??= readQueryParams();
+
   const [symbols, setSymbols] = useState<SymbolRow[]>([]);
-  const [selected, setSelected] = useState<string>(DEFAULT_SYMBOL);
-  const [timeframe, setTimeframe] = useState<Tf>(DEFAULT_TIMEFRAME);
+  const [selected, setSelected] = useState<string>(initial.current.symbol ?? DEFAULT_SYMBOL);
+  const [timeframe, setTimeframe] = useState<Tf>(initial.current.timeframe ?? DEFAULT_TIMEFRAME);
   const [chart, setChart] = useState<ChartData | null>(null);
   const [showOverlays, setShowOverlays] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  /** Generation guard for /api/chart so a stale response cannot win. */
+  const chartReqRef = useRef<{ gen: number; controller: AbortController | null }>({
+    gen: 0,
+    controller: null,
+  });
 
   /* ---------- live data (DISPLAY ONLY — never feeds the engine) ---------- */
   const { candle: liveCandle, status: liveStatus } = useLiveCandle(selected, timeframe);
@@ -165,6 +194,8 @@ export default function HomePage(): React.ReactElement {
       setSymbols(list);
       // Prefer BTCUSDT; fall back to the top-ranked pair if it is not listed.
       setSelected((cur) => {
+        // A pair requested via ?symbol= that is not in the current TOP-10 is
+        // not an error: fall back to the default instead of showing nothing.
         if (cur && list.some((s) => s.symbol === cur)) return cur;
         if (list.some((s) => s.symbol === DEFAULT_SYMBOL)) return DEFAULT_SYMBOL;
         return list[0]?.symbol ?? cur;
@@ -177,15 +208,37 @@ export default function HomePage(): React.ReactElement {
     }
   }, []);
 
+  /**
+   * Load chart history for one symbol/timeframe.
+   *
+   * RACE GUARD: requests are not guaranteed to resolve in order. If the user
+   * selects ETH 5m while a BTC 15m request is still in flight, the late BTC
+   * response must NOT paint over the ETH chart. Every call takes a generation
+   * number; only the newest generation may write state. The in-flight request
+   * is also aborted, so we do not pay for a response we will discard.
+   */
   const loadChart = useCallback(async (symbol: string, tf: Tf) => {
     if (!symbol) return;
+
+    chartReqRef.current.controller?.abort();
+    const controller = new AbortController();
+    const gen = chartReqRef.current.gen + 1;
+    chartReqRef.current = { gen, controller };
+
     try {
-      const res = await fetch(`/api/chart?symbol=${symbol}&timeframe=${tf}&limit=300`);
+      const res = await fetch(
+        `/api/chart?symbol=${symbol}&timeframe=${tf}&limit=300`,
+        { signal: controller.signal },
+      );
       const json = await res.json();
+      // A newer request superseded this one while it was in flight.
+      if (chartReqRef.current.gen !== gen) return;
       if (!json.ok) throw new Error(json.error);
       setChart(json.data);
       setError(null);
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      if (chartReqRef.current.gen !== gen) return;
       setError(e instanceof Error ? e.message : 'Не удалось загрузить график');
     }
   }, []);
@@ -201,7 +254,11 @@ export default function HomePage(): React.ReactElement {
   useEffect(() => {
     void loadChart(selected, timeframe);
     const t = setInterval(() => void loadChart(selected, timeframe), 30_000);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      // Abandon any in-flight request for the symbol/timeframe we just left.
+      chartReqRef.current.controller?.abort();
+    };
   }, [selected, timeframe, loadChart]);
 
   /** Merge live ticker prices over the REST snapshot for the table. */

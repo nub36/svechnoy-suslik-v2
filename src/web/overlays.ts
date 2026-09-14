@@ -80,6 +80,13 @@ export interface SignalOverlay {
   entryPrice: number | null;
   levels: SignalLevel[];
   waitingForEntry: boolean;
+  /**
+   * True when no live signal exists for this symbol/timeframe and this is the
+   * most recent FINISHED one (TP3_HIT / STOPPED / EXPIRED). Historical signals
+   * carry no active price levels and must be rendered distinctly from a
+   * position that is currently running.
+   */
+  historical?: boolean;
 }
 
 export interface ChartOverlays {

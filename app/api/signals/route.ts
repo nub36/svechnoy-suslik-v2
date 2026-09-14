@@ -3,6 +3,20 @@ import { ok, fail, parseIntParam, errorMessage } from '@/web/api-utils';
 
 export const dynamic = 'force-dynamic';
 
+/** Terminal state -> the only outcome result that is consistent with it. */
+const EXPECTED_RESULT: Record<string, string> = {
+  TP3_HIT: 'TP',
+  STOPPED: 'SL',
+  EXPIRED: 'TIMEOUT',
+};
+
+/** True when a stored state and its outcome contradict each other. */
+function isInconsistent(state: string, result: string | null): boolean {
+  if (result === null) return false;
+  const expected = EXPECTED_RESULT[state];
+  return expected !== undefined && expected !== result;
+}
+
 /** Signal list with joined outcomes, filterable by state/symbol/timeframe. */
 export async function GET(req: Request): Promise<Response> {
   try {
@@ -67,21 +81,35 @@ export async function GET(req: Request): Promise<Response> {
     const inState = (...states: string[]): number =>
       rows.filter((r) => states.includes(r.state)).length;
 
+    // CURRENT STATE — mutually exclusive. Every signal is counted exactly
+    // once, so waiting + open + tp1 + tp2 + tp3 + stopped + expired === total.
+    // The previous shape double-counted: a TP1_HIT trade was reported both as
+    // "active" and under "tp", which made the cards look contradictory
+    // (Всего 10 / Открыто 8 / TP 4 / SL 1 / Таймаут 1).
     const summary = {
       total: rows.length,
       waiting: inState('WAITING_ENTRY'),
-      // "active" = filled and still running, including trades that have
-      // already banked TP1/TP2 but are not finished.
-      active: inState('OPEN', 'TP1_HIT', 'TP2_HIT'),
-      // "tp" counts trades that reached at least one take-profit, which is why
-      // a stopped trade that first hit TP1 is still counted here.
-      tp: rows.filter((r) => r.tp_level !== null && Number(r.tp_level) > 0).length,
-      sl: inState('STOPPED'),
-      timeout: inState('EXPIRED'),
+      open: inState('OPEN'),
+      tp1: inState('TP1_HIT'),
+      tp2: inState('TP2_HIT'),
+      tp3: inState('TP3_HIT'),
+      stopped: inState('STOPPED'),
+      expired: inState('EXPIRED'),
+    };
+
+    // HISTORICAL MILESTONES — deliberately overlapping and reported
+    // separately. "Ever reached TP1" includes trades later stopped, which is
+    // exactly why it must not be mixed into the current-state totals.
+    const lvl = (r: { tp_level: number | null }): number => Number(r.tp_level ?? 0);
+    const milestoneSummary = {
+      tp1Ever: rows.filter((r) => lvl(r) >= 1).length,
+      tp2Ever: rows.filter((r) => lvl(r) >= 2).length,
+      tp3Ever: rows.filter((r) => lvl(r) >= 3).length,
     };
 
     return ok({
       summary,
+      milestoneSummary,
       signals: rows.map((r) => ({
         id: Number(r.id),
         symbol: r.symbol,
@@ -106,6 +134,14 @@ export async function GET(req: Request): Promise<Response> {
         // Persistent milestone audit trail. These survive a later STOP: a
         // trade stopped after TP1 still reports tp1HitAt.
         tpLevel: Number(r.tp_level ?? 0),
+        // FIX 12: historical rows written by the pre-progressive logic can
+        // carry a terminal state that contradicts their outcome (the known
+        // case is state=EXPIRED next to result=TP). Such rows are NOT
+        // rewritten — production history is preserved — they are flagged so
+        // the UI can label them as legacy instead of silently showing a
+        // nonsensical combination. New writes are blocked by the guard in the
+        // outcome worker, so this should only ever be true for old data.
+        legacyInconsistent: isInconsistent(r.state, r.outcome_result),
         milestones: {
           openedAt: r.opened_at,
           tp1HitAt: r.tp1_hit_at,

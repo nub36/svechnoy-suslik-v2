@@ -15,7 +15,7 @@ locked at the source level**.
 ```
 Binance Spot (REST)
         |
-   market worker ........ TOP-10 by quote volume + candles for every timeframe
+   market worker ........ TOP-10 by quote volume + candles for ALL 8 timeframes
         |
       Postgres  <-- single source of truth (settings, candles, signals, outcomes)
         |
@@ -199,6 +199,58 @@ of candle N+1 and is never fabricated.
 
 ---
 
+## Outcome accounting (R and P&L)
+
+A trade's economics are computed once, in `src/outcome/tracker.ts`, and reused
+by the outcome worker, `/signals`, `/monitoring` and replay so the four can
+never drift apart.
+
+**A take-profit closes the trade only on the FINAL rung of the ladder.**
+Touching TP1 or TP2 records a milestone and nothing else: this build has no
+partial-exit accounting, so no profit is realised there and the position keeps
+running with the same stop. If price later reaches the stop, the trade is a
+loss and reports a negative R.
+
+This was previously wrong. The outcome walk exited at whichever TP a bar
+touched, so a trade that tagged TP1 and was then stopped out was recorded as a
+TP exit — producing the production defect where signal #9 (BTCUSDT 1m SHORT,
+entry 78590.70, SL 78692.77) displayed **state «Стоп» alongside R = +0.23**.
+
+Invariants, each pinned by a test:
+
+| Case | Result |
+| --- | --- |
+| LONG entry 100 / SL 95 / exit 95 | negative R |
+| SHORT entry 100 / SL 105 / exit 105 | negative R |
+| LONG entry 100 / TP 105 | positive R |
+| SHORT entry 100 / TP 95 | positive R |
+| TP1 touched, then stopped | **negative** R, TP1 milestone retained |
+
+`trackMilestones()` (lifecycle state) and `trackOutcome()` (P&L) walk the same
+bars under the same rules. The outcome worker asserts they agree before writing
+— `TP3_HIT→TP`, `STOPPED→SL`, `EXPIRED→TIMEOUT` — and refuses to persist a
+contradictory row or a stop-out carrying a positive R.
+
+### Legacy rows
+
+Historical production data written by the old logic can still contain
+contradictions (the known case is `state=EXPIRED` with `outcome.result=TP`).
+Such rows are **not rewritten** — history is preserved — they are flagged
+`legacyInconsistent` by `/api/signals` and labelled «устаревшие данные» in the
+UI. New writes cannot create them.
+
+### Milestones are history, not profit
+
+`/signals` separates two things that the old summary conflated:
+
+- **Текущее состояние** — mutually exclusive, one row counted exactly once:
+  `Всего = Ожидание входа + Открыт + TP1 + TP2 + TP3 + Стоп + Истёк`.
+- **Достигнутые цели** — deliberately overlapping "ever reached TP1/TP2/TP3",
+  including trades later stopped out. These are historical facts and are never
+  added to the state totals.
+
+---
+
 ## Timeframe scanning control
 
 `engine.timeframes` is the **single source of truth** for which timeframes the
@@ -236,15 +288,25 @@ because settings are reloaded every iteration.
 
 ### Chart display vs strategy scanning
 
-The market worker consumes this same setting (existing architecture — there is
-no second market subsystem). Consequences, surfaced in the Admin UI:
+**Ingestion and scanning are deliberately decoupled.** `engine.timeframes` is a
+*scan* filter only; it is not a data-collection switch.
 
-- A timeframe that is **unchecked is no longer scanned** by the strategy, and
-  the market worker **stops fetching new candles** for it.
+| Worker | Timeframes | Source |
+| --- | --- | --- |
+| market (ingestion) | **always all 8 supported** | `TIMEFRAMES` constant |
+| strategy (scanning) | the selected subset | `engine.timeframes` |
+
+- Unchecking a timeframe stops the strategy from **looking for new signals**
+  there. The market worker **keeps fetching its candles**, so the chart for that
+  timeframe stays live and never goes stale.
 - Already-stored history is **never deleted**, and missing candles are **never
-  fabricated** — a chart simply stops advancing for a disabled timeframe.
+  fabricated**.
 - `strategy_state` rows and historical signals for disabled timeframes are
   **retained**. A retained row is not a currently-scanned combination.
+
+Earlier builds had the market worker read `engine.timeframes` too, which meant
+disabling a timeframe for scanning also starved its chart. That coupling is
+gone; `engine.timeframes` remains the single source of truth for scanning.
 
 ### Re-enabling a timeframe (and worker downtime)
 
@@ -354,7 +416,7 @@ record.
 ## Testing
 
 ```bash
-npm test                                                   # 533 tests
+npm test                                                   # 587 tests
 SMOKE_BASE_URL=http://127.0.0.1:3000 npx vitest run        # + live HTTP tests
 ```
 

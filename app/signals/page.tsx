@@ -45,6 +45,8 @@ interface Signal {
   takeProfits: number[];
   atr: number | null;
   rrTp1: number | null;
+  tpLevel?: number;
+  legacyInconsistent?: boolean;
   outcome: {
     result: string;
     exitPrice: number;
@@ -83,6 +85,7 @@ const fmt = (v: number | null, dp?: number): string =>
 export default function SignalsPage() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [summary, setSummary] = useState<Record<string, number>>({});
+  const [milestones, setMilestones] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +98,7 @@ export default function SignalsPage() {
       if (!json.ok) throw new Error(json.error);
       setSignals(json.data.signals);
       setSummary(json.data.summary);
+      setMilestones(json.data.milestoneSummary ?? {});
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось загрузить сигналы');
@@ -119,14 +123,18 @@ export default function SignalsPage() {
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      <div className="grid grid-4" style={{ marginBottom: 16 }}>
+      {/* CURRENT STATE — mutually exclusive: every signal is counted once. */}
+      <h2 style={{ fontSize: 14, margin: '0 0 8px' }}>Текущее состояние</h2>
+      <div className="grid grid-4" style={{ marginBottom: 8 }} data-testid="state-summary">
         {[
           ['Всего', summary['total'] ?? 0],
           ['Ожидание входа', summary['waiting'] ?? 0],
-          ['Открыто', summary['active'] ?? 0],
-          ['TP', summary['tp'] ?? 0],
-          ['SL', summary['sl'] ?? 0],
-          ['Таймаут', summary['timeout'] ?? 0],
+          ['Открыт', summary['open'] ?? 0],
+          ['TP1 достигнут', summary['tp1'] ?? 0],
+          ['TP2 достигнут', summary['tp2'] ?? 0],
+          ['TP3 достигнут', summary['tp3'] ?? 0],
+          ['Стоп', summary['stopped'] ?? 0],
+          ['Истёк', summary['expired'] ?? 0],
         ].map(([label, value]) => (
           <div className="stat" key={String(label)}>
             <div className="label">{label}</div>
@@ -134,6 +142,28 @@ export default function SignalsPage() {
           </div>
         ))}
       </div>
+      <p className="muted" style={{ fontSize: 11, marginBottom: 16 }}>
+        Сумма состояний равна общему количеству — каждый сигнал учитывается ровно один раз.
+      </p>
+
+      {/* HISTORICAL MILESTONES — deliberately overlapping, kept separate. */}
+      <h2 style={{ fontSize: 14, margin: '0 0 8px' }}>Достигнутые цели</h2>
+      <div className="grid grid-4" style={{ marginBottom: 8 }} data-testid="milestone-summary">
+        {[
+          ['TP1 когда-либо', milestones['tp1Ever'] ?? 0],
+          ['TP2 когда-либо', milestones['tp2Ever'] ?? 0],
+          ['TP3 когда-либо', milestones['tp3Ever'] ?? 0],
+        ].map(([label, value]) => (
+          <div className="stat" key={String(label)}>
+            <div className="label">{label}</div>
+            <div className="value">{value}</div>
+          </div>
+        ))}
+      </div>
+      <p className="muted" style={{ fontSize: 11, marginBottom: 16 }}>
+        Историческая статистика: сюда входят сделки, которые позже были закрыты по стопу.
+        Эти показатели намеренно пересекаются и не суммируются с текущими состояниями.
+      </p>
 
       <div className="toolbar">
         <span className="muted">Состояние:</span>
@@ -170,6 +200,8 @@ export default function SignalsPage() {
                 <th className="num">SL</th>
                 <th className="num">TP1</th>
                 <th className="num">R</th>
+                <th>Цели</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -194,6 +226,15 @@ export default function SignalsPage() {
                       <span className={`pill ${statePill(s.state)}`}>
                         {ru(SIGNAL_STATE_RU, s.state)}
                       </span>
+                      {s.legacyInconsistent && (
+                        <span
+                          className="pill pill-idle"
+                          style={{ marginLeft: 4 }}
+                          title="Исторические данные: состояние и результат противоречат друг другу (создано прежней логикой). Запись сохранена без изменений."
+                        >
+                          устаревшие данные
+                        </span>
+                      )}
                     </td>
                     <td className="muted" style={{ fontSize: 11 }}>
                       {s.mode}
@@ -216,10 +257,34 @@ export default function SignalsPage() {
                     <td className={`num ${(s.outcome?.rMultiple ?? 0) >= 0 ? 'up' : 'down'}`}>
                       {s.outcome ? s.outcome.rMultiple.toFixed(2) : '—'}
                     </td>
+                    {/* Milestones reached at any point, even if later stopped. */}
+                    <td>
+                      {(s.tpLevel ?? 0) > 0 ? (
+                        <span
+                          className="pill pill-ok"
+                          title="Цели, достигнутые за время сделки. Это исторический факт, а не зафиксированная прибыль."
+                        >
+                          {Array.from({ length: Math.min(s.tpLevel ?? 0, 3) }, (_, i) => `TP${i + 1}`).join(' ')}
+                        </span>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      {/* Reuses the existing chart on the home page. */}
+                      <a
+                        className="btn btn-sm"
+                        href={`/?symbol=${encodeURIComponent(s.symbol)}&timeframe=${encodeURIComponent(s.timeframe)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Открыть эту пару и таймфрейм на графике"
+                      >
+                        На график
+                      </a>
+                    </td>
                   </tr>
                   {expanded === s.id && (
                     <tr key={`${s.id}-detail`}>
-                      <td colSpan={13} style={{ background: '#0b0e14' }}>
+                      <td colSpan={15} style={{ background: '#0b0e14' }}>
                         <div className="grid grid-2">
                           <div>
                             <h3>Расчёт оценки (прозрачный)</h3>

@@ -25,6 +25,7 @@ import {
   createChart,
   createSeriesMarkers,
   type IChartApi,
+  type IPriceLine,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
   type SeriesMarker,
@@ -176,12 +177,34 @@ export default function CandleChart({
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const overlaySeriesRef = useRef<ISeriesApi<'Line'>[]>([]);
+  /**
+   * Every price line created by createPriceLine(), so it can be removed again.
+   *
+   * Price lines live on the CANDLE series, and that series is created once and
+   * survives symbol/timeframe changes. Without this registry each redraw
+   * stacked another SL/ENTRY/TP set onto the right axis and they accumulated
+   * until a full page reload.
+   */
+  const priceLinesRef = useRef<IPriceLine[]>([]);
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   // Set once the user pans/zooms, so we stop auto-fitting under their hands.
   const userInteractedRef = useRef(false);
   const lastFitKeyRef = useRef<string>('');
   /** openTime of the newest bar loaded from the backend (REST/DB history). */
   const lastHistoryTimeRef = useRef<number>(0);
+
+  /** Detach every tracked signal price line and empty the registry. */
+  const clearPriceLines = (): void => {
+    const series = candleSeriesRef.current;
+    for (const line of priceLinesRef.current) {
+      try {
+        series?.removePriceLine(line);
+      } catch {
+        /* series already disposed */
+      }
+    }
+    priceLinesRef.current = [];
+  };
 
   /* ---------------- create chart once ---------------- */
   useEffect(() => {
@@ -285,12 +308,14 @@ export default function CandleChart({
       el.removeEventListener('wheel', onRangeChange);
       el.removeEventListener('pointerdown', onRangeChange);
       el.removeEventListener('touchstart', onRangeChange);
+      clearPriceLines();
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
       volumeSeriesRef.current = null;
       markersRef.current = null;
       overlaySeriesRef.current = [];
+      priceLinesRef.current = [];
     };
   }, [height]);
 
@@ -333,6 +358,9 @@ export default function CandleChart({
       }
     }
     overlaySeriesRef.current = [];
+    // MUST happen on every redraw — symbol change, timeframe change or a new
+    // selected signal — otherwise the previous set stays on the price axis.
+    clearPriceLines();
 
     if (showOverlays) {
       /* ---- zones: subtle translucent bands, never overpowering candles ---- */
@@ -381,7 +409,7 @@ export default function CandleChart({
     // the right axis. Never drawn while WAITING_ENTRY (no fabricated entry).
     if (signal && !signal.waitingForEntry) {
       for (const lv of signal.levels) {
-        candleSeries.createPriceLine({
+        const line = candleSeries.createPriceLine({
           price: lv.price,
           color: lv.color,
           lineWidth: lv.kind === 'ENTRY' ? 2 : 1,
@@ -389,6 +417,8 @@ export default function CandleChart({
           axisLabelVisible: true,
           title: lv.label,
         });
+        // Registered so the next redraw can detach it.
+        priceLinesRef.current.push(line);
       }
     }
 

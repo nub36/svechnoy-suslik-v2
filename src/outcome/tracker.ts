@@ -93,18 +93,28 @@ export function trackOutcome(input: TrackInput): TrackOutput | null {
       if (reached) tpIndex = t;
     }
 
-    if (hitSl && tpIndex !== null) {
+    // A take-profit only ENDS the trade when it is the LAST rung of the
+    // ladder. Touching TP1 or TP2 is a milestone, not an exit: this build has
+    // no partial-exit accounting, so nothing is realised there and the
+    // position keeps running with the same stop. Treating an intermediate TP
+    // as a close is what produced a STOPPED signal carrying a POSITIVE R —
+    // the trade was recorded as exiting at TP1 even though price then ran
+    // through the stop.
+    const finalRung = tps.length - 1;
+    const hitFinalTp = tpIndex !== null && tpIndex >= finalRung;
+
+    if (hitSl && hitFinalTp) {
       // Ambiguous bar — OHLC cannot tell us which came first.
       if (slPriority) {
         return finish('SL', stopLoss, c, i);
       }
-      const tp = tps[tpIndex] ?? entryPrice;
-      return finish('TP', tp, c, i, tpIndex);
+      const tp = tps[finalRung] ?? entryPrice;
+      return finish('TP', tp, c, i, finalRung);
     }
     if (hitSl) return finish('SL', stopLoss, c, i);
-    if (tpIndex !== null) {
-      const tp = tps[tpIndex] ?? entryPrice;
-      return finish('TP', tp, c, i, tpIndex);
+    if (hitFinalTp) {
+      const tp = tps[finalRung] ?? entryPrice;
+      return finish('TP', tp, c, i, finalRung);
     }
 
     if (i + 1 >= timeoutBars) {

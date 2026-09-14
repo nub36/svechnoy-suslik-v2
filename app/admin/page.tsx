@@ -63,6 +63,13 @@ function TimeframePicker({
 
   return (
     <div data-testid="timeframe-picker">
+      <div style={{ marginBottom: 6 }}>
+        <b style={{ fontSize: 12 }}>Таймфреймы стратегии</b>
+        <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+          Определяет, на каких таймфреймах стратегия ищет новые сигналы. Графики
+          продолжают получать данные для всех поддерживаемых таймфреймов.
+        </div>
+      </div>
       <div className="tf-grid">
         {TIMEFRAME_OPTIONS.map((o) => {
           const on = selected.includes(o.value);
@@ -94,11 +101,13 @@ function TimeframePicker({
         >
           Выбрать все
         </button>
+        {/* "Сбросить" must never produce an empty selection, which the API
+            rejects. It returns to the single 15м baseline instead. */}
         <button
           type="button"
           disabled={disabled}
           onClick={() => onChange(['15m'])}
-          title="Оставить только 15м"
+          title="Вернуться к базовому выбору: только 15м (пустой выбор недопустим)"
         >
           Сбросить
         </button>
@@ -115,15 +124,16 @@ function TimeframePicker({
         </div>
       )}
 
-      {/* The market worker shares this same setting, so the admin must know
-          that unchecking a timeframe also stops collecting its candles. */}
+      {/* Ingestion is independent of this selection: the market worker always
+          collects all supported timeframes so charts never go stale. */}
       <div className="alert alert-info" style={{ marginTop: 8, fontSize: 11 }}>
-        <b>Доступно для графика:</b> все 8 таймфреймов остаются доступны в
-        интерфейсе, но новые свечи загружаются только для выбранных выше.
-        По отключённому таймфрейму сохраняется уже загруженная история —
-        она не удаляется, и недостающие свечи никогда не дорисовываются.
-        При повторном включении движок последовательно догоняет пропущенные
-        закрытые свечи и не создаёт ложный сигнал.
+        <b>Доступно для графика:</b> все 8 таймфреймов продолжают получать
+        свежие свечи независимо от этого выбора — графики никогда не устаревают.
+        Настройка выше влияет только на поиск новых сигналов.
+        История по отключённому таймфрейму не удаляется, а недостающие свечи
+        никогда не дорисовываются. При повторном включении движок
+        последовательно догоняет пропущенные закрытые свечи и не создаёт
+        ложный сигнал.
       </div>
     </div>
   );
