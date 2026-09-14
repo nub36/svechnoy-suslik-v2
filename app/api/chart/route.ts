@@ -1,7 +1,7 @@
 import { getDb } from '@/db';
 import { getCandles } from '@/db/repo';
 import { loadSettings } from '@/core/settings';
-import { buildChartPayload } from '@/web/overlays';
+import { buildChartPayload, buildSignalLevels, type SignalOverlay } from '@/web/overlays';
 import { ok, fail, parseTimeframe, parseIntParam, errorMessage } from '@/web/api-utils';
 
 export const dynamic = 'force-dynamic';
@@ -30,14 +30,49 @@ export async function GET(req: Request): Promise<Response> {
         symbol,
         timeframe,
         candles: [],
-        overlays: { boxes: [], lines: [], markers: [] },
+        overlays: { boxes: [], lines: [], markers: [], legend: [] },
         evaluation: null,
+        signal: null,
         closedCount: 0,
         empty: true,
       });
     }
 
-    return ok(buildChartPayload(symbol, timeframe, candles, settings));
+    // Attach the most recent live signal for this symbol/timeframe so the
+    // chart can draw ENTRY / SL / TP1-3. An entry is NEVER fabricated: while
+    // the signal is WAITING_ENTRY, entryPrice stays null.
+    const sigRow = await db
+      .selectFrom('signals')
+      .select([
+        'id', 'direction', 'state', 'score', 'setup_candle_time',
+        'entry_candle_time', 'entry_price', 'stop_loss', 'take_profits',
+      ])
+      .where('symbol', '=', symbol)
+      .where('timeframe', '=', timeframe)
+      .where('source', '=', 'LIVE_ENGINE')
+      .orderBy('setup_candle_time', 'desc')
+      .orderBy('id', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    let signal: SignalOverlay | null = null;
+    if (sigRow) {
+      const waiting = sigRow.state === 'WAITING_ENTRY';
+      signal = {
+        id: Number(sigRow.id),
+        direction: sigRow.direction as 'LONG' | 'SHORT',
+        state: sigRow.state,
+        score: Number(sigRow.score),
+        setupCandleTime: Number(sigRow.setup_candle_time),
+        entryCandleTime:
+          sigRow.entry_candle_time === null ? null : Number(sigRow.entry_candle_time),
+        entryPrice: sigRow.entry_price === null ? null : Number(sigRow.entry_price),
+        levels: waiting ? [] : buildSignalLevels(sigRow),
+        waitingForEntry: waiting,
+      };
+    }
+
+    return ok(buildChartPayload(symbol, timeframe, candles, settings, signal));
   } catch (err) {
     return fail(errorMessage(err), 500);
   }

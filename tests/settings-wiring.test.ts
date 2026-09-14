@@ -102,7 +102,7 @@ describe('behavioural wiring: changing a setting changes engine behaviour', () =
     const a = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['engine.lookback_candles', 80]]) })!;
     const b = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['engine.lookback_candles', 500]]) })!;
     expect(a.candleTime).toBe(b.candleTime); // same candle N
-    // PREMIUM_DISCOUNT depends on the dealing range => window size matters
+    // RANGE_POSITION depends on the dealing range => window size matters
     expect(JSON.stringify(a.events) !== JSON.stringify(b.events) || a.long.score !== b.long.score).toBe(true);
   });
 
@@ -112,12 +112,75 @@ describe('behavioural wiring: changing a setting changes engine behaviour', () =
     expect(long.events.length).toBeGreaterThanOrEqual(short.events.length);
   });
 
-  it('detectors.volume_surge_mult changes volume detections', () => {
-    const easy = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.volume_surge_mult', 1.01]]) })!;
-    const hard = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.volume_surge_mult', 9]]) })!;
-    const cntEasy = easy.events.filter((e) => e.detector === 'VOLUME_IMBALANCE').length;
-    const cntHard = hard.events.filter((e) => e.detector === 'VOLUME_IMBALANCE').length;
+  it('detectors.ob_min_displacement changes order block detections', () => {
+    const easy = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.ob_min_displacement', 1.01]]) })!;
+    const hard = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.ob_min_displacement', 9]]) })!;
+    const cntEasy = easy.events.filter((e) => e.detector === 'ORDER_BLOCK').length;
+    const cntHard = hard.events.filter((e) => e.detector === 'ORDER_BLOCK').length;
     expect(cntEasy).toBeGreaterThan(cntHard);
+  });
+
+  it('detectors.ob_lookback_bars changes the order block scan depth', () => {
+    const shallow = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.ob_lookback_bars', 1]]) })!;
+    const deep = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.ob_lookback_bars', 30]]) })!;
+    expect(deep.events.filter((e) => e.detector === 'ORDER_BLOCK').length)
+      .toBeGreaterThanOrEqual(shallow.events.filter((e) => e.detector === 'ORDER_BLOCK').length);
+  });
+
+  it('detectors.bos_min_break_pct filters marginal BOS breaks', () => {
+    const easy = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.bos_min_break_pct', 0]]) })!;
+    const hard = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.bos_min_break_pct', 5]]) })!;
+    expect(easy.events.filter((e) => e.detector === 'BOS').length)
+      .toBeGreaterThanOrEqual(hard.events.filter((e) => e.detector === 'BOS').length);
+    expect(hard.events.filter((e) => e.detector === 'BOS').length).toBe(0);
+  });
+
+  it('detectors.sweep_min_wick_ratio filters weak liquidity sweeps', () => {
+    const easy = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.sweep_min_wick_ratio', 0]]) })!;
+    const hard = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.sweep_min_wick_ratio', 0.99]]) })!;
+    expect(easy.events.filter((e) => e.detector === 'LIQUIDITY_SWEEP').length)
+      .toBeGreaterThanOrEqual(hard.events.filter((e) => e.detector === 'LIQUIDITY_SWEEP').length);
+  });
+
+  it('detectors.range_edge_band changes RANGE_POSITION sensitivity', () => {
+    const wide = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.range_edge_band', 0.5]]) })!;
+    const narrow = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.range_edge_band', 0.05]]) })!;
+    expect(wide.events.filter((e) => e.detector === 'RANGE_POSITION').length)
+      .toBeGreaterThanOrEqual(narrow.events.filter((e) => e.detector === 'RANGE_POSITION').length);
+  });
+
+  it('detectors.internal_structure_legs changes the CONTEXT factor', () => {
+    const few = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.internal_structure_legs', 2]]) })!;
+    const many = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.internal_structure_legs', 8]]) })!;
+    const f = few.events.find((e) => e.detector === 'INTERNAL_STRUCTURE');
+    const m = many.events.find((e) => e.detector === 'INTERNAL_STRUCTURE');
+    // Different leg counts must produce a different read of internal structure.
+    expect(f?.strength !== m?.strength || f?.direction !== m?.direction || (!f && !m)).toBe(true);
+  });
+
+  it('detectors.internal_structure_strength changes minor pivot detection', () => {
+    // Different pivot strengths resolve different MINOR legs. Two arbitrary
+    // values can coincide by chance, so assert the setting produces more than
+    // one distinct reading across its whole range.
+    const readings = new Set<string>();
+    for (const strength of [1, 2, 3, 4, 5]) {
+      const e = evaluate({
+        symbol: 'BTCUSDT',
+        timeframe: '1h',
+        candles,
+        settings: Settings.fromEntries([['detectors.internal_structure_strength', strength]]),
+      })!;
+      const ev = e.events.find((x) => x.detector === 'INTERNAL_STRUCTURE');
+      readings.add(ev ? `${ev.direction}:${ev.strength.toFixed(6)}` : 'none');
+    }
+    expect(readings.size).toBeGreaterThan(1);
+  });
+
+  it('detectors.confluence_min_overlap_pct gates OB+FVG confluence', () => {
+    const easy = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.confluence_min_overlap_pct', 1]]) })!;
+    const hard = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.confluence_min_overlap_pct', 100]]) })!;
+    expect(easy.events.filter((e) => e.detector === 'OB_FVG_CONFLUENCE').length)
+      .toBeGreaterThanOrEqual(hard.events.filter((e) => e.detector === 'OB_FVG_CONFLUENCE').length);
   });
 
   it('detectors.fvg_min_pct changes FVG detections', () => {
@@ -125,13 +188,6 @@ describe('behavioural wiring: changing a setting changes engine behaviour', () =
     const hard = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.fvg_min_pct', 5]]) })!;
     expect(easy.events.filter((e) => e.detector === 'FVG').length)
       .toBeGreaterThanOrEqual(hard.events.filter((e) => e.detector === 'FVG').length);
-  });
-
-  it('detectors.equal_level_tolerance_pct changes equal-level detections', () => {
-    const tight = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.equal_level_tolerance_pct', 0.01]]) })!;
-    const loose = evaluate({ symbol: 'BTCUSDT', timeframe: '1h', candles, settings: Settings.fromEntries([['detectors.equal_level_tolerance_pct', 2]]) })!;
-    expect(loose.events.filter((e) => e.detector === 'EQUAL_LEVELS').length)
-      .toBeGreaterThanOrEqual(tight.events.filter((e) => e.detector === 'EQUAL_LEVELS').length);
   });
 
   it('risk.atr_period changes the ATR used for risk', () => {
@@ -147,8 +203,8 @@ describe('behavioural wiring: changing a setting changes engine behaviour', () =
     expect(b.stopLoss).toBeCloseTo(94, 9);
   });
 
-  it('risk.tp_r_multiples changes take-profit levels', () => {
-    const p = buildRiskPlan({ direction: 'LONG', entry: 100, atr: 2, settings: Settings.fromEntries([['risk.sl_atr_mult', 1], ['risk.tp_r_multiples', [0.5, 4]]]) })!;
+  it('risk.tp1_r / tp2_r / tp3_r change take-profit levels', () => {
+    const p = buildRiskPlan({ direction: 'LONG', entry: 100, atr: 2, settings: Settings.fromEntries([['risk.sl_atr_mult', 1], ['risk.tp1_r', 0.5], ['risk.tp2_r', 4], ['risk.tp3_r', 0]]) })!;
     expect(p.takeProfits).toEqual([101, 108]);
   });
 
@@ -228,11 +284,29 @@ describe('setting validation', () => {
     expect(coerceSettingValue(def, '["1m"]')).toEqual(['1m']);
   });
 
-  it('validates tp multiples', () => {
-    const def = SETTINGS_BY_KEY.get('risk.tp_r_multiples')!;
-    expect(coerceSettingValue(def, [1, 2])).toEqual([1, 2]);
-    expect(() => coerceSettingValue(def, [0])).toThrow(/positive/);
-    expect(() => coerceSettingValue(def, [-1])).toThrow(/positive/);
+  it('validates TP R multiples via min/max bounds', () => {
+    const tp1 = SETTINGS_BY_KEY.get('risk.tp1_r')!;
+    expect(coerceSettingValue(tp1, 1.5)).toBe(1.5);
+    expect(() => coerceSettingValue(tp1, 0)).toThrow(/min is/);
+    expect(() => coerceSettingValue(tp1, 999)).toThrow(/max is/);
+    // TP2/TP3 accept 0, which disables that level.
+    const tp3 = SETTINGS_BY_KEY.get('risk.tp3_r')!;
+    expect(coerceSettingValue(tp3, 0)).toBe(0);
+  });
+
+  it('validates the stop-loss policy enum', () => {
+    const def = SETTINGS_BY_KEY.get('risk.sl_policy')!;
+    expect(coerceSettingValue(def, 'ATR')).toBe('ATR');
+    expect(coerceSettingValue(def, 'STRUCTURE')).toBe('STRUCTURE');
+    expect(coerceSettingValue(def, 'ATR_OR_STRUCTURE')).toBe('ATR_OR_STRUCTURE');
+    expect(() => coerceSettingValue(def, 'YOLO')).toThrow(/must be one of/);
+  });
+
+  it('validates symbol allow/deny lists', () => {
+    const def = SETTINGS_BY_KEY.get('market.enabled_symbols')!;
+    expect(coerceSettingValue(def, ['BTCUSDT'])).toEqual(['BTCUSDT']);
+    expect(coerceSettingValue(def, [])).toEqual([]);
+    expect(() => coerceSettingValue(def, ['not a symbol!'])).toThrow(/invalid symbol/);
   });
 
   it('locks market.quote_asset to USDT', () => {

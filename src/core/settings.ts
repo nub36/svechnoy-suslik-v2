@@ -40,7 +40,7 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     category: 'engine',
     label: 'Trading mode',
     description: 'DRY_RUN or FORWARD_TEST. LIVE is locked and will be rejected.',
-    default: 'DRY_RUN',
+    default: 'FORWARD_TEST',
     accessor: 'tradingMode(',
     consumedBy: ['src/core/settings.ts', 'src/strategy/engine-runner.ts', 'src/workers/strategy.worker.ts'],
   },
@@ -69,10 +69,10 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     type: 'number',
     category: 'engine',
     label: 'Minimum confluences',
-    description: 'Minimum number of distinct counted detectors required.',
+    description: 'Minimum number of distinct counted factors (confirmations) required.',
     default: 2,
     min: 1,
-    max: 8,
+    max: 7,
     consumedBy: ['src/strategy/smart-money.ts'],
   },
   {
@@ -81,7 +81,7 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     category: 'engine',
     label: 'Active timeframes',
     description: 'Timeframes evaluated by the strategy worker.',
-    default: ['15m', '1h', '4h'],
+    default: ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'],
     accessor: 'timeframes(',
     consumedBy: ['src/core/settings.ts', 'src/strategy/engine-runner.ts', 'src/workers/market.worker.ts'],
   },
@@ -108,43 +108,29 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     consumedBy: ['src/strategy/detectors.ts', 'src/strategy/smart-money.ts', 'src/replay/runner.ts'],
   },
 
-  // ---------------- detector weights ----------------
+  // ---------------- Smart Money factors ----------------
+  //
+  // INDEPENDENT: BOS, ORDER_BLOCK, FVG, LIQUIDITY_SWEEP, RANGE_POSITION
+  // CONTEXT:     INTERNAL_STRUCTURE
+  // DERIVED:     OB_FVG_CONFLUENCE (small bonus weight ONLY — never re-adds
+  //              the ORDER_BLOCK / FVG weights)
+  //
   {
     key: 'detectors.BOS.enabled',
     type: 'boolean',
     category: 'detectors',
     label: 'BOS enabled',
-    description: 'Break of Structure detector.',
+    description: 'Break of Structure — close beyond a confirmed swing.',
     default: true,
-    consumedBy: ['src/strategy/smart-money.ts'],
+    consumedBy: ['src/strategy/smart-money.ts', 'src/strategy/scoring.ts'],
   },
   {
     key: 'detectors.BOS.weight',
     type: 'number',
     category: 'detectors',
     label: 'BOS weight',
-    description: 'Score weight for Break of Structure.',
+    description: 'Score weight for BOS.',
     default: 25,
-    min: 0,
-    max: 100,
-    consumedBy: ['src/strategy/scoring.ts'],
-  },
-  {
-    key: 'detectors.CHOCH.enabled',
-    type: 'boolean',
-    category: 'detectors',
-    label: 'CHoCH enabled',
-    description: 'Change of Character detector.',
-    default: true,
-    consumedBy: ['src/strategy/smart-money.ts'],
-  },
-  {
-    key: 'detectors.CHOCH.weight',
-    type: 'number',
-    category: 'detectors',
-    label: 'CHoCH weight',
-    description: 'Score weight for Change of Character.',
-    default: 20,
     min: 0,
     max: 100,
     consumedBy: ['src/strategy/scoring.ts'],
@@ -154,17 +140,17 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     type: 'boolean',
     category: 'detectors',
     label: 'Order Block enabled',
-    description: 'Order block detector.',
+    description: 'Last opposite candle before an impulsive displacement.',
     default: true,
-    consumedBy: ['src/strategy/smart-money.ts'],
+    consumedBy: ['src/strategy/smart-money.ts', 'src/strategy/scoring.ts'],
   },
   {
     key: 'detectors.ORDER_BLOCK.weight',
     type: 'number',
     category: 'detectors',
     label: 'Order Block weight',
-    description: 'Score weight for order blocks.',
-    default: 18,
+    description: 'Score weight for Order Block.',
+    default: 20,
     min: 0,
     max: 100,
     consumedBy: ['src/strategy/scoring.ts'],
@@ -174,17 +160,17 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     type: 'boolean',
     category: 'detectors',
     label: 'FVG enabled',
-    description: 'Fair Value Gap / imbalance detector.',
+    description: 'Fair Value Gap — three-candle price imbalance.',
     default: true,
-    consumedBy: ['src/strategy/smart-money.ts'],
+    consumedBy: ['src/strategy/smart-money.ts', 'src/strategy/scoring.ts'],
   },
   {
     key: 'detectors.FVG.weight',
     type: 'number',
     category: 'detectors',
     label: 'FVG weight',
-    description: 'Score weight for fair value gaps.',
-    default: 12,
+    description: 'Score weight for FVG.',
+    default: 15,
     min: 0,
     max: 100,
     consumedBy: ['src/strategy/scoring.ts'],
@@ -193,113 +179,126 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     key: 'detectors.LIQUIDITY_SWEEP.enabled',
     type: 'boolean',
     category: 'detectors',
-    label: 'Liquidity sweep enabled',
-    description: 'Stop-hunt / liquidity sweep detector.',
+    label: 'Liquidity Sweep enabled',
+    description: 'Wick takes liquidity beyond a swing, close rejects back inside.',
     default: true,
-    consumedBy: ['src/strategy/smart-money.ts'],
+    consumedBy: ['src/strategy/smart-money.ts', 'src/strategy/scoring.ts'],
   },
   {
     key: 'detectors.LIQUIDITY_SWEEP.weight',
     type: 'number',
     category: 'detectors',
-    label: 'Liquidity sweep weight',
-    description: 'Score weight for liquidity sweeps.',
+    label: 'Liquidity Sweep weight',
+    description: 'Score weight for Liquidity Sweep.',
     default: 15,
     min: 0,
     max: 100,
     consumedBy: ['src/strategy/scoring.ts'],
   },
   {
-    key: 'detectors.EQUAL_LEVELS.enabled',
+    key: 'detectors.RANGE_POSITION.enabled',
     type: 'boolean',
     category: 'detectors',
-    label: 'Equal highs/lows enabled',
-    description: 'Equal highs/lows (liquidity pool) detector.',
+    label: 'Range Position enabled',
+    description: 'Where price sits inside the dealing range (outer bands only).',
     default: true,
-    consumedBy: ['src/strategy/smart-money.ts'],
+    consumedBy: ['src/strategy/smart-money.ts', 'src/strategy/scoring.ts'],
   },
   {
-    key: 'detectors.EQUAL_LEVELS.weight',
+    key: 'detectors.RANGE_POSITION.weight',
     type: 'number',
     category: 'detectors',
-    label: 'Equal highs/lows weight',
-    description: 'Score weight for equal highs/lows.',
+    label: 'Range Position weight',
+    description: 'Score weight for Range Position.',
+    default: 10,
+    min: 0,
+    max: 100,
+    consumedBy: ['src/strategy/scoring.ts'],
+  },
+  {
+    key: 'detectors.INTERNAL_STRUCTURE.enabled',
+    type: 'boolean',
+    category: 'detectors',
+    label: 'Internal Structure enabled',
+    description: 'CONTEXT factor: bullish/bearish internal (minor leg) structure.',
+    default: true,
+    consumedBy: ['src/strategy/smart-money.ts', 'src/strategy/scoring.ts'],
+  },
+  {
+    key: 'detectors.INTERNAL_STRUCTURE.weight',
+    type: 'number',
+    category: 'detectors',
+    label: 'Internal Structure weight',
+    description: 'Score weight for Internal Structure.',
     default: 8,
     min: 0,
     max: 100,
     consumedBy: ['src/strategy/scoring.ts'],
   },
   {
-    key: 'detectors.PREMIUM_DISCOUNT.enabled',
+    key: 'detectors.OB_FVG_CONFLUENCE.enabled',
     type: 'boolean',
     category: 'detectors',
-    label: 'Premium/Discount enabled',
-    description: 'Premium/discount (dealing range) detector.',
+    label: 'OB + FVG Confluence enabled',
+    description: 'DERIVED factor: order block overlapping an FVG. Bonus weight only.',
     default: true,
-    consumedBy: ['src/strategy/smart-money.ts'],
+    consumedBy: ['src/strategy/smart-money.ts', 'src/strategy/scoring.ts'],
   },
   {
-    key: 'detectors.PREMIUM_DISCOUNT.weight',
+    key: 'detectors.OB_FVG_CONFLUENCE.weight',
     type: 'number',
     category: 'detectors',
-    label: 'Premium/Discount weight',
-    description: 'Score weight for premium/discount positioning.',
-    default: 10,
+    label: 'OB + FVG Confluence weight',
+    description: 'Score weight for OB + FVG Confluence.',
+    default: 7,
     min: 0,
     max: 100,
     consumedBy: ['src/strategy/scoring.ts'],
   },
-  {
-    key: 'detectors.VOLUME_IMBALANCE.enabled',
-    type: 'boolean',
-    category: 'detectors',
-    label: 'Volume imbalance enabled',
-    description: 'Volume surge / imbalance detector.',
-    default: true,
-    consumedBy: ['src/strategy/smart-money.ts'],
-  },
-  {
-    key: 'detectors.VOLUME_IMBALANCE.weight',
-    type: 'number',
-    category: 'detectors',
-    label: 'Volume imbalance weight',
-    description: 'Score weight for volume imbalance.',
-    default: 10,
-    min: 0,
-    max: 100,
-    consumedBy: ['src/strategy/scoring.ts'],
-  },
+
+  // ---------------- factor parameters ----------------
   {
     key: 'detectors.event_ttl_bars',
     type: 'number',
     category: 'detectors',
     label: 'Event freshness (bars)',
-    description: 'Detector events older than this many bars are ignored.',
+    description: 'Factor events older than this many bars are ignored.',
     default: 12,
     min: 1,
     max: 100,
     consumedBy: ['src/strategy/smart-money.ts'],
   },
   {
-    key: 'detectors.volume_surge_mult',
+    key: 'detectors.bos_min_break_pct',
     type: 'number',
     category: 'detectors',
-    label: 'Volume surge multiplier',
-    description: 'Volume must exceed SMA20 * this to count as a surge.',
-    default: 1.8,
+    label: 'BOS min break %',
+    description: 'Close must exceed the broken swing by at least this % to count as a BOS.',
+    default: 0,
+    min: 0,
+    max: 5,
+    consumedBy: ['src/strategy/detectors.ts'],
+  },
+  {
+    key: 'detectors.ob_min_displacement',
+    type: 'number',
+    category: 'detectors',
+    label: 'Order block min displacement',
+    description: 'Displacement candle body must be at least this multiple of the 20-bar average body.',
+    default: 1.6,
     min: 1,
     max: 10,
     consumedBy: ['src/strategy/detectors.ts'],
   },
   {
-    key: 'detectors.equal_level_tolerance_pct',
+    key: 'detectors.ob_lookback_bars',
     type: 'number',
     category: 'detectors',
-    label: 'Equal level tolerance %',
-    description: 'Max % difference for two swings to count as "equal".',
-    default: 0.12,
-    min: 0.01,
-    max: 2,
+    label: 'Order block scan depth',
+    description: 'How many bars back to search for the opposite candle forming the order block.',
+    default: 8,
+    min: 1,
+    max: 50,
     consumedBy: ['src/strategy/detectors.ts'],
   },
   {
@@ -311,6 +310,61 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     default: 0.05,
     min: 0.001,
     max: 5,
+    consumedBy: ['src/strategy/detectors.ts'],
+  },
+  {
+    key: 'detectors.sweep_min_wick_ratio',
+    type: 'number',
+    category: 'detectors',
+    label: 'Sweep min wick ratio',
+    description: 'Rejection wick must be at least this fraction of the candle range (0-1).',
+    default: 0,
+    min: 0,
+    max: 1,
+    consumedBy: ['src/strategy/detectors.ts'],
+  },
+  {
+    key: 'detectors.range_edge_band',
+    type: 'number',
+    category: 'detectors',
+    label: 'Range position edge band',
+    description: 'Outer fraction of the dealing range that counts as a directional edge (e.g. 0.35 = lower/upper 35%).',
+    default: 0.35,
+    min: 0.05,
+    max: 0.5,
+    consumedBy: ['src/strategy/detectors.ts'],
+  },
+  {
+    key: 'detectors.internal_structure_strength',
+    type: 'number',
+    category: 'detectors',
+    label: 'Internal structure pivot strength',
+    description: 'Pivot strength for MINOR legs. Keep below the swing pivot strength so it does not duplicate BOS.',
+    default: 1,
+    min: 1,
+    max: 5,
+    consumedBy: ['src/strategy/detectors.ts'],
+  },
+  {
+    key: 'detectors.internal_structure_legs',
+    type: 'number',
+    category: 'detectors',
+    label: 'Internal structure legs',
+    description: 'How many recent minor highs/lows are compared to judge internal structure.',
+    default: 3,
+    min: 2,
+    max: 10,
+    consumedBy: ['src/strategy/detectors.ts'],
+  },
+  {
+    key: 'detectors.confluence_min_overlap_pct',
+    type: 'number',
+    category: 'detectors',
+    label: 'OB+FVG min overlap %',
+    description: 'Minimum overlap (% of the smaller zone) for an order block and FVG to count as confluence.',
+    default: 20,
+    min: 1,
+    max: 100,
     consumedBy: ['src/strategy/detectors.ts'],
   },
 
@@ -338,13 +392,64 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     consumedBy: ['src/strategy/risk.ts'],
   },
   {
-    key: 'risk.tp_r_multiples',
-    type: 'json',
+    key: 'risk.sl_policy',
+    type: 'string',
     category: 'risk',
-    label: 'Take-profit R multiples',
-    description: 'Take-profit levels expressed as multiples of risk (R).',
-    default: [1, 2, 3],
-    consumedBy: ['src/strategy/risk.ts'],
+    label: 'Stop-loss policy',
+    description:
+      'ATR = stop at ATR x multiple. STRUCTURE = stop at the structural invalidation level. ' +
+      'ATR_OR_STRUCTURE = whichever is further away (safest).',
+    default: 'ATR_OR_STRUCTURE',
+    accessor: 'slPolicy(',
+    consumedBy: ['src/core/settings.ts', 'src/strategy/risk.ts'],
+  },
+  {
+    key: 'risk.tp1_r',
+    type: 'number',
+    category: 'risk',
+    label: 'TP1 (R multiple)',
+    description: 'First take-profit, expressed as a multiple of the initial risk.',
+    default: 1,
+    min: 0.1,
+    max: 50,
+    accessor: 'tpMultiples(',
+    consumedBy: ['src/core/settings.ts', 'src/strategy/risk.ts'],
+  },
+  {
+    key: 'risk.tp2_r',
+    type: 'number',
+    category: 'risk',
+    label: 'TP2 (R multiple)',
+    description: 'Second take-profit, as a multiple of the initial risk. 0 disables it.',
+    default: 2,
+    min: 0,
+    max: 50,
+    accessor: 'tpMultiples(',
+    consumedBy: ['src/core/settings.ts', 'src/strategy/risk.ts'],
+  },
+  {
+    key: 'risk.tp3_r',
+    type: 'number',
+    category: 'risk',
+    label: 'TP3 (R multiple)',
+    description: 'Third take-profit, as a multiple of the initial risk. 0 disables it.',
+    default: 3,
+    min: 0,
+    max: 50,
+    accessor: 'tpMultiples(',
+    consumedBy: ['src/core/settings.ts', 'src/strategy/risk.ts'],
+  },
+  {
+    key: 'risk.signal_expiry_bars',
+    type: 'number',
+    category: 'risk',
+    label: 'Signal expiration (bars)',
+    description:
+      'A WAITING_ENTRY signal is cancelled if candle N+1 has still not arrived after this many bars. 0 = never expire.',
+    default: 3,
+    min: 0,
+    max: 100,
+    consumedBy: ['src/strategy/engine-runner.ts'],
   },
   {
     key: 'risk.account_quote',
@@ -418,9 +523,36 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     type: 'json',
     category: 'market',
     label: 'Excluded symbols',
-    description: 'Symbols never traded (e.g. stablecoin pairs).',
-    default: ['USDCUSDT', 'FDUSDUSDT', 'TUSDUSDT', 'BUSDUSDT', 'EURUSDT', 'DAIUSDT'],
+    description:
+      'Symbols never ranked into the TOP-N (stablecoin and fiat-like pairs). ' +
+      'Configurable: this is NOT a hardcoded TOP-10 list, it is an exclusion filter.',
+    default: [
+      'USDCUSDT',
+      'FDUSDUSDT',
+      'TUSDUSDT',
+      'BUSDUSDT',
+      'USDPUSDT',
+      'USD1USDT',
+      'EURUSDT',
+      'GBPUSDT',
+      'AEURUSDT',
+      'DAIUSDT',
+      'SUSDUSDT',
+      'PYUSDUSDT',
+    ],
     consumedBy: ['src/market/top-symbols.ts'],
+  },
+  {
+    key: 'market.enabled_symbols',
+    type: 'json',
+    category: 'market',
+    label: 'Enabled symbols',
+    description:
+      'Restrict the engine to these symbols (must still be in the TOP-N). ' +
+      'Empty = trade the whole TOP-N. This is a filter, never a hardcoded list.',
+    default: [],
+    accessor: 'enabledSymbols(',
+    consumedBy: ['src/core/settings.ts', 'src/strategy/engine-runner.ts'],
   },
   {
     key: 'market.candle_limit',
@@ -578,6 +710,32 @@ export class Settings {
     return this.num(`detectors.${d}.weight`);
   }
 
+  /**
+   * Take-profit R multiples, from the explicit TP1/TP2/TP3 settings.
+   * Zero (or negative) disables a level; the list is sorted ascending.
+   */
+  tpMultiples(): number[] {
+    const raw = [this.num('risk.tp1_r'), this.num('risk.tp2_r'), this.num('risk.tp3_r')];
+    const tps = raw.filter((r) => Number.isFinite(r) && r > 0).sort((a, b) => a - b);
+    return tps.length > 0 ? tps : [1];
+  }
+
+  /** Stop-loss policy. Unknown values degrade to the safest option. */
+  slPolicy(): 'ATR' | 'STRUCTURE' | 'ATR_OR_STRUCTURE' {
+    const v = this.str('risk.sl_policy');
+    return v === 'ATR' || v === 'STRUCTURE' ? v : 'ATR_OR_STRUCTURE';
+  }
+
+  /**
+   * Symbols the engine is allowed to trade. Empty list (the default) means
+   * "whatever the market worker ranked into the TOP-N".
+   */
+  enabledSymbols(): string[] {
+    return this.arr<string>('market.enabled_symbols')
+      .map((x) => String(x).toUpperCase().trim())
+      .filter((x) => x.length > 0);
+  }
+
   tradingMode(): 'DRY_RUN' | 'FORWARD_TEST' {
     // Never allows LIVE — assertAllowedMode throws, we degrade to DRY_RUN.
     try {
@@ -613,6 +771,12 @@ export function coerceSettingValue(def: SettingDef, input: unknown): unknown {
       throw new Error(`${def.key}: expected a boolean`);
     }
     case 'string': {
+      if (def.key === 'risk.sl_policy') {
+        const allowed = ['ATR', 'STRUCTURE', 'ATR_OR_STRUCTURE'];
+        if (typeof input !== 'string' || !allowed.includes(input)) {
+          throw new Error(`risk.sl_policy: must be one of ${allowed.join(', ')}`);
+        }
+      }
       if (typeof input !== 'string') throw new Error(`${def.key}: expected a string`);
       if (def.key === 'engine.trading_mode') {
         // Throws for LIVE — the lock is enforced at the settings boundary too.
@@ -642,13 +806,13 @@ export function coerceSettingValue(def: SettingDef, input: unknown): unknown {
           }
         }
       }
-      if (def.key === 'risk.tp_r_multiples') {
-        if (!Array.isArray(v) || v.length === 0) {
-          throw new Error('risk.tp_r_multiples: expected a non-empty array');
+      if (def.key === 'market.enabled_symbols' || def.key === 'market.exclude_symbols') {
+        if (!Array.isArray(v)) {
+          throw new Error(`${def.key}: expected an array of symbols`);
         }
-        for (const r of v) {
-          if (typeof r !== 'number' || !Number.isFinite(r) || r <= 0) {
-            throw new Error('risk.tp_r_multiples: values must be positive numbers');
+        for (const sym of v) {
+          if (typeof sym !== 'string' || !/^[A-Z0-9]{2,20}$/.test(sym.toUpperCase())) {
+            throw new Error(`${def.key}: invalid symbol "${String(sym)}"`);
           }
         }
       }

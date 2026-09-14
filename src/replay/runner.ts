@@ -179,7 +179,13 @@ export function replaySeries(args: ReplayArgs): ReplayResult {
           score: res.action.score,
           setupCandleTime: res.action.setupCandleTime,
           atr: ev.atr,
-          breakdown: res.action.direction === 'LONG' ? ev.long : ev.short,
+          breakdown: {
+            ...(res.action.direction === 'LONG' ? ev.long : ev.short),
+            longScore: ev.longScore,
+            shortScore: ev.shortScore,
+            confirmations: ev.confirmations,
+            chosen: { direction: res.action.direction, score: res.action.score },
+          },
         };
       } else {
         machine = { ...machine, state: 'IDLE', direction: null, setupCandleTime: null };

@@ -269,8 +269,8 @@ describe('settings persistence', () => {
     expect(s.num('engine.score_threshold')).toBe(55);
     expect(s.bool('engine.enabled')).toBe(true);
     expect(s.str('market.quote_asset')).toBe('USDT');
-    expect(s.arr<string>('engine.timeframes')).toEqual(['15m', '1h', '4h']);
-    expect(s.arr<number>('risk.tp_r_multiples')).toEqual([1, 2, 3]);
+    expect(s.arr<string>('engine.timeframes')).toEqual(['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w']);
+    expect(s.tpMultiples()).toEqual([1, 2, 3]);
 
     const rows = await db.selectFrom('settings').selectAll().execute();
     expect(rows).toHaveLength(SETTINGS_REGISTRY.length);

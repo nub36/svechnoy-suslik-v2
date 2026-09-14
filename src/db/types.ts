@@ -56,6 +56,9 @@ export interface SignalsTable {
   replay_run_id: ColumnType<number | null, number | null | undefined, number | null>;
   score: number;
   threshold: number;
+  long_score: ColumnType<number, number | undefined, number>;
+  short_score: ColumnType<number, number | undefined, number>;
+  confirmations: ColumnType<number, number | undefined, number>;
   breakdown: JSONColumnType<Record<string, unknown>, string | undefined, string>;
   events: JSONColumnType<unknown[], string | undefined, string>;
   setup_candle_time: ColumnType<number, number, number>;

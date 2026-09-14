@@ -42,6 +42,32 @@ describe('TOP-N Binance Spot USDT selection', () => {
     expect(top).not.toContain('FDUSDUSDT');
   });
 
+  it('excludes USD1USDT, which production ranked into the TOP-10', () => {
+    const top = selectTopSymbols(tickers, info, s).map((t) => t.symbol);
+    expect(top).not.toContain('USD1USDT');
+  });
+
+  it('ships every known stablecoin-like pair in the DEFAULT exclusion list', () => {
+    const defaults = Settings.fromDefaults().arr<string>('market.exclude_symbols');
+    for (const sym of ['USDCUSDT', 'FDUSDUSDT', 'TUSDUSDT', 'BUSDUSDT', 'USD1USDT', 'EURUSDT', 'DAIUSDT']) {
+      expect(defaults).toContain(sym);
+    }
+  });
+
+  it('the TOP-N is NOT a hardcoded list — it follows volume and settings', () => {
+    // Excluding the current #1 must promote everything below it by one rank.
+    const before = selectTopSymbols(tickers, info, s);
+    const first = before[0]!.symbol;
+    const after = selectTopSymbols(
+      tickers,
+      info,
+      Settings.fromEntries([['market.exclude_symbols', [...Settings.fromDefaults().arr<string>('market.exclude_symbols'), first]]]),
+    );
+    expect(after.map((t) => t.symbol)).not.toContain(first);
+    expect(after[0]!.symbol).toBe(before[1]!.symbol);
+    expect(after[0]!.rank).toBe(1);
+  });
+
   it('excludes leveraged tokens', () => {
     const top = selectTopSymbols(tickers, info, s).map((t) => t.symbol);
     expect(top).not.toContain('BTCUPUSDT');

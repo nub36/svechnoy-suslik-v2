@@ -292,4 +292,156 @@ describe('end-to-end live pipeline', () => {
     expect(closedInDb.every((c) => c.isClosed)).toBe(true);
     expect(closedInDb.find((c) => c.openTime === forming.openTime)).toBeUndefined();
   });
+  it('expires a WAITING_ENTRY signal whose N+1 candle never arrives', async () => {
+    await upsertSymbols(db, [rankedSym('BTCUSDT')]);
+    const all = loadFixtureCandles('BTCUSDT', '1h');
+    const hist = all.slice(0, 400);
+    await upsertCandles(db, 'BTCUSDT', '1h', hist);
+
+    // Expire quickly, and make sure nothing can fill in the meantime.
+    const settings = await loosen([['risk.signal_expiry_bars', 2]]);
+    await runEngineOnce(db, settings, log);
+
+    const created = await db.selectFrom('signals').selectAll().execute();
+    if (created.length === 0) return; // fixture produced no setup; nothing to assert
+    const sig = created[0]!;
+    expect(sig.state).toBe('WAITING_ENTRY');
+    expect(sig.entry_price).toBeNull();
+
+    // Advance the CLOSED history well past the expiry window WITHOUT ever
+    // supplying the N+1 candle for this setup.
+    const setupTime = Number(sig.setup_candle_time);
+    const far = all
+      .slice(400, 410)
+      .map((c, i) => ({ ...c, openTime: setupTime + (i + 6) * H, isClosed: true }));
+    await upsertCandles(db, 'BTCUSDT', '1h', far);
+
+    await runEngineOnce(db, settings, log);
+
+    const after = await db
+      .selectFrom('signals').selectAll().where('id', '=', sig.id).executeTakeFirst();
+    expect(after!.state).toBe('CANCELLED');
+    // CRITICAL: expiring must never fabricate an entry.
+    expect(after!.entry_price).toBeNull();
+    expect(after!.entry_candle_time).toBeNull();
+  });
+
+  it('signal_expiry_bars = 0 means a signal waits indefinitely', async () => {
+    await upsertSymbols(db, [rankedSym('BTCUSDT')]);
+    const all = loadFixtureCandles('BTCUSDT', '1h');
+    await upsertCandles(db, 'BTCUSDT', '1h', all.slice(0, 400));
+
+    const settings = await loosen([['risk.signal_expiry_bars', 0]]);
+    await runEngineOnce(db, settings, log);
+    const created = await db.selectFrom('signals').selectAll().execute();
+    if (created.length === 0) return;
+
+    const sig = created[0]!;
+    const setupTime = Number(sig.setup_candle_time);
+    const far = all
+      .slice(400, 410)
+      .map((c, i) => ({ ...c, openTime: setupTime + (i + 20) * H, isClosed: true }));
+    await upsertCandles(db, 'BTCUSDT', '1h', far);
+
+    await runEngineOnce(db, settings, log);
+    const after = await db
+      .selectFrom('signals').selectAll().where('id', '=', sig.id).executeTakeFirst();
+    expect(after!.state).toBe('WAITING_ENTRY');
+  });
+
+  it('market.enabled_symbols restricts which TOP-N symbols the engine trades', async () => {
+    await upsertSymbols(db, [rankedSym('BTCUSDT', 1), rankedSym('ETHUSDT', 2)]);
+    for (const sym of ['BTCUSDT', 'ETHUSDT']) {
+      await upsertCandles(db, sym, '1h', loadFixtureCandles(sym, '1h').slice(0, 400));
+    }
+
+    const settings = await loosen([['market.enabled_symbols', ['ETHUSDT']]]);
+    const r = await runEngineOnce(db, settings, log);
+    expect(r.evaluated).toBeGreaterThan(0);
+
+    const rows = await db.selectFrom('signals').select('symbol').distinct().execute();
+    for (const row of rows) expect(row.symbol).toBe('ETHUSDT');
+
+    const states = await db.selectFrom('strategy_state').select('symbol').distinct().execute();
+    for (const st of states) expect(st.symbol).toBe('ETHUSDT');
+  });
+
+  it('persists longScore, shortScore and confirmations on the signal', async () => {
+    await upsertSymbols(db, [rankedSym('BTCUSDT')]);
+    await upsertCandles(db, 'BTCUSDT', '1h', loadFixtureCandles('BTCUSDT', '1h').slice(0, 400));
+
+    const settings = await loosen();
+    await runEngineOnce(db, settings, log);
+
+    const sig = await db.selectFrom('signals').selectAll().executeTakeFirst();
+    if (!sig) return;
+    const bd = sig.breakdown as unknown as {
+      longScore: number; shortScore: number; confirmations: number;
+      chosen: { direction: string; score: number };
+    };
+    expect(typeof bd.longScore).toBe('number');
+    expect(typeof bd.shortScore).toBe('number');
+    expect(typeof bd.confirmations).toBe('number');
+    expect(bd.longScore).toBeGreaterThanOrEqual(0);
+    expect(bd.longScore).toBeLessThanOrEqual(100);
+    expect(bd.shortScore).toBeGreaterThanOrEqual(0);
+    expect(bd.shortScore).toBeLessThanOrEqual(100);
+    expect(bd.confirmations).toBeGreaterThanOrEqual(1);
+    expect(Number(sig.score)).toBeCloseTo(Math.max(bd.longScore, bd.shortScore), 6);
+
+    // ...and as first-class, queryable columns (not only inside the JSON blob).
+    expect(Number(sig.long_score)).toBeCloseTo(bd.longScore, 6);
+    expect(Number(sig.short_score)).toBeCloseTo(bd.shortScore, 6);
+    expect(Number(sig.confirmations)).toBe(bd.confirmations);
+    expect(Number(sig.score)).toBeCloseTo(
+      Math.max(Number(sig.long_score), Number(sig.short_score)), 6,
+    );
+  });
+
+  it('the persisted breakdown is arithmetically auditable', async () => {
+    await upsertSymbols(db, [rankedSym('BTCUSDT')]);
+    await upsertCandles(db, 'BTCUSDT', '1h', loadFixtureCandles('BTCUSDT', '1h').slice(0, 400));
+
+    const settings = await loosen();
+    await runEngineOnce(db, settings, log);
+    const sig = await db.selectFrom('signals').selectAll().executeTakeFirst();
+    if (!sig) return;
+
+    const bd = sig.breakdown as unknown as {
+      components: Array<{
+        detector: string; strength: number; weight: number;
+        contribution: number; counted: boolean; skippedReason?: string;
+      }>;
+      rawScore: number; totalWeight: number; score: number; confirmations: number;
+    };
+
+    expect(bd.components.length).toBeGreaterThan(0);
+
+    // Every component is self-explaining: contribution === strength * weight,
+    // and anything NOT counted contributes exactly 0 with a stated reason.
+    for (const c of bd.components) {
+      if (c.counted) {
+        expect(c.contribution).toBeCloseTo(c.strength * c.weight, 9);
+        expect(c.contribution).toBeGreaterThan(0);
+      } else {
+        expect(c.contribution).toBe(0);
+        expect(c.skippedReason).toBeTruthy();
+      }
+    }
+
+    const counted = bd.components.filter((c) => c.counted);
+    // Each factor is counted AT MOST ONCE — no double counting.
+    const factors = counted.map((c) => c.detector);
+    expect(new Set(factors).size).toBe(factors.length);
+    expect(counted.length).toBe(bd.confirmations);
+
+    // rawScore is the sum of counted contributions; score normalises by weight.
+    const sum = counted.reduce((a, c) => a + c.contribution, 0);
+    expect(bd.rawScore).toBeCloseTo(sum, 5);
+    expect(bd.totalWeight).toBeCloseTo(counted.reduce((a, c) => a + c.weight, 0), 5);
+    expect(bd.score).toBeCloseTo((bd.rawScore / bd.totalWeight) * 100, 3);
+    expect(bd.score).toBeGreaterThanOrEqual(0);
+    expect(bd.score).toBeLessThanOrEqual(100);
+    expect(Number(sig.score)).toBeCloseTo(bd.score, 6);
+  });
 });

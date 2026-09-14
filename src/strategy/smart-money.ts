@@ -13,13 +13,13 @@
 import type {
   Candle,
   DetectorEvent,
-  DetectorId,
+  FactorId,
   Evaluation,
   Timeframe,
 } from '../core/types';
-import { DETECTOR_IDS } from '../core/types';
+import { FACTOR_IDS } from '../core/types';
 import type { Settings } from '../core/settings';
-import { buildContext, DETECTORS } from './detectors';
+import { buildContext, DETECTORS, deriveConfluence } from './detectors';
 import { countedDetectors, scoreDirection } from './scoring';
 import { atrSeries } from './structure';
 
@@ -82,13 +82,10 @@ export function evaluate(args: EvaluateArgs): Evaluation | null {
 
   const ctx = buildContext(window, localIndex, settings);
 
-  // Run every ENABLED detector.
+  // Pass 1 — every ENABLED independent/context detector.
   const events: DetectorEvent[] = [];
-  for (const id of DETECTOR_IDS) {
-    if (!settings.detectorEnabled(id)) continue;
-    const fn = DETECTORS[id];
-    if (!fn) continue;
-    for (const ev of fn(ctx)) {
+  const guard = (id: FactorId, list: readonly DetectorEvent[]): void => {
+    for (const ev of list) {
       // Defensive: a detector must never reference a future bar.
       if (ev.index > localIndex) {
         throw new FutureLeakageError(
@@ -97,6 +94,20 @@ export function evaluate(args: EvaluateArgs): Evaluation | null {
       }
       events.push(ev);
     }
+  };
+
+  for (const id of FACTOR_IDS) {
+    const fn = DETECTORS[id];
+    if (!fn) continue; // DERIVED factors are produced in pass 2
+    if (!settings.detectorEnabled(id)) continue;
+    guard(id, fn(ctx));
+  }
+
+  // Pass 2 — DERIVED factors, computed FROM the events above.
+  // OB_FVG_CONFLUENCE adds only its own bonus weight; it never re-adds the
+  // ORDER_BLOCK or FVG weights, which pass 1 already counted once each.
+  if (settings.detectorEnabled('OB_FVG_CONFLUENCE')) {
+    guard('OB_FVG_CONFLUENCE', deriveConfluence(events, ctx));
   }
 
   // Freshness filter — stale events must not keep re-triggering.
@@ -128,18 +139,23 @@ export function evaluate(args: EvaluateArgs): Evaluation | null {
     events: fresh,
     long,
     short,
+    longScore: long.score,
+    shortScore: short.score,
+    confirmations: bestComponents,
     decision: {
       direction: best.direction,
       score: best.score,
       threshold,
       passed,
+      confirmations: bestComponents,
+      minConfirmations: minComponents,
     },
   };
 }
 
-/** Map of detector -> whether it is enabled, for the UI. */
-export function detectorStatus(settings: Settings): Record<DetectorId, boolean> {
-  const out = {} as Record<DetectorId, boolean>;
-  for (const id of DETECTOR_IDS) out[id] = settings.detectorEnabled(id);
+/** Map of factor -> whether it is enabled, for the UI. */
+export function detectorStatus(settings: Settings): Record<FactorId, boolean> {
+  const out = {} as Record<FactorId, boolean>;
+  for (const id of FACTOR_IDS) out[id] = settings.detectorEnabled(id);
   return out;
 }

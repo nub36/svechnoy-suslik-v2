@@ -77,7 +77,7 @@ async function main(): Promise<void> {
   console.log(`[replay] symbols: ${symbols.join(', ')}`);
   console.log(`[replay] timeframes: ${timeframes.join(', ')}`);
   console.log(
-    `[replay] threshold=${settings.num('engine.score_threshold')} minComponents=${settings.num('engine.min_components')} slAtr=${settings.num('risk.sl_atr_mult')} tp=${JSON.stringify(settings.arr('risk.tp_r_multiples'))}`,
+    `[replay] threshold=${settings.num('engine.score_threshold')} minComponents=${settings.num('engine.min_components')} slAtr=${settings.num('risk.sl_atr_mult')} tp=${JSON.stringify(settings.tpMultiples())}`,
   );
 
   const results: ReplayResult[] = [];

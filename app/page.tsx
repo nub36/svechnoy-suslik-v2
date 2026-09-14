@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import type { ChartBox, ChartCandle, ChartLine, ChartMarker } from './components/CandleChart';
+import type {
+  ChartBox,
+  ChartCandle,
+  ChartLine,
+  ChartMarker,
+  ChartSignal,
+} from './components/CandleChart';
 
 const CandleChart = dynamic(() => import('./components/CandleChart'), {
   ssr: false,
@@ -23,6 +29,7 @@ interface SymbolRow {
 
 interface ScoreComponent {
   detector: string;
+  kind?: string;
   strength: number;
   weight: number;
   contribution: number;
@@ -38,13 +45,26 @@ interface Breakdown {
   score: number;
   components: ScoreComponent[];
   duplicatesRemoved: number;
+  confirmations?: number;
+}
+
+interface LegendEntry {
+  detector: string;
+  label: string;
+  color: string;
 }
 
 interface ChartData {
   symbol: string;
   timeframe: string;
   candles: ChartCandle[];
-  overlays: { boxes: ChartBox[]; lines: ChartLine[]; markers: ChartMarker[] };
+  overlays: {
+    boxes: ChartBox[];
+    lines: ChartLine[];
+    markers: ChartMarker[];
+    legend?: LegendEntry[];
+  };
+  signal?: ChartSignal | null;
   closedCount: number;
   empty?: boolean;
   evaluation: {
@@ -53,11 +73,38 @@ interface ChartData {
     atr: number | null;
     long: Breakdown;
     short: Breakdown;
-    decision: { direction: string; score: number; threshold: number; passed: boolean } | null;
+    longScore?: number;
+    shortScore?: number;
+    confirmations?: number;
+    decision: {
+      direction: string;
+      score: number;
+      threshold: number;
+      passed: boolean;
+      confirmations?: number;
+      minConfirmations?: number;
+    } | null;
     explainLong: string[];
     explainShort: string[];
   } | null;
 }
+
+/**
+ * The ACTIVE Smart Money factor set. Used as the legend fallback when the
+ * current viewport happens to contain no drawn overlays.
+ *
+ * Removed by specification and deliberately absent: change-of-character,
+ * equal levels, volume imbalance, premium/discount.
+ */
+const ACTIVE_FACTORS: LegendEntry[] = [
+  { detector: 'BOS', label: 'BOS', color: '#22c55e' },
+  { detector: 'ORDER_BLOCK', label: 'ORDER BLOCK', color: '#3b82f6' },
+  { detector: 'FVG', label: 'FVG', color: '#a855f7' },
+  { detector: 'LIQUIDITY_SWEEP', label: 'LIQUIDITY SWEEP', color: '#ef4444' },
+  { detector: 'RANGE_POSITION', label: 'RANGE POSITION', color: '#14b8a6' },
+  { detector: 'INTERNAL_STRUCTURE', label: 'INTERNAL STRUCTURE', color: '#94a3b8' },
+  { detector: 'OB_FVG_CONFLUENCE', label: 'OB + FVG CONFLUENCE', color: '#f59e0b' },
+];
 
 function fmtVol(v: number): string {
   if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
@@ -225,21 +272,18 @@ export default function HomePage() {
                 boxes={chart.overlays.boxes}
                 lines={chart.overlays.lines}
                 markers={chart.overlays.markers}
+                signal={chart.signal ?? null}
                 showOverlays={showOverlays}
+                fitKey={`${chart.symbol}:${chart.timeframe}`}
               />
               <div className="legend">
-                {[
-                  ['BOS', '#22c55e'],
-                  ['CHOCH', '#f97316'],
-                  ['ORDER_BLOCK', '#3b82f6'],
-                  ['FVG', '#a855f7'],
-                  ['LIQUIDITY_SWEEP', '#ef4444'],
-                  ['EQUAL_LEVELS', '#eab308'],
-                  ['PREMIUM_DISCOUNT', '#14b8a6'],
-                ].map(([name, color]) => (
-                  <span className="item" key={name}>
-                    <span className="swatch" style={{ background: color }} />
-                    {name}
+                {(chart.overlays.legend && chart.overlays.legend.length > 0
+                  ? chart.overlays.legend
+                  : ACTIVE_FACTORS
+                ).map((f) => (
+                  <span className="item" key={f.detector}>
+                    <span className="swatch" style={{ background: f.color }} />
+                    {f.label}
                   </span>
                 ))}
               </div>

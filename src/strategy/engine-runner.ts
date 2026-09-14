@@ -43,10 +43,21 @@ export async function runEngineOnce(
   const maxConcurrent = Math.floor(settings.num('risk.max_concurrent'));
   const minRr = settings.num('risk.min_rr');
 
-  const symbols = await getActiveSymbols(db);
+  const allSymbols = await getActiveSymbols(db);
+
+  // Optional admin allow-list. Empty = the whole TOP-N.
+  const allowed = settings.enabledSymbols();
+  const symbols =
+    allowed.length > 0 ? allSymbols.filter((s) => allowed.includes(s.symbol)) : allSymbols;
+  if (allowed.length > 0 && symbols.length === 0) {
+    result.skipped.push('market.enabled_symbols matched none of the active TOP-N symbols');
+  }
 
   // ---- 1. promote existing WAITING_ENTRY signals (N+1 arrival) ----
   result.entriesFilled = await fillPendingEntries(db, settings, log);
+
+  // ---- 1b. expire stale WAITING_ENTRY signals ----
+  await expireStaleSignals(db, settings, log);
 
   // ---- 2. capacity check ----
   const openCount = await countOpen(db);
@@ -121,7 +132,18 @@ export async function runEngineOnce(
             replay_run_id: null,
             score: action.score,
             threshold: action.threshold,
-            breakdown: JSON.stringify(action.direction === 'LONG' ? ev.long : ev.short),
+            long_score: ev.longScore,
+            short_score: ev.shortScore,
+            confirmations: ev.confirmations,
+            // Persist the FULL auditable picture: the chosen side's component
+            // breakdown plus both scores and the confirmation count.
+            breakdown: JSON.stringify({
+              ...(action.direction === 'LONG' ? ev.long : ev.short),
+              longScore: ev.longScore,
+              shortScore: ev.shortScore,
+              confirmations: ev.confirmations,
+              chosen: { direction: action.direction, score: action.score },
+            }),
             events: JSON.stringify(ev.events),
             setup_candle_time: action.setupCandleTime,
             setup_close: action.setupClose,
@@ -163,6 +185,60 @@ export async function runEngineOnce(
   result.entriesFilled += await fillPendingEntries(db, settings, log);
 
   return result;
+}
+
+/**
+ * Cancel WAITING_ENTRY signals whose entry candle never arrived.
+ *
+ * `risk.signal_expiry_bars` allows N+1 plus a grace window; beyond that the
+ * setup is stale and the slot is released. This NEVER invents an entry — an
+ * expired signal is CANCELLED, not filled.
+ */
+export async function expireStaleSignals(
+  db: Kysely<Database>,
+  settings: Settings,
+  log: Logger,
+): Promise<number> {
+  const expiryBars = Math.floor(settings.num('risk.signal_expiry_bars'));
+  if (expiryBars <= 0) return 0; // 0 = never expire
+
+  const pending = await db
+    .selectFrom('signals')
+    .selectAll()
+    .where('state', '=', 'WAITING_ENTRY')
+    .where('source', '=', 'LIVE_ENGINE')
+    .execute();
+
+  let expired = 0;
+  for (const sig of pending) {
+    const tf = sig.timeframe as Timeframe;
+    const span = tfMs(tf);
+    const setupTime = Number(sig.setup_candle_time);
+
+    // How far has this symbol/timeframe's CLOSED history advanced past N?
+    const latest = await getCandles(db, sig.symbol, tf, { closedOnly: true, limit: 1 });
+    const latestTime = latest[0]?.openTime;
+    if (latestTime === undefined) continue;
+
+    const barsSinceSetup = Math.floor((latestTime - setupTime) / span);
+    // N+1 is bar 1; allow `expiryBars` bars beyond the setup before giving up.
+    if (barsSinceSetup <= expiryBars) continue;
+
+    await db
+      .updateTable('signals')
+      .set({ state: 'CANCELLED', updated_at: new Date() })
+      .where('id', '=', sig.id)
+      .where('state', '=', 'WAITING_ENTRY')
+      .execute();
+    await releaseSlot(db, sig.symbol, tf);
+    expired++;
+    log.info(
+      `EXPIRED ${sig.direction} ${sig.symbol} ${tf}: entry candle N+1 never arrived ` +
+        `(${barsSinceSetup} bars since setup > ${expiryBars})`,
+      { signalId: Number(sig.id) },
+    );
+  }
+  return expired;
 }
 
 async function countOpen(db: Kysely<Database>): Promise<number> {

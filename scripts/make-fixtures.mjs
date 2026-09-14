@@ -60,6 +60,8 @@ const SYMBOLS = [
 const STABLES = [
   { symbol: 'USDCUSDT', base: 'USDC', price: 0.9999, vol: 5.0e9, tick: 0.0001, step: 1, seed: 1 },
   { symbol: 'FDUSDUSDT', base: 'FDUSD', price: 1.0001, vol: 3.0e9, tick: 0.0001, step: 1, seed: 2 },
+  // Observed in production ranking into the TOP-10; must be excluded.
+  { symbol: 'USD1USDT', base: 'USD1', price: 1.0, vol: 2.6e9, tick: 0.0001, step: 1, seed: 12 },
 ];
 // A leveraged token to prove the regex filter works.
 const LEVERAGED = [

@@ -23,9 +23,12 @@ function mkEval(candleTime: number, passed: boolean, score = 80): Evaluation {
     closePrice: 100,
     atr: 2,
     events: [],
-    long: { direction: 'LONG', rawScore: 0, totalWeight: 0, score, components: [], duplicatesRemoved: 0 },
-    short: { direction: 'SHORT', rawScore: 0, totalWeight: 0, score: 0, components: [], duplicatesRemoved: 0 },
-    decision: { direction: 'LONG', score, threshold: 55, passed },
+    long: { direction: 'LONG', rawScore: 0, totalWeight: 0, score, components: [], duplicatesRemoved: 0, confirmations: 2 },
+    short: { direction: 'SHORT', rawScore: 0, totalWeight: 0, score: 0, components: [], duplicatesRemoved: 0, confirmations: 0 },
+    longScore: score,
+    shortScore: 0,
+    confirmations: 2,
+    decision: { direction: 'LONG', score, threshold: 55, passed, confirmations: 2, minConfirmations: 2 },
   };
 }
 

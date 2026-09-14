@@ -70,6 +70,11 @@ CREATE TABLE IF NOT EXISTS signals (
 
   score             DOUBLE PRECISION NOT NULL,
   threshold         DOUBLE PRECISION NOT NULL,
+  -- Both directional scores are kept so the decision is auditable, not just
+  -- the winning side. 0..100 each.
+  long_score        DOUBLE PRECISION NOT NULL DEFAULT 0,
+  short_score       DOUBLE PRECISION NOT NULL DEFAULT 0,
+  confirmations     INTEGER NOT NULL DEFAULT 0,
   breakdown         JSONB NOT NULL DEFAULT '{}'::jsonb,
   events            JSONB NOT NULL DEFAULT '[]'::jsonb,
 
@@ -102,6 +107,18 @@ CREATE INDEX IF NOT EXISTS signals_state_idx ON signals (state);
 CREATE INDEX IF NOT EXISTS signals_symbol_tf_idx ON signals (symbol, timeframe, setup_candle_time DESC);
 CREATE INDEX IF NOT EXISTS signals_created_idx ON signals (created_at DESC);
 CREATE INDEX IF NOT EXISTS signals_source_idx ON signals (source, replay_run_id);
+
+-- Additive, idempotent migration for databases created before the factor-model
+-- correction. Existing production rows keep their data; the new columns are
+-- backfilled from the winning score so historical rows stay readable.
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS long_score    DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS short_score   DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS confirmations INTEGER NOT NULL DEFAULT 0;
+
+UPDATE signals SET long_score = score
+  WHERE direction = 'LONG'  AND long_score  = 0 AND score > 0;
+UPDATE signals SET short_score = score
+  WHERE direction = 'SHORT' AND short_score = 0 AND score > 0;
 
 CREATE TABLE IF NOT EXISTS outcomes (
   id                BIGSERIAL PRIMARY KEY,

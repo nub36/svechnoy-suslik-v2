@@ -214,7 +214,9 @@ describe('outcome tracking', () => {
 describe('risk plan', () => {
   const rs = Settings.fromEntries([
     ['risk.sl_atr_mult', 1.5],
-    ['risk.tp_r_multiples', [1, 2, 3]],
+    ['risk.tp1_r', 1],
+    ['risk.tp2_r', 2],
+    ['risk.tp3_r', 3],
     ['risk.account_quote', 10000],
     ['risk.risk_pct', 1],
   ]);

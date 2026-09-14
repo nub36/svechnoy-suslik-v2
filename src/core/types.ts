@@ -85,34 +85,110 @@ export const TRADING_MODES: readonly TradingMode[] = ['DRY_RUN', 'FORWARD_TEST']
  */
 export const LOCKED_MODE = 'LIVE' as const;
 
-/** Detector identifiers — the single Smart Money engine's component set. */
-export type DetectorId =
+/**
+ * Smart Money FACTOR identifiers — the single engine's factor set.
+ *
+ * The model has three kinds of factor:
+ *
+ *  INDEPENDENT — stand-alone evidence, each contributes its own weight:
+ *      BOS, ORDER_BLOCK, FVG, LIQUIDITY_SWEEP, RANGE_POSITION
+ *  CONTEXT     — describes the prevailing internal structure and only
+ *      participates through its configured context weight:
+ *      INTERNAL_STRUCTURE
+ *  DERIVED     — computed FROM other factors; carries only its own small
+ *      bonus weight and never re-adds its parents' weight:
+ *      OB_FVG_CONFLUENCE
+ *
+ * Factors deliberately NOT in this model (removed by specification):
+ * change-of-character, equal-highs/lows, volume-imbalance, and
+ * premium/discount as a factor name. The dealing-range logic that used to be
+ * called premium/discount now lives in RANGE_POSITION.
+ */
+export type FactorId =
   | 'BOS'
-  | 'CHOCH'
   | 'ORDER_BLOCK'
   | 'FVG'
   | 'LIQUIDITY_SWEEP'
-  | 'EQUAL_LEVELS'
-  | 'PREMIUM_DISCOUNT'
-  | 'VOLUME_IMBALANCE';
+  | 'RANGE_POSITION'
+  | 'INTERNAL_STRUCTURE'
+  | 'OB_FVG_CONFLUENCE';
 
-export const DETECTOR_IDS: readonly DetectorId[] = [
+export type FactorKind = 'INDEPENDENT' | 'CONTEXT' | 'DERIVED';
+
+/** Independent factors: stand-alone evidence. */
+export const INDEPENDENT_FACTORS = [
   'BOS',
-  'CHOCH',
   'ORDER_BLOCK',
   'FVG',
   'LIQUIDITY_SWEEP',
-  'EQUAL_LEVELS',
-  'PREMIUM_DISCOUNT',
-  'VOLUME_IMBALANCE',
+  'RANGE_POSITION',
+] as const satisfies readonly FactorId[];
+
+/** Context factors: internal structure bias. */
+export const CONTEXT_FACTORS = ['INTERNAL_STRUCTURE'] as const satisfies readonly FactorId[];
+
+/** Derived factors: computed from other factors, bonus weight only. */
+export const DERIVED_FACTORS = ['OB_FVG_CONFLUENCE'] as const satisfies readonly FactorId[];
+
+/** Every factor, in canonical display order. */
+export const FACTOR_IDS: readonly FactorId[] = [
+  ...INDEPENDENT_FACTORS,
+  ...CONTEXT_FACTORS,
+  ...DERIVED_FACTORS,
 ];
+
+export const FACTOR_KIND: Readonly<Record<FactorId, FactorKind>> = {
+  BOS: 'INDEPENDENT',
+  ORDER_BLOCK: 'INDEPENDENT',
+  FVG: 'INDEPENDENT',
+  LIQUIDITY_SWEEP: 'INDEPENDENT',
+  RANGE_POSITION: 'INDEPENDENT',
+  INTERNAL_STRUCTURE: 'CONTEXT',
+  OB_FVG_CONFLUENCE: 'DERIVED',
+};
+
+/** Human-readable factor names for UI legends and breakdowns. */
+export const FACTOR_LABEL: Readonly<Record<FactorId, string>> = {
+  BOS: 'BOS',
+  ORDER_BLOCK: 'ORDER BLOCK',
+  FVG: 'FVG',
+  LIQUIDITY_SWEEP: 'LIQUIDITY SWEEP',
+  RANGE_POSITION: 'RANGE POSITION',
+  INTERNAL_STRUCTURE: 'INTERNAL STRUCTURE',
+  OB_FVG_CONFLUENCE: 'OB + FVG CONFLUENCE',
+};
+
+/**
+ * Factor names that were removed from the model. Used by the architecture
+ * guard test to prove they never return to strategy/settings/UI code.
+ */
+export const FORBIDDEN_FACTOR_NAMES: readonly string[] = [
+  'CHOCH',
+  'EQUAL_LEVELS',
+  'VOLUME_IMBALANCE',
+  'PREMIUM_DISCOUNT',
+];
+
+export function isFactorId(v: unknown): v is FactorId {
+  return typeof v === 'string' && (FACTOR_IDS as readonly string[]).includes(v);
+}
+
+/**
+ * @deprecated Legacy alias kept so older imports keep compiling.
+ * Prefer `FactorId`.
+ */
+export type DetectorId = FactorId;
+/** @deprecated Prefer `FACTOR_IDS`. */
+export const DETECTOR_IDS: readonly FactorId[] = FACTOR_IDS;
 
 /**
  * A single detector finding on a closed candle series.
  * `index` refers to the index within the evaluated closed-candle array.
  */
 export interface DetectorEvent {
-  detector: DetectorId;
+  detector: FactorId;
+  /** INDEPENDENT | CONTEXT | DERIVED — drives how scoring treats the event. */
+  kind: FactorKind;
   direction: Direction;
   /** index of the candle that CONFIRMED the event (closed) */
   index: number;
@@ -130,11 +206,18 @@ export interface DetectorEvent {
    * underlying market fact and MUST contribute to the score at most once.
    */
   dedupeKey: string;
+  /**
+   * For DERIVED factors: the dedupeKeys of the parent events it was computed
+   * from. Present so the breakdown can prove the parents were counted once
+   * each and the derived factor only added its own bonus weight.
+   */
+  derivedFrom?: string[];
 }
 
 /** One line of the transparent score breakdown. */
 export interface ScoreComponent {
-  detector: DetectorId;
+  detector: FactorId;
+  kind: FactorKind;
   direction: Direction;
   /** raw detector strength 0..1 */
   strength: number;
@@ -148,6 +231,7 @@ export interface ScoreComponent {
   dedupeKey: string;
   time: number;
   reason: string;
+  derivedFrom?: string[];
 }
 
 export interface ScoreBreakdown {
@@ -161,6 +245,8 @@ export interface ScoreBreakdown {
   components: ScoreComponent[];
   /** components excluded by dedupe */
   duplicatesRemoved: number;
+  /** distinct factors that actually contributed weight */
+  confirmations: number;
 }
 
 /** Result of evaluating one symbol+timeframe at one closed candle. */
@@ -176,12 +262,19 @@ export interface Evaluation {
   events: DetectorEvent[];
   long: ScoreBreakdown;
   short: ScoreBreakdown;
+  /** convenience mirrors of long.score / short.score (persisted on signals) */
+  longScore: number;
+  shortScore: number;
+  /** distinct factors that contributed to the winning side */
+  confirmations: number;
   /** chosen direction if a signal threshold was met */
   decision: {
     direction: Direction;
     score: number;
     threshold: number;
     passed: boolean;
+    confirmations: number;
+    minConfirmations: number;
   } | null;
 }
 

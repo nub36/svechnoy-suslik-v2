@@ -7,6 +7,14 @@
  *
  * All Smart Money overlays are supplied by the BACKEND (/api/chart) and merely
  * rendered here. This component contains no detection logic whatsoever.
+ *
+ * Layout goals (a conventional trading-chart look):
+ *  - the latest candle sits ~12% left of the price scale, so there is visible
+ *    empty "future" space to its right;
+ *  - ~100-150 visible candles on desktop instead of squeezing in all 300;
+ *  - comfortable vertical margins so candles never touch the edges;
+ *  - the chart re-fits on symbol/timeframe change and on resize, but it does
+ *    NOT fight the user once they have panned or zoomed manually.
  */
 
 import { useEffect, useRef } from 'react';
@@ -18,6 +26,8 @@ import {
   createSeriesMarkers,
   type IChartApi,
   type ISeriesApi,
+  type ISeriesMarkersPluginApi,
+  type SeriesMarker,
   type Time,
   type UTCTimestamp,
 } from 'lightweight-charts';
@@ -64,6 +74,26 @@ export interface ChartMarker {
   color: string;
   text: string;
   detector: string;
+  groupCount?: number;
+}
+
+export interface ChartSignalLevel {
+  kind: 'ENTRY' | 'SL' | 'TP1' | 'TP2' | 'TP3';
+  price: number;
+  label: string;
+  color: string;
+}
+
+export interface ChartSignal {
+  id: number;
+  direction: 'LONG' | 'SHORT';
+  state: string;
+  score: number;
+  setupCandleTime: number;
+  entryCandleTime: number | null;
+  entryPrice: number | null;
+  levels: ChartSignalLevel[];
+  waitingForEntry: boolean;
 }
 
 export interface CandleChartProps {
@@ -71,120 +101,190 @@ export interface CandleChartProps {
   boxes?: ChartBox[];
   lines?: ChartLine[];
   markers?: ChartMarker[];
+  signal?: ChartSignal | null;
   showOverlays?: boolean;
   height?: number;
+  /** Changing this string refits the view (symbol/timeframe switch). */
+  fitKey?: string;
 }
 
-const DETECTOR_COLOR: Record<string, string> = {
+/**
+ * Palette for the ACTIVE factor set only. Removed factors
+ * (change-of-character, equal levels, volume imbalance, premium/discount)
+ * intentionally have no entry.
+ */
+const FACTOR_COLOR: Record<string, string> = {
   BOS: '#22c55e',
-  CHOCH: '#f97316',
   ORDER_BLOCK: '#3b82f6',
   FVG: '#a855f7',
   LIQUIDITY_SWEEP: '#ef4444',
-  EQUAL_LEVELS: '#eab308',
-  PREMIUM_DISCOUNT: '#14b8a6',
-  VOLUME_IMBALANCE: '#64748b',
+  RANGE_POSITION: '#14b8a6',
+  INTERNAL_STRUCTURE: '#94a3b8',
+  OB_FVG_CONFLUENCE: '#f59e0b',
 };
 
-function toSec(ms: number): UTCTimestamp {
-  return Math.floor(ms / 1000) as UTCTimestamp;
+function colorOf(d: string): string {
+  return FACTOR_COLOR[d] ?? '#94a3b8';
 }
+
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** Target number of candles visible by default. */
+const DESKTOP_VISIBLE = 130;
+const MOBILE_VISIBLE = 60;
+/** Fraction of the width kept empty to the right of the latest candle. */
+const RIGHT_WHITESPACE = 0.12;
 
 export default function CandleChart({
   candles,
   boxes = [],
   lines = [],
   markers = [],
+  signal = null,
   showOverlays = true,
-  height = 480,
-}: CandleChartProps) {
-  const hostRef = useRef<HTMLDivElement | null>(null);
+  height = 520,
+  fitKey = '',
+}: CandleChartProps): React.ReactElement {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const volumeRef = useRef<ISeriesApi<'Histogram'> | null>(null);
-  const overlayRefs = useRef<Array<ISeriesApi<'Line'>>>([]);
+  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const overlaySeriesRef = useRef<ISeriesApi<'Line'>[]>([]);
+  const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  // Set once the user pans/zooms, so we stop auto-fitting under their hands.
+  const userInteractedRef = useRef(false);
+  const lastFitKeyRef = useRef<string>('');
 
-  // ---- create the chart once ----
+  /* ---------------- create chart once ---------------- */
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
+    const el = containerRef.current;
+    if (!el) return;
 
-    const chart = createChart(host, {
-      width: host.clientWidth,
+    const chart = createChart(el, {
+      width: el.clientWidth,
       height,
       layout: {
-        background: { color: '#131722' },
-        textColor: '#d1d4dc',
+        background: { color: '#0b1220' },
+        textColor: '#cbd5e1',
         fontSize: 11,
+        attributionLogo: false,
       },
       grid: {
-        vertLines: { color: '#1c2030' },
-        horzLines: { color: '#1c2030' },
+        vertLines: { color: 'rgba(148, 163, 184, 0.07)' },
+        horzLines: { color: 'rgba(148, 163, 184, 0.07)' },
       },
-      rightPriceScale: { borderColor: '#262b3a', scaleMargins: { top: 0.08, bottom: 0.26 } },
-      timeScale: { borderColor: '#262b3a', timeVisible: true, secondsVisible: false },
-      crosshair: { mode: 0 },
+      rightPriceScale: {
+        borderColor: 'rgba(148, 163, 184, 0.25)',
+        // Comfortable vertical breathing room: candles and overlay labels
+        // never touch the top/bottom boundary.
+        scaleMargins: { top: 0.1, bottom: 0.18 },
+        entireTextOnly: true,
+      },
+      timeScale: {
+        borderColor: 'rgba(148, 163, 184, 0.25)',
+        timeVisible: true,
+        secondsVisible: false,
+        // Empty space to the right of the newest candle. This is what stops
+        // the candles from being jammed against the price scale.
+        rightOffset: 12,
+        barSpacing: 8,
+        minBarSpacing: 0.5,
+        fixLeftEdge: false,
+        lockVisibleTimeRangeOnResize: true,
+      },
+      crosshair: {
+        mode: 1,
+        vertLine: { color: 'rgba(148,163,184,0.4)', labelBackgroundColor: '#1e293b' },
+        horzLine: { color: 'rgba(148,163,184,0.4)', labelBackgroundColor: '#1e293b' },
+      },
+      handleScroll: true,
+      handleScale: true,
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderUpColor: '#26a69a',
-      borderDownColor: '#ef5350',
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
+      upColor: '#16a34a',
+      downColor: '#dc2626',
+      borderUpColor: '#16a34a',
+      borderDownColor: '#dc2626',
+      wickUpColor: '#16a34a',
+      wickDownColor: '#dc2626',
+      // ONE clear current-price line + right-hand label. No duplicates.
+      priceLineVisible: true,
+      priceLineWidth: 1,
+      priceLineColor: '#94a3b8',
+      priceLineStyle: 2,
+      lastValueVisible: true,
     });
 
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
-      priceScaleId: 'vol',
+      priceScaleId: 'volume',
+      color: 'rgba(148, 163, 184, 0.35)',
+      priceLineVisible: false,
+      lastValueVisible: false,
     });
-    chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.82, bottom: 0 },
+    // Volume occupies only the bottom sliver.
+    chart.priceScale('volume').applyOptions({
+      scaleMargins: { top: 0.86, bottom: 0 },
+      visible: false,
     });
 
     chartRef.current = chart;
-    candleRef.current = candleSeries;
-    volumeRef.current = volumeSeries;
+    candleSeriesRef.current = candleSeries;
+    volumeSeriesRef.current = volumeSeries;
+    markersRef.current = createSeriesMarkers(candleSeries, []);
 
-    const onResize = (): void => {
-      if (hostRef.current) chart.applyOptions({ width: hostRef.current.clientWidth });
+    // Detect manual pan/zoom so we stop refitting the range afterwards.
+    const onRangeChange = (): void => {
+      userInteractedRef.current = true;
     };
-    window.addEventListener('resize', onResize);
-    const ro = new ResizeObserver(onResize);
-    ro.observe(host);
+    // Only USER-driven scroll/scale counts, not our own programmatic fits.
+    el.addEventListener('wheel', onRangeChange, { passive: true });
+    el.addEventListener('pointerdown', onRangeChange, { passive: true });
+    el.addEventListener('touchstart', onRangeChange, { passive: true });
+
+    // Container-driven sizing: works on desktop and mobile, no fixed width.
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const w = Math.floor(entry.contentRect.width);
+      if (w > 0) chart.applyOptions({ width: w });
+    });
+    ro.observe(el);
 
     return () => {
-      window.removeEventListener('resize', onResize);
       ro.disconnect();
+      el.removeEventListener('wheel', onRangeChange);
+      el.removeEventListener('pointerdown', onRangeChange);
+      el.removeEventListener('touchstart', onRangeChange);
       chart.remove();
       chartRef.current = null;
-      candleRef.current = null;
-      volumeRef.current = null;
-      overlayRefs.current = [];
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
+      markersRef.current = null;
+      overlaySeriesRef.current = [];
     };
   }, [height]);
 
-  // ---- feed candle + volume data ----
+  /* ---------------- data + overlays ---------------- */
   useEffect(() => {
-    const cs = candleRef.current;
-    const vs = volumeRef.current;
-    if (!cs || !vs) return;
+    const chart = chartRef.current;
+    const candleSeries = candleSeriesRef.current;
+    const volumeSeries = volumeSeriesRef.current;
+    const el = containerRef.current;
+    if (!chart || !candleSeries || !volumeSeries || !el) return;
 
-    // Deduplicate + sort: lightweight-charts requires strictly ascending time.
-    const seen = new Set<number>();
-    const rows = [...candles]
-      .sort((a, b) => a.time - b.time)
-      .filter((c) => {
-        const t = Math.floor(c.time / 1000);
-        if (seen.has(t)) return false;
-        seen.add(t);
-        return true;
-      });
+    const sorted = [...candles].sort((a, b) => a.time - b.time);
 
-    cs.setData(
-      rows.map((c) => ({
-        time: toSec(c.time),
+    candleSeries.setData(
+      sorted.map((c) => ({
+        time: (c.time / 1000) as UTCTimestamp,
         open: c.open,
         high: c.high,
         low: c.low,
@@ -192,104 +292,143 @@ export default function CandleChart({
       })),
     );
 
-    vs.setData(
-      rows.map((c) => ({
-        time: toSec(c.time),
+    volumeSeries.setData(
+      sorted.map((c) => ({
+        time: (c.time / 1000) as UTCTimestamp,
         value: c.volume,
-        color: c.close >= c.open ? 'rgba(38,166,154,0.35)' : 'rgba(239,83,80,0.35)',
+        color:
+          c.close >= c.open ? 'rgba(22, 163, 74, 0.30)' : 'rgba(220, 38, 38, 0.30)',
       })),
     );
 
-    chartRef.current?.timeScale().fitContent();
-  }, [candles]);
-
-  // ---- render backend-supplied overlays ----
-  useEffect(() => {
-    const chart = chartRef.current;
-    const cs = candleRef.current;
-    if (!chart || !cs) return;
-
-    // clear previous overlay series
-    for (const s of overlayRefs.current) {
+    /* ---- clear previous overlay series and price lines ---- */
+    for (const s of overlaySeriesRef.current) {
       try {
         chart.removeSeries(s);
       } catch {
         /* already removed */
       }
     }
-    overlayRefs.current = [];
+    overlaySeriesRef.current = [];
 
-    if (!showOverlays) {
-      createSeriesMarkers(cs, []);
-      return;
-    }
+    if (showOverlays) {
+      /* ---- zones: subtle translucent bands, never overpowering candles ---- */
+      for (const b of boxes) {
+        const color = colorOf(b.detector);
+        const from = (b.from / 1000) as UTCTimestamp;
+        const to = (b.to / 1000) as UTCTimestamp;
+        // A zone is drawn as a pair of faint horizontal edges.
+        for (const price of [b.priceHigh, b.priceLow]) {
+          const s = chart.addSeries(LineSeries, {
+            color: hexToRgba(color, 0.5),
+            lineWidth: 1,
+            priceLineVisible: false,
+            lastValueVisible: false,
+            crosshairMarkerVisible: false,
+          });
+          s.setData([
+            { time: from, value: price },
+            { time: to, value: price },
+          ]);
+          overlaySeriesRef.current.push(s);
+        }
+      }
 
-    // Zones (order blocks, FVGs, premium/discount) are drawn as a pair of
-    // horizontal line segments bounding the zone.
-    for (const b of boxes) {
-      const color = DETECTOR_COLOR[b.detector] ?? '#94a3b8';
-      for (const price of [b.priceLow, b.priceHigh]) {
+      /* ---- structural levels: thin dashed lines ---- */
+      for (const l of lines) {
+        const color = colorOf(l.detector);
         const s = chart.addSeries(LineSeries, {
-          color,
+          color: hexToRgba(color, 0.75),
           lineWidth: 1,
           lineStyle: 2,
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
         });
-        const from = Math.min(b.from, b.to);
-        const to = Math.max(b.from, b.to);
         s.setData([
-          { time: toSec(from), value: price },
-          { time: toSec(to), value: price },
+          { time: (l.from / 1000) as UTCTimestamp, value: l.price },
+          { time: (l.to / 1000) as UTCTimestamp, value: l.price },
         ]);
-        overlayRefs.current.push(s);
+        overlaySeriesRef.current.push(s);
       }
     }
 
-    // Structural levels (BOS/CHoCH/sweep/equal levels).
-    for (const l of lines) {
-      const color = DETECTOR_COLOR[l.detector] ?? '#94a3b8';
-      const s = chart.addSeries(LineSeries, {
-        color,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      });
-      const from = Math.min(l.from, l.to);
-      const to = Math.max(l.from, l.to);
-      s.setData(
-        from === to
-          ? [{ time: toSec(from), value: l.price }]
-          : [
-              { time: toSec(from), value: l.price },
-              { time: toSec(to), value: l.price },
-            ],
-      );
-      overlayRefs.current.push(s);
+    /* ---- signal levels: ENTRY / SL / TP1-3 with right-side labels ---- */
+    // Drawn as price lines on the candle series so each gets a clean label on
+    // the right axis. Never drawn while WAITING_ENTRY (no fabricated entry).
+    if (signal && !signal.waitingForEntry) {
+      for (const lv of signal.levels) {
+        candleSeries.createPriceLine({
+          price: lv.price,
+          color: lv.color,
+          lineWidth: lv.kind === 'ENTRY' ? 2 : 1,
+          lineStyle: lv.kind === 'ENTRY' ? 0 : 2,
+          axisLabelVisible: true,
+          title: lv.label,
+        });
+      }
     }
 
-    // Event markers.
-    const seenMarker = new Set<string>();
-    const uniqueMarkers = markers
-      .filter((m) => {
-        const k = `${m.time}-${m.detector}-${m.shape}`;
-        if (seenMarker.has(k)) return false;
-        seenMarker.add(k);
-        return true;
-      })
-      .sort((a, b) => a.time - b.time)
-      .map((m) => ({
-        time: toSec(m.time) as Time,
-        position: m.position,
-        shape: m.shape,
-        color: m.color,
-        text: m.text,
-      }));
+    /* ---- markers ---- */
+    if (markersRef.current) {
+      const list: SeriesMarker<Time>[] = showOverlays
+        ? markers.map((m) => ({
+            time: (m.time / 1000) as Time,
+            position: m.position,
+            shape: m.shape,
+            color: m.color,
+            text: m.groupCount && m.groupCount > 1 ? `${m.text} x${m.groupCount}` : m.text,
+            size: 1,
+          }))
+        : [];
 
-    createSeriesMarkers(cs, uniqueMarkers);
-  }, [boxes, lines, markers, showOverlays]);
+      // The LONG/SHORT signal marker sits on the setup candle, offset to the
+      // opposite side of the bar so it does not cover the candle body.
+      if (signal) {
+        list.push({
+          time: (signal.setupCandleTime / 1000) as Time,
+          position: signal.direction === 'LONG' ? 'belowBar' : 'aboveBar',
+          shape: signal.direction === 'LONG' ? 'arrowUp' : 'arrowDown',
+          color: signal.direction === 'LONG' ? '#22c55e' : '#ef4444',
+          text: `${signal.direction} ${signal.score.toFixed(0)}`,
+          size: 2,
+        });
+      }
 
-  return <div ref={hostRef} className="chart-host" style={{ height }} />;
+      list.sort((a, b) => (a.time as number) - (b.time as number));
+      markersRef.current.setMarkers(list);
+    }
+
+    /* ---- initial / refit view ---- */
+    const shouldFit = fitKey !== lastFitKeyRef.current;
+    if (shouldFit) {
+      lastFitKeyRef.current = fitKey;
+      userInteractedRef.current = false;
+    }
+
+    if ((shouldFit || !userInteractedRef.current) && sorted.length > 0) {
+      const width = el.clientWidth || 800;
+      const isMobile = width < 640;
+      const targetVisible = Math.min(
+        sorted.length,
+        isMobile ? MOBILE_VISIBLE : DESKTOP_VISIBLE,
+      );
+      // Reserve the right-hand whitespace, then size bars to fill the rest.
+      const usable = width * (1 - RIGHT_WHITESPACE);
+      const barSpacing = Math.max(2, usable / targetVisible);
+      const rightOffset = Math.max(4, Math.round((width * RIGHT_WHITESPACE) / barSpacing));
+
+      chart.timeScale().applyOptions({ barSpacing, rightOffset });
+      // Anchor to the newest data; rightOffset supplies the future whitespace.
+      chart.timeScale().scrollToRealTime();
+    }
+  }, [candles, boxes, lines, markers, signal, showOverlays, fitKey]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}
+      data-testid="candle-chart"
+    />
+  );
 }

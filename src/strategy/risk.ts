@@ -29,15 +29,26 @@ export function buildRiskPlan(args: BuildRiskArgs): RiskPlan | null {
 
   const slMult = settings.num('risk.sl_atr_mult');
   const atrDistance = atr * slMult;
+  const policy = settings.slPolicy();
 
-  let stopLoss =
-    direction === 'LONG' ? entry - atrDistance : entry + atrDistance;
-
+  const atrStop = direction === 'LONG' ? entry - atrDistance : entry + atrDistance;
   const structural = args.structuralStop;
-  if (structural !== null && structural !== undefined && Number.isFinite(structural)) {
-    // Use whichever stop is further away (safer), never closer.
-    if (direction === 'LONG' && structural < stopLoss && structural > 0) stopLoss = structural;
-    if (direction === 'SHORT' && structural > stopLoss) stopLoss = structural;
+  const hasStructural =
+    structural !== null && structural !== undefined && Number.isFinite(structural);
+
+  let stopLoss: number;
+  if (policy === 'STRUCTURE' && hasStructural) {
+    // Pure structural invalidation.
+    stopLoss = structural as number;
+  } else if (policy === 'ATR_OR_STRUCTURE' && hasStructural) {
+    // Whichever is further away (safer) — never tighten the stop.
+    stopLoss = atrStop;
+    const st = structural as number;
+    if (direction === 'LONG' && st < stopLoss && st > 0) stopLoss = st;
+    if (direction === 'SHORT' && st > stopLoss) stopLoss = st;
+  } else {
+    // 'ATR', or a policy needing a structural level we do not have.
+    stopLoss = atrStop;
   }
 
   const riskPerUnit = Math.abs(entry - stopLoss);
@@ -45,11 +56,8 @@ export function buildRiskPlan(args: BuildRiskArgs): RiskPlan | null {
   if (direction === 'LONG' && stopLoss >= entry) return null;
   if (direction === 'SHORT' && stopLoss <= entry) return null;
 
-  const rMultiples = settings
-    .arr<number>('risk.tp_r_multiples')
-    .filter((r) => Number.isFinite(r) && r > 0)
-    .sort((a, b) => a - b);
-  const tps = rMultiples.length > 0 ? rMultiples : [1, 2, 3];
+  // TP1 / TP2 / TP3 come from their own explicit settings.
+  const tps = settings.tpMultiples();
 
   const takeProfits = tps.map((r) =>
     direction === 'LONG' ? entry + riskPerUnit * r : entry - riskPerUnit * r,
