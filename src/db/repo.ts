@@ -58,7 +58,16 @@ export async function upsertSymbols(
 }
 
 export async function getActiveSymbols(db: Kysely<Database>): Promise<
-  Array<{ symbol: string; rank: number; baseAsset: string; lastPrice: number; quoteVolume24h: number; priceChangePct: number }>
+  Array<{
+    symbol: string;
+    rank: number;
+    baseAsset: string;
+    lastPrice: number;
+    quoteVolume24h: number;
+    priceChangePct: number;
+    /** Binance PRICE_FILTER tickSize — drives display precision in the UI. */
+    tickSize: number;
+  }>
 > {
   const rows = await db
     .selectFrom('symbols')
@@ -73,6 +82,7 @@ export async function getActiveSymbols(db: Kysely<Database>): Promise<
     lastPrice: r.last_price,
     quoteVolume24h: r.quote_volume_24h,
     priceChangePct: r.price_change_pct,
+    tickSize: r.tick_size,
   }));
 }
 

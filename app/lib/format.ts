@@ -33,8 +33,44 @@ export function baseOf(symbol: string): string {
 }
 
 /**
- * Decimal places that keep a price readable without destroying precision.
- * A coin like REZ at 0.0000123 must NOT round to zero.
+ * PRICE PRECISION — ONE RULE FOR THE WHOLE UI
+ * ===========================================
+ * Every price shown anywhere (market table, chart axis, crosshair, ENTRY/SL/TP
+ * labels, /signals, monitoring, replay) goes through this module. There are
+ * deliberately no per-page rounding rules: a price must not read 78 590,70 on
+ * the chart and 78 590,7 in the table.
+ *
+ * The authority is Binance PRICE_FILTER `tickSize`, already persisted per
+ * symbol in `symbols.tick_size`. tickSize is the smallest increment the
+ * exchange itself quotes, so it is exactly the number of decimals worth
+ * showing — no more (fake precision), no fewer (lost information).
+ *
+ *   BTCUSDT  tick 0.01     -> 2 dp -> 78 590,70
+ *   XRPUSDT  tick 0.0001   -> 4 dp -> 0,5423
+ *   DOGEUSDT tick 0.00001  -> 5 dp -> 0,08440
+ *
+ * Nothing is hard-coded per symbol. When tickSize is unknown (a symbol not in
+ * the current TOP-10, or metadata not loaded yet) we fall back to a
+ * magnitude-based heuristic that still refuses to collapse a small price to
+ * 0,00.
+ */
+
+/** Decimals implied by a Binance tickSize, e.g. 0.00001 -> 5. */
+export function decimalsFromTickSize(tickSize: number | null | undefined): number | null {
+  if (tickSize === null || tickSize === undefined) return null;
+  if (!Number.isFinite(tickSize) || tickSize <= 0) return null;
+  // toFixed(12) avoids float artefacts such as 0.00001 -> "1e-5".
+  const s = tickSize.toFixed(12).replace(/0+$/, '');
+  const dot = s.indexOf('.');
+  if (dot === -1) return 0;
+  const decimals = s.length - dot - 1;
+  // Binance never quotes finer than 8 dp on spot.
+  return Math.min(Math.max(decimals, 0), 8);
+}
+
+/**
+ * Fallback when tickSize is unavailable. Magnitude-based, and deliberately
+ * generous for small numbers so a micro-cap never renders as 0,00.
  */
 export function priceDecimals(v: number): number {
   const a = Math.abs(v);
@@ -46,19 +82,49 @@ export function priceDecimals(v: number): number {
   return 8;
 }
 
-/** Russian price formatting: 77 685,58 — space groups, comma decimal. */
-export function fmtPrice(v: number | null | undefined): string {
+/**
+ * Decimals to use for a price: tickSize when known, magnitude otherwise.
+ * This is the single decision point the rest of the UI relies on.
+ */
+export function resolvePriceDecimals(
+  v: number,
+  tickSize?: number | null,
+): number {
+  const fromTick = decimalsFromTickSize(tickSize);
+  if (fromTick !== null) {
+    // A very small price under a coarse tick would still collapse to 0,00
+    // (e.g. tick 0.01 on a 0.0004 price); widen just enough to stay readable.
+    if (v !== 0 && Math.abs(v) < Math.pow(10, -fromTick)) {
+      return Math.max(fromTick, priceDecimals(v));
+    }
+    return fromTick;
+  }
+  return priceDecimals(v);
+}
+
+/**
+ * Russian price formatting: 78 590,70 — space groups, comma decimal.
+ * Pass the symbol's tickSize whenever it is available.
+ */
+export function fmtPrice(
+  v: number | null | undefined,
+  tickSize?: number | null,
+): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—';
+  const dp = resolvePriceDecimals(v, tickSize);
   return v.toLocaleString('ru-RU', {
-    minimumFractionDigits: priceDecimals(v),
-    maximumFractionDigits: priceDecimals(v),
+    minimumFractionDigits: dp,
+    maximumFractionDigits: dp,
   });
 }
 
 /** Price with a leading $, for the market table. */
-export function fmtUsd(v: number | null | undefined): string {
+export function fmtUsd(
+  v: number | null | undefined,
+  tickSize?: number | null,
+): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—';
-  return `$${fmtPrice(v)}`;
+  return `$${fmtPrice(v, tickSize)}`;
 }
 
 /** Signed percent, Russian style: +1,07% / -2,31%. */

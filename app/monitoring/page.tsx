@@ -77,6 +77,35 @@ function healthPill(s: string): string {
   return 'pill-err';
 }
 
+/**
+ * Heartbeat freshness thresholds (seconds). Worker loops run every 15-20s, so
+ * a beat older than a minute is already suspicious and two minutes is stale.
+ */
+const HB_WARN_SEC = 60;
+const HB_ERR_SEC = 180;
+
+/**
+ * Classify a worker from BOTH its reported status and the AGE of its beat.
+ *
+ * A stored row saying 'OK' proves only that the worker was healthy when it
+ * last wrote — not that it is running now. A crashed worker leaves its last
+ * OK row behind for ever, so age is what actually distinguishes a live worker
+ * from a dead one and it takes precedence here.
+ */
+function hbTone(status: string, ageSec: number | null): {
+  cls: string;
+  label: string;
+} {
+  if (ageSec === null) return { cls: 'hb-err', label: 'Нет сигнала' };
+  if (ageSec > HB_ERR_SEC) return { cls: 'hb-err', label: 'Не отвечает' };
+  if (status === 'ERROR' || status === 'DOWN') return { cls: 'hb-err', label: 'Ошибка' };
+  if (ageSec > HB_WARN_SEC) return { cls: 'hb-warn', label: 'Задержка' };
+  if (status === 'DEGRADED') return { cls: 'hb-warn', label: 'Частично' };
+  if (status === 'STALE') return { cls: 'hb-warn', label: 'Устарел' };
+  if (status === 'OK' || status === 'HEALTHY') return { cls: 'hb-ok', label: 'Работает' };
+  return { cls: 'hb-warn', label: ru(HEALTH_RU, status) };
+}
+
 export default function MonitoringPage() {
   const [data, setData] = useState<Monitoring | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -157,8 +186,35 @@ export default function MonitoringPage() {
       )}
 
       <div className="grid grid-2">
+        {/* Heartbeats first: the single most important thing on this page.
+            Freshness is judged from the AGE of the beat, so an old row can
+            never read as "OK". */}
         <div className="panel">
-          <h2>Воркеры</h2>
+          <h2 className="panel-title">
+            Пульс воркеров
+            <span className="hint">
+              свежесть определяется возрастом сигнала, а не только записью в БД
+            </span>
+          </h2>
+          <div className="stat-strip" data-testid="heartbeat-summary">
+            {data.health.workers.map((w) => {
+              const tone = hbTone(w.status, w.ageSec);
+              return (
+                <div className="stat stat-sm" key={`hb-${w.worker}`}>
+                  <div className="label">{ru(WORKER_RU, w.worker)}</div>
+                  <div className={`hb ${tone.cls}`}>
+                    <span className="dot" aria-hidden="true" />
+                    {tone.label}
+                  </div>
+                  <div className="hb-age">{fmtAge(w.ageSec)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="panel">
+          <h2 className="panel-title">Воркеры</h2>
           <table>
             <thead>
               <tr>

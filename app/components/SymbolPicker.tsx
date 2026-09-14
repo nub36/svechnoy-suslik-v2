@@ -15,6 +15,8 @@ export interface PickerSymbol {
   symbol: string;
   rank: number;
   lastPrice: number;
+  /** Binance tickSize — price precision for this pair. */
+  tickSize?: number | null;
   priceChangePct: number;
 }
 
@@ -83,7 +85,7 @@ export default function SymbolPicker({ symbols, selected, onSelect }: Props): Re
               >
                 <span className="sym-rank">{s.rank}</span>
                 <span className="sym-pair">{pairName(s.symbol)}</span>
-                <span className="sym-price">{fmtUsd(s.lastPrice)}</span>
+                <span className="sym-price">{fmtUsd(s.lastPrice, s.tickSize)}</span>
                 <span className={`sym-chg ${s.priceChangePct >= 0 ? 'up' : 'down'}`}>
                   {fmtPct(s.priceChangePct)}
                 </span>

@@ -322,9 +322,10 @@ describe('FIX 5: signal summary categories are mutually exclusive', () => {
   });
 
   it('renders the Russian state cards and a separate milestone section', () => {
+    // Compact card labels (the UI polish pass shortened them; the states
+    // themselves are unchanged and still mutually exclusive).
     for (const label of [
-      'Всего', 'Ожидание входа', 'Открыт', 'TP1 достигнут',
-      'TP2 достигнут', 'TP3 достигнут', 'Стоп', 'Истёк',
+      'Всего', 'Ожидание', 'Открыто', 'TP1', 'TP2', 'TP3', 'Стоп', 'Истёк',
     ]) {
       expect(signalsTsx).toContain(label);
     }
@@ -497,7 +498,10 @@ describe('FIX 12: contradictory state/outcome pairs', () => {
   });
 
   it('the UI marks legacy rows rather than hiding them', () => {
-    expect(signalsTsx).toContain('устаревшие данные');
+    // Badge text is shortened in the table; the full explanation is the
+    // tooltip on the same element.
+    expect(signalsTsx).toContain('устаревшие');
+    expect(signalsTsx).toContain('состояние и результат противоречат друг другу');
   });
 });
 

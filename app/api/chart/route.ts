@@ -26,10 +26,20 @@ export async function GET(req: Request): Promise<Response> {
     const settings = await loadSettings(db);
     const candles = await getCandles(db, symbol, timeframe, { limit });
 
+    // Display precision follows Binance PRICE_FILTER tickSize so the chart
+    // axis, crosshair and level labels match the tables exactly.
+    const meta = await db
+      .selectFrom('symbols')
+      .select(['tick_size'])
+      .where('symbol', '=', symbol)
+      .executeTakeFirst();
+    const tickSize = meta ? Number(meta.tick_size) : null;
+
     if (candles.length === 0) {
       return ok({
         symbol,
         timeframe,
+        tickSize,
         candles: [],
         overlays: { boxes: [], lines: [], markers: [], legend: [] },
         evaluation: null,
@@ -103,7 +113,7 @@ export async function GET(req: Request): Promise<Response> {
       };
     }
 
-    return ok(buildChartPayload(symbol, timeframe, candles, settings, signal));
+    return ok(buildChartPayload(symbol, timeframe, candles, settings, signal, tickSize));
   } catch (err) {
     return fail(errorMessage(err), 500);
   }

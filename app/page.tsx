@@ -54,6 +54,8 @@ interface SymbolRow {
   lastPrice: number;
   quoteVolume24h: number;
   priceChangePct: number;
+  /** Binance tickSize — price precision for this pair. */
+  tickSize?: number | null;
 }
 
 interface ScoreComponent {
@@ -86,6 +88,8 @@ interface LegendEntry {
 interface ChartData {
   symbol: string;
   timeframe: string;
+  /** Binance tickSize for display precision (axis, crosshair, levels). */
+  tickSize?: number | null;
   candles: ChartCandle[];
   overlays: {
     boxes: ChartBox[];
@@ -135,11 +139,25 @@ const ACTIVE_FACTORS: LegendEntry[] = [
   { detector: 'OB_FVG_CONFLUENCE', label: 'OB + FVG CONFLUENCE', color: '#f59e0b' },
 ];
 
+/**
+ * Realtime socket states. «Онлайн» is shown ONLY while ticks are actually
+ * arriving — a socket that has gone quiet reports «Задержка», and a dropped
+ * one reports «Переподключение», so the indicator never claims a live feed
+ * that is not live.
+ */
 const STATUS_RU: Record<string, string> = {
   online: 'Онлайн',
-  connecting: 'Подключение...',
-  offline: 'Оффлайн',
-  stale: 'Нет данных',
+  connecting: 'Переподключение',
+  offline: 'Нет связи · REST',
+  stale: 'Задержка',
+};
+
+/** Title text explaining what each state means. */
+const STATUS_HINT_RU: Record<string, string> = {
+  online: 'WebSocket активен, котировки поступают в реальном времени',
+  connecting: 'Восстановление WebSocket-соединения',
+  offline: 'WebSocket недоступен — данные обновляются периодическими REST-запросами',
+  stale: 'Соединение открыто, но новых котировок давно не было',
 };
 
 /**
@@ -346,10 +364,17 @@ export default function HomePage(): React.ReactElement {
 
           <div className="chart-price" data-testid="current-price">
             <span className="muted">Цена:</span>{' '}
-            <b className="mono">{fmtPrice(currentPrice)}</b>
+            <b className="mono">{fmtPrice(currentPrice, chart?.tickSize)}</b>
           </div>
 
-          <span className={`conn conn-${liveStatus}`} data-testid="conn-status">
+          {/* Colour is paired with a text label, never used alone. */}
+          <span
+            className={`conn conn-${liveStatus}`}
+            data-testid="conn-status"
+            title={STATUS_HINT_RU[liveStatus] ?? liveStatus}
+            role="status"
+            aria-label={`Состояние подключения: ${STATUS_RU[liveStatus] ?? liveStatus}`}
+          >
             <span className="dot" aria-hidden="true">
               ●
             </span>
@@ -377,6 +402,7 @@ export default function HomePage(): React.ReactElement {
               showOverlays={showOverlays}
               fitKey={`${chart.symbol}:${chart.timeframe}`}
               liveCandle={liveForChart}
+              tickSize={chart.tickSize ?? null}
             />
             <div className="legend">
               {(chart.overlays.legend && chart.overlays.legend.length > 0
@@ -432,7 +458,8 @@ export default function HomePage(): React.ReactElement {
             </div>
             <div className="muted" style={{ fontSize: 12 }}>
               Рассчитано по ЗАКРЫТОЙ свече <b>{fmtShortTime(ev.candleTime)}</b> · закрытие{' '}
-              {fmtPrice(ev.closePrice)} · ATR {ev.atr === null ? '—' : fmtPrice(ev.atr)} (только
+              {fmtPrice(ev.closePrice, chart?.tickSize)} · ATR{' '}
+              {ev.atr === null ? '—' : fmtPrice(ev.atr, chart?.tickSize)} (только
               для расчёта риска)
             </div>
             <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
@@ -503,7 +530,7 @@ export default function HomePage(): React.ReactElement {
                     <td>
                       <b>{pairName(s.symbol)}</b>
                     </td>
-                    <td className="num mono">{fmtUsd(s.lastPrice)}</td>
+                    <td className="num mono cell-price">{fmtUsd(s.lastPrice, s.tickSize)}</td>
                     <td className={`num ${s.priceChangePct >= 0 ? 'up' : 'down'}`}>
                       {fmtPct(s.priceChangePct)}
                     </td>

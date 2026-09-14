@@ -100,6 +100,12 @@ export interface ChartOverlays {
 export interface ChartPayload {
   symbol: string;
   timeframe: Timeframe;
+  /**
+   * Binance PRICE_FILTER tickSize for this symbol. Drives display precision on
+   * the price axis, the crosshair and every ENTRY/SL/TP label, so the chart
+   * agrees with the tables. null when the symbol metadata is unknown.
+   */
+  tickSize: number | null;
   candles: Array<{
     time: number;
     open: number;
@@ -204,6 +210,7 @@ export function buildChartPayload(
   candles: readonly Candle[],
   settings: Settings,
   signal?: SignalOverlay | null,
+  tickSize?: number | null,
 ): ChartPayload {
   const ev = evaluate({ symbol, timeframe, candles, settings });
 
@@ -309,6 +316,7 @@ export function buildChartPayload(
   return {
     symbol,
     timeframe,
+    tickSize: tickSize ?? null,
     candles: sorted.map((c) => ({
       time: c.openTime,
       open: c.open,

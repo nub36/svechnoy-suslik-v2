@@ -31,7 +31,11 @@ export async function GET(req: Request): Promise<Response> {
     let q = db
       .selectFrom('signals')
       .leftJoin('outcomes', 'outcomes.signal_id', 'signals.id')
+      // tickSize travels with each row so every price on /signals renders at
+      // the same precision the exchange quotes (and the chart shows).
+      .leftJoin('symbols', 'symbols.symbol', 'signals.symbol')
       .select([
+        'symbols.tick_size as tick_size',
         'signals.id as id',
         'signals.symbol as symbol',
         'signals.timeframe as timeframe',
@@ -133,6 +137,7 @@ export async function GET(req: Request): Promise<Response> {
         createdAt: r.created_at,
         // Persistent milestone audit trail. These survive a later STOP: a
         // trade stopped after TP1 still reports tp1HitAt.
+        tickSize: r.tick_size === null || r.tick_size === undefined ? null : Number(r.tick_size),
         tpLevel: Number(r.tp_level ?? 0),
         // FIX 12: historical rows written by the pre-progressive logic can
         // carry a terminal state that contradicts their outcome (the known

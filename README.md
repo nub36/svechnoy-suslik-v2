@@ -199,6 +199,41 @@ of candle N+1 and is never fabricated.
 
 ---
 
+## Price precision
+
+Every price in the UI is formatted by one module, `app/lib/format.ts`. There
+are deliberately no per-page rounding rules, so a value cannot read
+`78 590,70` on the chart and `78 590,7` in a table.
+
+The authority is Binance `PRICE_FILTER.tickSize`, already stored per symbol in
+`symbols.tick_size` and now surfaced through `/api/symbols`, `/api/chart` and
+`/api/signals`. tickSize is the smallest increment the exchange itself quotes,
+which is exactly the number of decimals worth showing.
+
+| Symbol | tickSize | Rendered |
+| --- | --- | --- |
+| BTCUSDT | 0.01 | `78 590,70` |
+| XRPUSDT | 0.0001 | `0,5423` |
+| DOGEUSDT | 0.00001 | `0,08440` |
+
+Nothing is hard-coded per symbol. When tickSize is unknown, a magnitude-based
+fallback applies that still refuses to collapse a small price to `0,00`.
+Precision covers the market table and picker, the chart price scale, crosshair
+and ENTRY/SL/TP labels, `/signals` columns and expanded details, and the
+monitoring/replay price fields.
+
+Changing symbol updates the chart's precision through `applyOptions()` — the
+chart is never recreated, and live ticks still go through `series.update()`.
+
+### Chart label collisions
+
+When two levels sit close together their axis labels overlap. Prices are never
+moved or rounded to make room: only the label TEXT of the less important level
+is dropped (TP yields before SL, SL before ENTRY), while the line and its axis
+price stay exactly on the true value.
+
+---
+
 ## Outcome accounting (R and P&L)
 
 A trade's economics are computed once, in `src/outcome/tracker.ts`, and reused
@@ -452,7 +487,7 @@ record.
 ## Testing
 
 ```bash
-npm test                                                   # 615 tests
+npm test                                                   # 688 tests
 SMOKE_BASE_URL=http://127.0.0.1:3000 npx vitest run        # + live HTTP tests
 ```
 

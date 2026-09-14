@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { decimalsFromTickSize, priceDecimals } from '../lib/format';
 import {
   CandlestickSeries,
   HistogramSeries,
@@ -95,6 +96,8 @@ export interface ChartSignal {
   entryPrice: number | null;
   levels: ChartSignalLevel[];
   waitingForEntry: boolean;
+  /** Finished trade (TP3_HIT/STOPPED/EXPIRED) shown for reference only. */
+  historical?: boolean;
 }
 
 /**
@@ -126,6 +129,34 @@ export interface CandleChartProps {
   fitKey?: string;
   /** Real-time forming candle. Display only — see LiveCandleUpdate. */
   liveCandle?: LiveCandleUpdate | null;
+  /**
+   * Binance PRICE_FILTER tickSize for the displayed symbol. Sets the decimals
+   * used by the right price scale, the crosshair label and every ENTRY/SL/TP
+   * label, so the chart never disagrees with the tables. null -> heuristic.
+   */
+  tickSize?: number | null;
+}
+
+/** Smallest price increment for a given number of decimals (2 -> 0.01). */
+function minMoveFor(decimals: number): number {
+  return Number(Math.pow(10, -decimals).toFixed(decimals));
+}
+
+/**
+ * Chart price decimals.
+ *
+ * Binance tickSize is authoritative. When it is unknown we fall back to the
+ * magnitude of the data actually on screen, so a cheap asset still renders
+ * meaningfully instead of collapsing to 0.00.
+ */
+function resolveChartDecimals(
+  tickSize: number | null | undefined,
+  candles: readonly ChartCandle[],
+): number {
+  const fromTick = decimalsFromTickSize(tickSize);
+  if (fromTick !== null) return fromTick;
+  const last = candles.length > 0 ? candles[candles.length - 1]?.close : undefined;
+  return priceDecimals(last ?? 0);
 }
 
 /**
@@ -155,6 +186,33 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+/**
+ * Minimum vertical distance (px) between two axis labels before they are
+ * considered to collide. Roughly one label height.
+ */
+const LABEL_MIN_GAP_PX = 14;
+
+/**
+ * Approximate pixels per unit of price for the current view, used only to
+ * decide whether two labels would overlap. Never used to alter a price.
+ */
+function priceSpanToPixels(
+  candles: readonly { high: number; low: number }[],
+  heightPx: number,
+): number {
+  if (candles.length === 0) return 0;
+  let hi = -Infinity;
+  let lo = Infinity;
+  for (const c of candles) {
+    if (c.high > hi) hi = c.high;
+    if (c.low < lo) lo = c.low;
+  }
+  const span = hi - lo;
+  if (!Number.isFinite(span) || span <= 0) return 0;
+  // The candle pane occupies roughly the upper 86% (volume takes the rest).
+  return (heightPx * 0.86) / span;
+}
+
 /** Target number of candles visible by default. */
 const DESKTOP_VISIBLE = 130;
 const MOBILE_VISIBLE = 60;
@@ -171,6 +229,7 @@ export default function CandleChart({
   height = 520,
   fitKey = '',
   liveCandle = null,
+  tickSize = null,
 }: CandleChartProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -193,6 +252,17 @@ export default function CandleChart({
   /** openTime of the newest bar loaded from the backend (REST/DB history). */
   const lastHistoryTimeRef = useRef<number>(0);
 
+  /**
+   * Price precision derived from tickSize. Held in refs so the create-chart
+   * effect can read the current value without taking tickSize as a dependency
+   * — the chart must NEVER be recreated when only precision changes.
+   */
+  const decimals = resolveChartDecimals(tickSize, candles);
+  const priceDecimalsRef = useRef<number>(decimals);
+  priceDecimalsRef.current = decimals;
+  const minMoveRef = useRef<number>(minMoveFor(decimals));
+  minMoveRef.current = minMoveFor(decimals);
+
   /** Detach every tracked signal price line and empty the registry. */
   const clearPriceLines = (): void => {
     const series = candleSeriesRef.current;
@@ -205,6 +275,16 @@ export default function CandleChart({
     }
     priceLinesRef.current = [];
   };
+
+  /**
+   * Push precision changes onto the EXISTING series when the symbol changes.
+   * applyOptions() mutates in place — no chart teardown, no data refetch.
+   */
+  useEffect(() => {
+    candleSeriesRef.current?.applyOptions({
+      priceFormat: { type: 'price', precision: decimals, minMove: minMoveFor(decimals) },
+    });
+  }, [decimals]);
 
   /* ---------------- create chart once ---------------- */
   useEffect(() => {
@@ -253,6 +333,13 @@ export default function CandleChart({
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
+      // Precision from Binance tickSize: the axis, the crosshair readout and
+      // every price line label all inherit this, so one rule covers them all.
+      priceFormat: {
+        type: 'price',
+        precision: priceDecimalsRef.current,
+        minMove: minMoveRef.current,
+      },
       upColor: '#16a34a',
       downColor: '#dc2626',
       borderUpColor: '#16a34a',
@@ -407,15 +494,44 @@ export default function CandleChart({
     /* ---- signal levels: ENTRY / SL / TP1-3 with right-side labels ---- */
     // Drawn as price lines on the candle series so each gets a clean label on
     // the right axis. Never drawn while WAITING_ENTRY (no fabricated entry).
+    //
+    // LABEL COLLISIONS: when two levels sit very close together their axis
+    // labels overlap and both become unreadable. We never move a line or round
+    // a price to create space — the geometry stays exactly on the real value.
+    // Instead, when a label would collide with the one below it, we drop the
+    // TEXT of the less important label and keep its line and axis price. The
+    // price shown is always the true price.
     if (signal && !signal.waitingForEntry) {
+      const pxPerPrice = priceSpanToPixels(sorted, height);
+      // Rank: ENTRY and SL must keep their text; TP text yields first.
+      const priority = (k: string): number =>
+        k === 'ENTRY' ? 0 : k === 'SL' ? 1 : 2;
+
+      const ordered = [...signal.levels].sort((a, b) => a.price - b.price);
+      const suppressed = new Set<number>();
+      for (let i = 1; i < ordered.length; i++) {
+        const prev = ordered[i - 1];
+        const cur = ordered[i];
+        if (!prev || !cur) continue;
+        const gapPx = Math.abs(cur.price - prev.price) * pxPerPrice;
+        if (gapPx < LABEL_MIN_GAP_PX) {
+          // Suppress the text of whichever of the pair matters less.
+          const loser = priority(cur.kind) >= priority(prev.kind) ? cur : prev;
+          suppressed.add(loser.price);
+        }
+      }
+
       for (const lv of signal.levels) {
         const line = candleSeries.createPriceLine({
           price: lv.price,
           color: lv.color,
           lineWidth: lv.kind === 'ENTRY' ? 2 : 1,
-          lineStyle: lv.kind === 'ENTRY' ? 0 : 2,
+          // Finished trades are history, not a live position: dot them so they
+          // read differently from an active setup.
+          lineStyle: signal.historical ? 3 : lv.kind === 'ENTRY' ? 0 : 2,
           axisLabelVisible: true,
-          title: lv.label,
+          // Only the TEXT is dropped on collision; the price is untouched.
+          title: suppressed.has(lv.price) ? '' : lv.label,
         });
         // Registered so the next redraw can detach it.
         priceLinesRef.current.push(line);

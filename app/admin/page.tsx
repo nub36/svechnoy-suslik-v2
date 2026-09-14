@@ -93,9 +93,11 @@ function TimeframePicker({
         })}
       </div>
 
-      <div className="row" style={{ gap: 8, marginTop: 8 }}>
+      {/* Bulk helpers are secondary to the page-level «Сохранить». */}
+      <div className="row" style={{ gap: 6, marginTop: 8 }}>
         <button
           type="button"
+          className="btn-sm"
           disabled={disabled || selected.length === TIMEFRAME_OPTIONS.length}
           onClick={() => onChange(TIMEFRAME_OPTIONS.map((o) => o.value))}
         >
@@ -105,6 +107,7 @@ function TimeframePicker({
             rejects. It returns to the single 15м baseline instead. */}
         <button
           type="button"
+          className="btn-sm"
           disabled={disabled}
           onClick={() => onChange(['15m'])}
           title="Вернуться к базовому выбору: только 15м (пустой выбор недопустим)"
@@ -373,15 +376,29 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="tabs">
+      {/* Settings are grouped: Движок / Smart Money / Риск / Рынок / Итоги /
+          Система, plus the separate protected «Безопасность» panel below. */}
+      <div className="tabs" role="tablist" aria-label="Группы настроек">
         {categories.map((c) => (
-          <button key={c} className={tab === c ? 'active' : ''} onClick={() => setTab(c)}>
+          <button
+            key={c}
+            role="tab"
+            aria-selected={tab === c}
+            className={tab === c ? 'active' : ''}
+            onClick={() => setTab(c)}
+          >
             {ru(CATEGORY_RU, c)}
           </button>
         ))}
       </div>
 
       <div className="panel">
+        <h2 className="panel-title">
+          {ru(CATEGORY_RU, tab)}
+          <span className="hint">
+            {visible.length} настроек · изменения применяются на следующем цикле воркера
+          </span>
+        </h2>
         {visible.map((s) => (
           <div className="setting-row" key={s.key}>
             <div>
@@ -471,17 +488,27 @@ export default function AdminPage() {
         ))}
       </div>
 
-      <div className="row">
-        <button className="primary" disabled={dirtyKeys.length === 0 || saving} onClick={() => void save()}>
+      {/* Save is the primary action; Cancel stays visually secondary. */}
+      <div className="row" style={{ marginBottom: 10 }}>
+        <button
+          className="primary"
+          disabled={dirtyKeys.length === 0 || saving}
+          onClick={() => void save()}
+        >
           {saving ? 'Сохранение...' : `Сохранить изменения (${dirtyKeys.length})`}
         </button>
         <button disabled={dirtyKeys.length === 0} onClick={() => setDraft({})}>
           Отменить
         </button>
+        {dirtyKeys.length > 0 && (
+          <span className="muted" style={{ fontSize: 11.5 }}>
+            Несохранённых изменений: {dirtyKeys.length}
+          </span>
+        )}
       </div>
 
       <div className="panel" data-testid="security-panel" style={{ marginTop: 24 }}>
-        <h2>Безопасность</h2>
+        <h2 className="panel-title">Безопасность</h2>
         <p className="subtitle">
           Смена пароля текущего администратора. Остальные активные сеансы будут завершены,
           текущий сеанс сохранится.
