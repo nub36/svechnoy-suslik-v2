@@ -15,6 +15,7 @@
     "worker:outcome": "node dist/workers/outcome.worker.js",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "admin:reset-password": "tsx scripts/reset-admin-password.ts",
     "replay": "tsx src/replay/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -96,6 +96,23 @@ export interface ChartSignal {
   waitingForEntry: boolean;
 }
 
+/**
+ * A live (usually still forming) candle pushed from the Binance WebSocket.
+ *
+ * DISPLAY ONLY. It is applied with series.update() so the chart animates in
+ * real time, but it is never persisted and never reaches the Smart Money
+ * engine — signals come exclusively from CLOSED candles stored in PostgreSQL.
+ */
+export interface LiveCandleUpdate {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  isClosed: boolean;
+}
+
 export interface CandleChartProps {
   candles: ChartCandle[];
   boxes?: ChartBox[];
@@ -106,6 +123,8 @@ export interface CandleChartProps {
   height?: number;
   /** Changing this string refits the view (symbol/timeframe switch). */
   fitKey?: string;
+  /** Real-time forming candle. Display only — see LiveCandleUpdate. */
+  liveCandle?: LiveCandleUpdate | null;
 }
 
 /**
@@ -150,6 +169,7 @@ export default function CandleChart({
   showOverlays = true,
   height = 520,
   fitKey = '',
+  liveCandle = null,
 }: CandleChartProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -160,6 +180,8 @@ export default function CandleChart({
   // Set once the user pans/zooms, so we stop auto-fitting under their hands.
   const userInteractedRef = useRef(false);
   const lastFitKeyRef = useRef<string>('');
+  /** openTime of the newest bar loaded from the backend (REST/DB history). */
+  const lastHistoryTimeRef = useRef<number>(0);
 
   /* ---------------- create chart once ---------------- */
   useEffect(() => {
@@ -281,6 +303,7 @@ export default function CandleChart({
     if (!chart || !candleSeries || !volumeSeries || !el) return;
 
     const sorted = [...candles].sort((a, b) => a.time - b.time);
+    lastHistoryTimeRef.current = sorted.length > 0 ? sorted[sorted.length - 1]!.time : 0;
 
     candleSeries.setData(
       sorted.map((c) => ({
@@ -423,6 +446,50 @@ export default function CandleChart({
       chart.timeScale().scrollToRealTime();
     }
   }, [candles, boxes, lines, markers, signal, showOverlays, fitKey]);
+
+  /* ---------------- real-time forming candle ----------------
+   *
+   * Deliberately a SEPARATE effect keyed only on `liveCandle`: a websocket
+   * tick must not re-run the overlay//fit work above, and must never call
+   * setData() (which would rebuild the series and kill the user's zoom).
+   * series.update() mutates the single affected bar in place.
+   *
+   * This is presentation only. The bar drawn here carries no weight in the
+   * Smart Money evaluation; the backend scores CLOSED candles exclusively.
+   */
+  useEffect(() => {
+    const candleSeries = candleSeriesRef.current;
+    const volumeSeries = volumeSeriesRef.current;
+    if (!candleSeries || !volumeSeries || !liveCandle) return;
+
+    // Ignore ticks that predate our loaded history: lightweight-charts
+    // requires monotonically non-decreasing times and would throw.
+    if (liveCandle.time < lastHistoryTimeRef.current) return;
+
+    const t = (liveCandle.time / 1000) as UTCTimestamp;
+    try {
+      candleSeries.update({
+        time: t,
+        open: liveCandle.open,
+        high: liveCandle.high,
+        low: liveCandle.low,
+        close: liveCandle.close,
+      });
+      volumeSeries.update({
+        time: t,
+        value: liveCandle.volume,
+        color:
+          liveCandle.close >= liveCandle.open
+            ? 'rgba(22, 163, 74, 0.30)'
+            : 'rgba(220, 38, 38, 0.30)',
+      });
+      // Once Binance marks the bar final, treat it as the new history edge so
+      // the next bar's ticks are accepted.
+      if (liveCandle.isClosed) lastHistoryTimeRef.current = liveCandle.time;
+    } catch {
+      /* out-of-order tick during a symbol switch — the next REST load fixes it */
+    }
+  }, [liveCandle]);
 
   return (
     <div

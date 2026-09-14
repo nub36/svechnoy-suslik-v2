@@ -1,6 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CATEGORY_RU, ru } from '../lib/format';
+import { settingDescription, settingLabel } from '../lib/settings-ru';
+
+/** Map API error strings (English, stable contract) to Russian for display. */
+function translateApiError(err: unknown): string {
+  const raw = typeof err === 'string' ? err : '';
+  if (/invalid credentials/i.test(raw)) return 'Неверный логин или пароль';
+  if (/unauthorized/i.test(raw)) return 'Требуется вход в систему';
+  if (/LIVE mode is locked/i.test(raw)) {
+    return 'Режим LIVE заблокирован: доступны только DRY_RUN и FORWARD_TEST';
+  }
+  if (/no updates supplied/i.test(raw)) return 'Нет изменений для сохранения';
+  return raw || 'Произошла ошибка';
+}
 
 interface Setting {
   key: string;
@@ -68,7 +82,7 @@ export default function AdminPage() {
       setAuthed(true);
       setPassword('');
     } else {
-      setLoginError(json.error ?? 'Login failed');
+      setLoginError(translateApiError(json.error));
     }
   };
 
@@ -96,41 +110,41 @@ export default function AdminPage() {
         body: JSON.stringify({ updates: draft }),
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error ?? 'Save failed');
+      if (!json.ok) throw new Error(translateApiError(json.error));
       const errs = json.data.errors as Array<{ key: string; error: string }>;
       if (errs.length > 0) {
         setMessage({
           kind: 'error',
-          text: `Applied ${json.data.applied.length}. Rejected: ${errs.map((e) => `${e.key} (${e.error})`).join('; ')}`,
+          text: `Применено: ${json.data.applied.length}. Отклонено: ${errs.map((e) => `${e.key} (${e.error})`).join('; ')}`,
         });
       } else {
         setMessage({
           kind: 'ok',
-          text: `Saved ${json.data.applied.length} setting(s). The engine picks these up on its next loop.`,
+          text: `Сохранено настроек: ${json.data.applied.length}. Движок применит их на следующем цикле.`,
         });
       }
       await loadSettings();
     } catch (e) {
-      setMessage({ kind: 'error', text: e instanceof Error ? e.message : 'Save failed' });
+      setMessage({ kind: 'error', text: e instanceof Error ? e.message : 'Не удалось сохранить' });
     } finally {
       setSaving(false);
     }
   };
 
-  if (authed === null) return <div className="loading">Checking session…</div>;
+  if (authed === null) return <div className="loading">Загрузка...</div>;
 
   if (!authed) {
     return (
       <div className="panel login-box">
-        <h2>Admin login</h2>
+        <h2>Вход в админку</h2>
         {loginError && <div className="alert alert-error">{loginError}</div>}
         <form onSubmit={login}>
           <div className="field">
-            <label htmlFor="u">Username</label>
+            <label htmlFor="u">Логин</label>
             <input id="u" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
           </div>
           <div className="field">
-            <label htmlFor="p">Password</label>
+            <label htmlFor="p">Пароль</label>
             <input
               id="p"
               type="password"
@@ -140,12 +154,18 @@ export default function AdminPage() {
             />
           </div>
           <button className="primary" type="submit" style={{ width: '100%' }}>
-            Sign in
+            Войти
           </button>
         </form>
         <p className="muted" style={{ fontSize: 11, marginTop: 12 }}>
-          Default credentials come from ADMIN_USER / ADMIN_PASSWORD at seed time. Change them in
-          production.
+          Учётная запись хранится в PostgreSQL (таблица <code>admin_users</code>). Переменные
+          ADMIN_USER / ADMIN_PASSWORD используются <b>только при первичном создании</b> админа.
+        </p>
+        <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+          Изменение <code>.env</code> <b>не меняет</b> уже существующий пароль в базе. Чтобы
+          сменить пароль, выполните на сервере:{' '}
+          <code>npm run admin:reset-password</code> — команда возьмёт новые значения из окружения,
+          обновит запись в базе и завершит все активные сессии.
         </p>
       </div>
     );
@@ -158,17 +178,19 @@ export default function AdminPage() {
     <div>
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <div>
-          <h1>Admin</h1>
+          <h1>Админка</h1>
           <p className="subtitle">
-            Every setting below is read by the engine from the database — none are decorative.
+            Каждая настройка ниже реально читается движком из базы данных — декоративных
+            параметров здесь нет.
           </p>
         </div>
-        <button onClick={() => void logout()}>Sign out</button>
+        <button onClick={() => void logout()}>Выйти</button>
       </div>
 
       <div className="alert alert-info">
-        <b>LIVE is locked.</b> engine.trading_mode accepts only DRY_RUN or FORWARD_TEST; a LIVE
-        value is rejected at the API, at the settings layer and at the engine.
+        <b>Режим LIVE заблокирован.</b> Параметр engine.trading_mode принимает только DRY_RUN или
+        FORWARD_TEST. Значение LIVE отклоняется на уровне API, на уровне настроек и на уровне
+        движка.
       </div>
 
       {message && (
@@ -180,7 +202,7 @@ export default function AdminPage() {
       <div className="tabs">
         {categories.map((c) => (
           <button key={c} className={tab === c ? 'active' : ''} onClick={() => setTab(c)}>
-            {c}
+            {ru(CATEGORY_RU, c)}
           </button>
         ))}
       </div>
@@ -190,22 +212,22 @@ export default function AdminPage() {
           <div className="setting-row" key={s.key}>
             <div>
               <div className="setting-label">
-                {s.label}
+                {settingLabel(s.key, s.label)}
                 {!s.editable && (
                   <span className="pill pill-idle" style={{ marginLeft: 8 }}>
-                    LOCKED
+                    ЗАБЛОКИРОВАНО
                   </span>
                 )}
                 {s.key in draft && (
                   <span className="pill pill-warn" style={{ marginLeft: 8 }}>
-                    MODIFIED
+                    ИЗМЕНЕНО
                   </span>
                 )}
               </div>
               <div className="setting-key">{s.key}</div>
-              <div className="setting-desc">{s.description}</div>
+              <div className="setting-desc">{settingDescription(s.key, s.description)}</div>
               <details>
-                <summary>engine consumer</summary>
+                <summary>где используется движком</summary>
                 <div className="setting-key">{s.consumedBy.join(', ')}</div>
               </details>
             </div>
@@ -258,7 +280,8 @@ export default function AdminPage() {
               )}
               {(s.min !== null || s.max !== null) && (
                 <div className="muted" style={{ fontSize: 10, marginTop: 3 }}>
-                  range {s.min ?? '−∞'} … {s.max ?? '∞'} · default {JSON.stringify(s.default)}
+                  диапазон {s.min ?? '−∞'} … {s.max ?? '∞'} · по умолчанию{' '}
+                  {JSON.stringify(s.default)}
                 </div>
               )}
             </div>
@@ -268,10 +291,10 @@ export default function AdminPage() {
 
       <div className="row">
         <button className="primary" disabled={dirtyKeys.length === 0 || saving} onClick={() => void save()}>
-          {saving ? 'Saving…' : `Save ${dirtyKeys.length} change(s)`}
+          {saving ? 'Сохранение...' : `Сохранить изменения (${dirtyKeys.length})`}
         </button>
         <button disabled={dirtyKeys.length === 0} onClick={() => setDraft({})}>
-          Discard
+          Отменить
         </button>
       </div>
     </div>

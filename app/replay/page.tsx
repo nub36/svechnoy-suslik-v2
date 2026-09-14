@@ -1,6 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import {
+  OUTCOME_RU,
+  fmtIsoDateTime,
+  fmtNum,
+  fmtPrice,
+  fmtShortTime,
+  pairName,
+  ru,
+} from '../lib/format';
 
 const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'] as const;
 
@@ -106,14 +115,14 @@ export default function ReplayPage() {
       });
       if (res.status === 401) {
         setAuthed(false);
-        throw new Error('Replay requires admin sign-in (see the Admin page).');
+        throw new Error('Для запуска Replay нужен вход в админку.');
       }
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);
       setResults(json.data.results);
       await loadRuns();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Replay failed');
+      setError(e instanceof Error ? e.message : 'Не удалось выполнить Replay');
     } finally {
       setRunning(false);
     }
@@ -138,34 +147,35 @@ export default function ReplayPage() {
 
   return (
     <div>
-      <h1>Historical replay</h1>
+      <h1>История / Replay</h1>
       <p className="subtitle">
-        Walk-forward replay using <b>the same Smart Money engine</b> as the live path — same
-        detectors, same scoring, same state machine, same N+1 entry rule, same outcome tracker.
+        Пошаговое воспроизведение истории на <b>том же движке Smart Money</b>, что и в реальном
+        времени: те же факторы, тот же расчёт оценки, та же машина состояний, то же правило
+        входа по свече N+1 и тот же учёт результатов.
       </p>
 
       {error && <div className="alert alert-error">{error}</div>}
       {!authed && (
         <div className="alert alert-info">
-          Sign in on the Admin page first — running a replay is a protected operation.
+          Сначала войдите в админку — запуск Replay доступен только авторизованным.
         </div>
       )}
 
       <div className="panel">
-        <h3>Symbols</h3>
+        <h3>Пары</h3>
         <div className="row" style={{ marginBottom: 12 }}>
-          {symbols.length === 0 && <span className="muted">No symbols available.</span>}
+          {symbols.length === 0 && <span className="muted">Доступных пар нет.</span>}
           {symbols.map((s) => (
             <button
               key={s}
               className={picked.includes(s) ? 'active' : ''}
               onClick={() => toggle(picked, s, setPicked)}
             >
-              {s}
+              {pairName(s)}
             </button>
           ))}
         </div>
-        <h3>Timeframes</h3>
+        <h3>Таймфреймы</h3>
         <div className="row" style={{ marginBottom: 12 }}>
           {TIMEFRAMES.map((t) => (
             <button key={t} className={tfs.includes(t) ? 'active' : ''} onClick={() => toggle(tfs, t, setTfs)}>
@@ -178,7 +188,7 @@ export default function ReplayPage() {
           disabled={running || picked.length === 0 || tfs.length === 0}
           onClick={() => void run()}
         >
-          {running ? 'Replaying…' : `Run replay (${picked.length} × ${tfs.length})`}
+          {running ? 'Выполняется...' : `Запустить Replay (${picked.length} × ${tfs.length})`}
         </button>
       </div>
 
@@ -186,61 +196,61 @@ export default function ReplayPage() {
         <>
           <div className="grid grid-4" style={{ marginBottom: 16 }}>
             <div className="stat">
-              <div className="label">Candles replayed</div>
-              <div className="value">{agg.candles.toLocaleString()}</div>
+              <div className="label">Обработано свечей</div>
+              <div className="value">{agg.candles.toLocaleString('ru-RU')}</div>
             </div>
             <div className="stat">
-              <div className="label">Evaluations</div>
-              <div className="value">{agg.evaluations.toLocaleString()}</div>
+              <div className="label">Расчётов</div>
+              <div className="value">{agg.evaluations.toLocaleString('ru-RU')}</div>
             </div>
             <div className="stat">
-              <div className="label">Closed trades</div>
+              <div className="label">Закрытых сделок</div>
               <div className="value">{agg.total}</div>
               <div className="sub">
-                {agg.wins}W / {agg.losses}L / {agg.timeouts}T
+                {agg.wins} побед / {agg.losses} убытков / {agg.timeouts} по таймауту
               </div>
             </div>
             <div className="stat">
-              <div className="label">Win rate</div>
+              <div className="label">Доля прибыльных</div>
               <div className="value">
-                {agg.total > 0 ? ((agg.wins / agg.total) * 100).toFixed(1) : '0.0'}%
+                {agg.total > 0 ? fmtNum((agg.wins / agg.total) * 100, 1) : '0,0'}%
               </div>
             </div>
             <div className="stat">
-              <div className="label">Total R</div>
-              <div className={`value ${agg.totalR >= 0 ? 'up' : 'down'}`}>{agg.totalR.toFixed(2)}</div>
+              <div className="label">Суммарный R</div>
+              <div className={`value ${agg.totalR >= 0 ? 'up' : 'down'}`}>{fmtNum(agg.totalR)}</div>
             </div>
             <div className="stat">
-              <div className="label">Avg R</div>
+              <div className="label">Средний R</div>
               <div className={`value ${agg.totalR >= 0 ? 'up' : 'down'}`}>
-                {agg.total > 0 ? (agg.totalR / agg.total).toFixed(3) : '0'}
+                {agg.total > 0 ? fmtNum(agg.totalR / agg.total, 3) : '0'}
               </div>
             </div>
           </div>
 
           <div className="panel">
-            <h2>Per series</h2>
+            <h2>По каждой серии</h2>
             <table>
               <thead>
                 <tr>
-                  <th>Symbol</th>
-                  <th>TF</th>
-                  <th className="num">Candles</th>
-                  <th className="num">Evals</th>
-                  <th className="num">Trades</th>
-                  <th className="num">W/L/T</th>
-                  <th className="num">Win %</th>
-                  <th className="num">Total R</th>
-                  <th className="num">Avg R</th>
-                  <th className="num">PF</th>
-                  <th className="num">Max DD</th>
+                  <th>Пара</th>
+                  <th>ТФ</th>
+                  <th className="num">Свечей</th>
+                  <th className="num">Расчётов</th>
+                  <th className="num">Сделок</th>
+                  <th className="num">П/У/Т</th>
+                  <th className="num">Прибыльных %</th>
+                  <th className="num">Суммарный R</th>
+                  <th className="num">Средний R</th>
+                  <th className="num">ПФ</th>
+                  <th className="num">Макс. просадка</th>
                 </tr>
               </thead>
               <tbody>
                 {results.map((r) => (
                   <tr key={`${r.symbol}-${r.timeframe}`}>
                     <td>
-                      <b>{r.symbol}</b>
+                      <b>{pairName(r.symbol)}</b>
                     </td>
                     <td>{r.timeframe}</td>
                     <td className="num mono">{r.candlesSeen}</td>
@@ -249,17 +259,17 @@ export default function ReplayPage() {
                     <td className="num mono">
                       {r.stats.wins}/{r.stats.losses}/{r.stats.timeouts}
                     </td>
-                    <td className="num mono">{r.stats.winRate.toFixed(1)}%</td>
+                    <td className="num mono">{fmtNum(r.stats.winRate, 1)}%</td>
                     <td className={`num mono ${r.stats.totalR >= 0 ? 'up' : 'down'}`}>
-                      {r.stats.totalR.toFixed(2)}
+                      {fmtNum(r.stats.totalR)}
                     </td>
                     <td className={`num mono ${r.stats.avgR >= 0 ? 'up' : 'down'}`}>
-                      {r.stats.avgR.toFixed(3)}
+                      {fmtNum(r.stats.avgR, 3)}
                     </td>
                     <td className="num mono">
-                      {Number.isFinite(r.stats.profitFactor) ? r.stats.profitFactor.toFixed(2) : '∞'}
+                      {Number.isFinite(r.stats.profitFactor) ? fmtNum(r.stats.profitFactor) : '∞'}
                     </td>
-                    <td className="num mono down">{r.stats.maxDrawdownR.toFixed(2)}</td>
+                    <td className="num mono down">{fmtNum(r.stats.maxDrawdownR)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -267,58 +277,58 @@ export default function ReplayPage() {
           </div>
 
           <div className="panel">
-            <h2>Sample trades (N+1 entries)</h2>
+            <h2>Примеры сделок (вход по свече N+1)</h2>
             <p className="muted small">
-              Preview only — the statistics above are computed over all{' '}
-              {results.reduce((a, r) => a + r.tradeCount, 0)} trade(s) of the run.
+              Это только выборка для просмотра — статистика выше рассчитана по всем сделкам
+              прогона ({results.reduce((a, r) => a + r.tradeCount, 0)}).
             </p>
             <table>
               <thead>
                 <tr>
-                  <th>Symbol</th>
-                  <th>TF</th>
-                  <th>Dir</th>
-                  <th className="num">Score</th>
-                  <th>Setup candle (N)</th>
-                  <th>Entry candle (N+1)</th>
+                  <th>Пара</th>
+                  <th>ТФ</th>
+                  <th>Направление</th>
+                  <th className="num">Оценка</th>
+                  <th>Свеча сетапа (N)</th>
+                  <th>Свеча входа (N+1)</th>
                   <th className="num">Entry</th>
                   <th className="num">SL</th>
-                  <th>Result</th>
-                  <th className="num">Bars</th>
+                  <th>Результат</th>
+                  <th className="num">Свечей</th>
                   <th className="num">R</th>
                 </tr>
               </thead>
               <tbody>
                 {results.flatMap((r) => r.trades.slice(0, 12)).slice(0, 60).map((t, i) => (
                   <tr key={i}>
-                    <td>{t.symbol}</td>
+                    <td>{pairName(t.symbol)}</td>
                     <td>{t.timeframe}</td>
                     <td>
                       <span className={`pill ${t.direction === 'LONG' ? 'pill-long' : 'pill-short'}`}>
                         {t.direction}
                       </span>
                     </td>
-                    <td className="num mono">{t.score.toFixed(1)}</td>
+                    <td className="num mono">{fmtNum(t.score, 1)}</td>
                     <td className="mono">
-                      {new Date(t.setupCandleTime).toISOString().replace('T', ' ').slice(0, 16)}
+                      {fmtShortTime(t.setupCandleTime)}
                     </td>
                     <td className="mono">
-                      {new Date(t.entryCandleTime).toISOString().replace('T', ' ').slice(0, 16)}
+                      {fmtShortTime(t.entryCandleTime)}
                     </td>
-                    <td className="num mono">{t.entryPrice}</td>
-                    <td className="num mono">{t.stopLoss.toFixed(6).replace(/\.?0+$/, '')}</td>
+                    <td className="num mono">{fmtPrice(t.entryPrice)}</td>
+                    <td className="num mono">{fmtPrice(t.stopLoss)}</td>
                     <td>
                       <span
                         className={`pill ${
                           t.result === 'TP' ? 'pill-ok' : t.result === 'SL' ? 'pill-err' : 'pill-idle'
                         }`}
                       >
-                        {t.result}
+                        {ru(OUTCOME_RU, t.result)}
                       </span>
                     </td>
                     <td className="num mono">{t.barsHeld}</td>
                     <td className={`num mono ${t.rMultiple >= 0 ? 'up' : 'down'}`}>
-                      {t.rMultiple.toFixed(3)}
+                      {fmtNum(t.rMultiple, 3)}
                     </td>
                   </tr>
                 ))}
@@ -329,22 +339,22 @@ export default function ReplayPage() {
       )}
 
       <div className="panel">
-        <h2>Saved runs</h2>
+        <h2>Сохранённые прогоны</h2>
         {runs.length === 0 ? (
-          <div className="muted">No saved replay runs yet.</div>
+          <div className="muted">Сохранённых прогонов пока нет.</div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Label</th>
-                <th>Symbols</th>
-                <th>TFs</th>
-                <th className="num">Trades</th>
-                <th className="num">Win %</th>
-                <th className="num">Total R</th>
-                <th className="num">PF</th>
-                <th>Created</th>
+                <th>Название</th>
+                <th>Пары</th>
+                <th>ТФ</th>
+                <th className="num">Сделок</th>
+                <th className="num">Прибыльных %</th>
+                <th className="num">Суммарный R</th>
+                <th className="num">ПФ</th>
+                <th>Создан</th>
               </tr>
             </thead>
             <tbody>
@@ -359,11 +369,11 @@ export default function ReplayPage() {
                     {(r.timeframes ?? []).join(', ')}
                   </td>
                   <td className="num mono">{r.signals}</td>
-                  <td className="num mono">{r.winRate.toFixed(1)}%</td>
-                  <td className={`num mono ${r.totalR >= 0 ? 'up' : 'down'}`}>{r.totalR.toFixed(2)}</td>
-                  <td className="num mono">{r.profitFactor.toFixed(2)}</td>
+                  <td className="num mono">{fmtNum(r.winRate, 1)}%</td>
+                  <td className={`num mono ${r.totalR >= 0 ? 'up' : 'down'}`}>{fmtNum(r.totalR)}</td>
+                  <td className="num mono">{fmtNum(r.profitFactor)}</td>
                   <td className="mono muted" style={{ fontSize: 11 }}>
-                    {new Date(r.createdAt).toISOString().replace('T', ' ').slice(0, 16)}
+                    {fmtIsoDateTime(r.createdAt)}
                   </td>
                 </tr>
               ))}

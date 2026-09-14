@@ -1,6 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import {
+  OUTCOME_RU,
+  SIGNAL_STATE_RU,
+  fmtNum,
+  fmtPrice,
+  fmtShortTime,
+  pairName,
+  ru,
+} from '../lib/format';
 
 interface Component {
   detector: string;
@@ -56,15 +65,11 @@ function statePill(s: string): string {
   return 'pill-idle';
 }
 
-function ts(ms: number | null): string {
-  if (ms === null) return '—';
-  return new Date(ms).toISOString().replace('T', ' ').slice(0, 16);
-}
+const ts = fmtShortTime;
 
-function fmt(v: number | null, dp = 6): string {
-  if (v === null || !Number.isFinite(v)) return '—';
-  return v.toFixed(dp).replace(/\.?0+$/, '');
-}
+/** Prices keep per-asset precision; a cheap coin must not round to zero. */
+const fmt = (v: number | null, dp?: number): string =>
+  dp === undefined ? fmtPrice(v) : fmtNum(v, dp);
 
 export default function SignalsPage() {
   const [signals, setSignals] = useState<Signal[]>([]);
@@ -83,7 +88,7 @@ export default function SignalsPage() {
       setSummary(json.data.summary);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load signals');
+      setError(e instanceof Error ? e.message : 'Не удалось загрузить сигналы');
     } finally {
       setLoading(false);
     }
@@ -97,22 +102,22 @@ export default function SignalsPage() {
 
   return (
     <div>
-      <h1>Signals</h1>
+      <h1>Сигналы</h1>
       <p className="subtitle">
-        Every signal is produced from a CLOSED candle (N) and entered at the OPEN of N+1. Entry
-        fields stay empty while a signal is in WAITING_ENTRY.
+        Каждый сигнал формируется по ЗАКРЫТОЙ свече (N), а вход выполняется по цене открытия
+        свечи N+1. Пока сигнал в состоянии «Ожидание входа», поля входа остаются пустыми.
       </p>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
         {[
-          ['Total', summary['total'] ?? 0],
-          ['Waiting entry', summary['waiting'] ?? 0],
-          ['Active', summary['active'] ?? 0],
+          ['Всего', summary['total'] ?? 0],
+          ['Ожидание входа', summary['waiting'] ?? 0],
+          ['Открыто', summary['active'] ?? 0],
           ['TP', summary['tp'] ?? 0],
           ['SL', summary['sl'] ?? 0],
-          ['Timeout', summary['timeout'] ?? 0],
+          ['Таймаут', summary['timeout'] ?? 0],
         ].map(([label, value]) => (
           <div className="stat" key={String(label)}>
             <div className="label">{label}</div>
@@ -122,36 +127,36 @@ export default function SignalsPage() {
       </div>
 
       <div className="toolbar">
-        <span className="muted">State:</span>
+        <span className="muted">Состояние:</span>
         {STATES.map((s) => (
           <button key={s || 'ALL'} className={filter === s ? 'active' : ''} onClick={() => setFilter(s)}>
-            {s || 'ALL'}
+            {s === '' ? 'Все' : ru(SIGNAL_STATE_RU, s)}
           </button>
         ))}
-        <button onClick={() => void load()}>Refresh</button>
+        <button onClick={() => void load()}>Обновить</button>
       </div>
 
       <div className="panel">
         {loading ? (
-          <div className="loading">Loading…</div>
+          <div className="loading">Загрузка...</div>
         ) : signals.length === 0 ? (
           <div className="muted" style={{ padding: 20, textAlign: 'center' }}>
-            No signals yet. The strategy worker emits one only on a rising edge
-            (IDLE → WAITING_ENTRY) when the score clears the threshold.
+            Сигналов пока нет. Воркер стратегии создаёт сигнал только в момент перехода
+            состояния, когда оценка превышает порог.
           </div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Symbol</th>
-                <th>TF</th>
-                <th>Dir</th>
-                <th>State</th>
-                <th>Mode</th>
-                <th className="num">Score</th>
-                <th>Setup candle (N)</th>
-                <th>Entry candle (N+1)</th>
+                <th>Пара</th>
+                <th>ТФ</th>
+                <th>Направление</th>
+                <th>Состояние</th>
+                <th>Режим</th>
+                <th className="num">Оценка</th>
+                <th>Свеча сетапа (N)</th>
+                <th>Свеча входа (N+1)</th>
                 <th className="num">Entry</th>
                 <th className="num">SL</th>
                 <th className="num">TP1</th>
@@ -168,7 +173,7 @@ export default function SignalsPage() {
                   >
                     <td className="muted">#{s.id}</td>
                     <td>
-                      <b>{s.symbol}</b>
+                      <b>{pairName(s.symbol)}</b>
                     </td>
                     <td>{s.timeframe}</td>
                     <td>
@@ -177,7 +182,9 @@ export default function SignalsPage() {
                       </span>
                     </td>
                     <td>
-                      <span className={`pill ${statePill(s.state)}`}>{s.state}</span>
+                      <span className={`pill ${statePill(s.state)}`}>
+                        {ru(SIGNAL_STATE_RU, s.state)}
+                      </span>
                     </td>
                     <td className="muted" style={{ fontSize: 11 }}>
                       {s.mode}
@@ -189,7 +196,7 @@ export default function SignalsPage() {
                     <td className="mono">{ts(s.setupCandleTime)}</td>
                     <td className="mono">
                       {s.entryCandleTime === null ? (
-                        <span className="muted">pending N+1</span>
+                        <span className="muted">ожидается N+1</span>
                       ) : (
                         ts(s.entryCandleTime)
                       )}
@@ -206,15 +213,15 @@ export default function SignalsPage() {
                       <td colSpan={13} style={{ background: '#0b0e14' }}>
                         <div className="grid grid-2">
                           <div>
-                            <h3>Score breakdown (transparent)</h3>
+                            <h3>Расчёт оценки (прозрачный)</h3>
                             <table>
                               <thead>
                                 <tr>
-                                  <th>Detector</th>
-                                  <th className="num">Strength</th>
-                                  <th className="num">Weight</th>
-                                  <th className="num">Contribution</th>
-                                  <th>Counted</th>
+                                  <th>Фактор</th>
+                                  <th className="num">Сила</th>
+                                  <th className="num">Вес</th>
+                                  <th className="num">Вклад</th>
+                                  <th>Учтён</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -228,10 +235,10 @@ export default function SignalsPage() {
                                     </td>
                                     <td>
                                       {c.counted ? (
-                                        <span className="pill pill-ok">YES</span>
+                                        <span className="pill pill-ok">ДА</span>
                                       ) : (
                                         <span className="pill pill-idle" title={c.skippedReason}>
-                                          SKIPPED
+                                          ПРОПУЩЕН
                                         </span>
                                       )}
                                     </td>
@@ -240,79 +247,79 @@ export default function SignalsPage() {
                               </tbody>
                             </table>
                             <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>
-                              raw {s.breakdown?.rawScore?.toFixed(3) ?? '—'} / weight{' '}
-                              {s.breakdown?.totalWeight?.toFixed(1) ?? '—'} × 100 ={' '}
+                              сумма вкладов {s.breakdown?.rawScore?.toFixed(3) ?? '—'} / сумма
+                              весов {s.breakdown?.totalWeight?.toFixed(1) ?? '—'} × 100 ={' '}
                               <b>{s.breakdown?.score?.toFixed(2) ?? '—'}</b>
                               {(s.breakdown?.duplicatesRemoved ?? 0) > 0 &&
-                                ` · ${s.breakdown?.duplicatesRemoved} duplicate(s) removed (anti-double-counting)`}
+                                ` · исключено дубликатов: ${s.breakdown?.duplicatesRemoved} (защита от двойного учёта)`}
                             </div>
                           </div>
                           <div>
-                            <h3>Execution & outcome</h3>
+                            <h3>Исполнение и результат</h3>
                             <table>
                               <tbody>
                                 <tr>
-                                  <td className="muted">Setup close (N)</td>
+                                  <td className="muted">Закрытие свечи сетапа (N)</td>
                                   <td className="mono num">{fmt(s.setupClose)}</td>
                                 </tr>
                                 <tr>
-                                  <td className="muted">Entry (OPEN of N+1)</td>
+                                  <td className="muted">Вход (OPEN свечи N+1)</td>
                                   <td className="mono num">{fmt(s.entryPrice)}</td>
                                 </tr>
                                 <tr>
-                                  <td className="muted">Stop loss</td>
+                                  <td className="muted">Стоп-лосс (SL)</td>
                                   <td className="mono num">{fmt(s.stopLoss)}</td>
                                 </tr>
                                 <tr>
-                                  <td className="muted">Take profits</td>
+                                  <td className="muted">Тейк-профиты (TP)</td>
                                   <td className="mono num">
                                     {(s.takeProfits ?? []).map((t) => fmt(t)).join(' · ') || '—'}
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td className="muted">ATR (risk only)</td>
+                                  <td className="muted">ATR (только для риска)</td>
                                   <td className="mono num">{fmt(s.atr)}</td>
                                 </tr>
                                 <tr>
-                                  <td className="muted">R:R to TP1</td>
+                                  <td className="muted">R:R до TP1</td>
                                   <td className="mono num">{fmt(s.rrTp1, 2)}</td>
                                 </tr>
                                 {s.outcome && (
                                   <>
                                     <tr>
-                                      <td className="muted">Result</td>
+                                      <td className="muted">Результат</td>
                                       <td>
                                         <span
                                           className={`pill ${
                                             s.outcome.result === 'TP' ? 'pill-ok' : s.outcome.result === 'SL' ? 'pill-err' : 'pill-idle'
                                           }`}
                                         >
-                                          {s.outcome.result}
+                                          {ru(OUTCOME_RU, s.outcome.result)}
                                         </span>
                                       </td>
                                     </tr>
                                     <tr>
-                                      <td className="muted">Exit price</td>
+                                      <td className="muted">Цена выхода</td>
                                       <td className="mono num">{fmt(s.outcome.exitPrice)}</td>
                                     </tr>
                                     <tr>
-                                      <td className="muted">Bars held</td>
+                                      <td className="muted">Свечей в сделке</td>
                                       <td className="mono num">{s.outcome.barsHeld}</td>
                                     </tr>
                                     <tr>
-                                      <td className="muted">PnL %</td>
+                                      <td className="muted">Прибыль/убыток, %</td>
                                       <td className={`mono num ${s.outcome.pnlPct >= 0 ? 'up' : 'down'}`}>
                                         {s.outcome.pnlPct.toFixed(3)}%
                                       </td>
                                     </tr>
                                     <tr>
-                                      <td className="muted">R multiple</td>
+                                      <td className="muted">R-мультипликатор</td>
                                       <td className={`mono num ${s.outcome.rMultiple >= 0 ? 'up' : 'down'}`}>
                                         {s.outcome.rMultiple.toFixed(3)}
                                       </td>
                                     </tr>
                                     <tr>
-                                      <td className="muted">MFE / MAE</td>
+                                      <td className="muted">Макс. в плюс / в минус</td>
                                       <td className="mono num">
                                         {s.outcome.maxFavorablePct.toFixed(2)}% /{' '}
                                         {s.outcome.maxAdversePct.toFixed(2)}%

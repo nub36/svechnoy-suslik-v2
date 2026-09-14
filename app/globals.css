@@ -36,8 +36,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 10px 18px;
+  gap: 14px;
+  padding: 7px 16px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -96,9 +96,18 @@ a {
 }
 
 main {
-  padding: 18px;
+  padding: 12px 16px 24px;
   max-width: 1600px;
   margin: 0 auto;
+  /* Nothing on the page may cause a horizontal scrollbar. */
+  overflow-x: hidden;
+}
+
+/* The whole document must never scroll sideways, on any viewport. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 h1 {
@@ -124,7 +133,155 @@ h3 {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 14px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+}
+
+/* ---------------- chart panel: the hero element ---------------- */
+.chart-panel {
+  padding: 10px 12px 12px;
+}
+
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+
+.chart-price {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.chart-price b {
+  font-size: 15px;
+}
+
+.chart-meta {
+  margin-left: auto;
+}
+
+/* connection indicator */
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.conn .dot {
+  font-size: 9px;
+  line-height: 1;
+}
+.conn-online .dot {
+  color: var(--green);
+}
+.conn-connecting .dot {
+  color: var(--yellow);
+}
+.conn-stale .dot {
+  color: var(--yellow);
+}
+.conn-offline .dot {
+  color: var(--red);
+}
+.conn-online {
+  color: var(--text);
+}
+
+.sm-toggle {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* ---------------- symbol picker ---------------- */
+.sym-picker {
+  position: relative;
+}
+.sym-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  padding: 6px 11px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text);
+}
+.sym-trigger:hover {
+  border-color: var(--blue);
+}
+.sym-trigger .caret {
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.sym-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 60;
+  min-width: 290px;
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+}
+.sym-item {
+  display: grid;
+  grid-template-columns: 20px 1fr auto auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 9px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+.sym-item:hover {
+  background: var(--panel-2);
+}
+.sym-item.active {
+  background: #1e2a44;
+  outline: 1px solid var(--blue);
+}
+.sym-rank {
+  color: var(--muted);
+  font-size: 11px;
+}
+.sym-pair {
+  font-weight: 600;
+}
+.sym-price {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.sym-chg {
+  font-variant-numeric: tabular-nums;
+  min-width: 62px;
+  text-align: right;
+}
+.sym-empty {
+  padding: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Tables may scroll inside their own container, never the page. */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .grid {
@@ -266,6 +423,15 @@ input[type='checkbox'] {
   padding: 3px;
   border-radius: 6px;
   border: 1px solid var(--border);
+}
+/* On mobile the timeframe row scrolls horizontally INSIDE its own box. */
+.tf-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.tf-group button {
+  white-space: nowrap;
 }
 .tf-group button {
   padding: 5px 11px;
@@ -479,4 +645,52 @@ details summary {
 }
 details summary:hover {
   color: var(--text);
+}
+
+
+/* ---------------- responsive ---------------- */
+@media (max-width: 900px) {
+  .topbar {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+  .topbar nav {
+    gap: 2px;
+  }
+  .topbar nav a {
+    padding: 6px 9px;
+    font-size: 13px;
+  }
+  main {
+    padding: 10px 10px 20px;
+  }
+  .chart-meta {
+    margin-left: 0;
+  }
+  .sym-menu {
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand {
+    font-size: 13px;
+  }
+  .brand .badge {
+    display: none;
+  }
+  .chart-toolbar {
+    gap: 8px;
+  }
+  /* Pair selector and price stay on the first row; timeframes get their own. */
+  .tf-scroll {
+    order: 5;
+    flex-basis: 100%;
+  }
+  .chart-panel {
+    padding: 9px 9px 10px;
+  }
+  table {
+    font-size: 12px;
+  }
 }
