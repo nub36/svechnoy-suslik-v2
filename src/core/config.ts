@@ -6,6 +6,7 @@
 import { assertAllowedMode } from './mode';
 import type { TradingMode } from './types';
 import { loadEnvFile } from './env';
+import { resolveCookieSecure } from '../web/cookie-policy';
 
 // Populate process.env from .env for plain-Node workers and CLI scripts.
 loadEnvFile();
@@ -53,6 +54,17 @@ export const config = {
   marketLoopMs: envInt('MARKET_LOOP_MS', 15_000),
   strategyLoopMs: envInt('STRATEGY_LOOP_MS', 20_000),
   outcomeLoopMs: envInt('OUTCOME_LOOP_MS', 20_000),
+
+  /**
+   * `Secure` attribute for the admin session cookie.
+   *
+   * This describes the TRANSPORT, not the build. A production build served
+   * over plain HTTP must set COOKIE_SECURE=false, otherwise the browser will
+   * not return the session cookie and the Admin UI logs itself out instantly.
+   * Unset falls back to NODE_ENV==='production', keeping the default strict.
+   * See src/web/cookie-policy.ts.
+   */
+  cookieSecure: resolveCookieSecure(process.env['COOKIE_SECURE'], env('NODE_ENV', 'development')),
 
   adminUser: env('ADMIN_USER', 'admin'),
   adminPassword: env('ADMIN_PASSWORD', 'suslik-admin'),

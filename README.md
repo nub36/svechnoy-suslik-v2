@@ -342,6 +342,42 @@ The UI is in Russian; internal identifiers (`BTCUSDT`, `WAITING_ENTRY`,
 
 ### Changing the admin password
 
+### Session cookie: `COOKIE_SECURE`
+
+The `Secure` cookie attribute describes the **transport the app is actually
+reached over**, not the build type. Deriving it from `NODE_ENV` alone breaks a
+production deployment served over plain HTTP.
+
+That was a real production failure: the VPS ran `NODE_ENV=production` but was
+reached at `http://89.125.24.50:3000`, so the browser received a `Secure`
+session cookie over HTTP and refused to send it back. Credentials, session
+creation and Postgres storage were all working — `admin_sessions` held 7 valid
+rows — but `GET /api/admin/session` never saw the cookie, so the Admin UI
+rendered for about a second and then bounced back to the login form.
+
+| Value | When to use |
+| --- | --- |
+| `COOKIE_SECURE=false` | **Only** for a direct HTTP deployment (`http://<ip>:3000`, no TLS). Required there, or admin login cannot persist. |
+| `COOKIE_SECURE=true` | Whenever the app is served over HTTPS, directly or behind a TLS-terminating proxy. |
+| unset | Falls back to `NODE_ENV === 'production'` — the security-conscious default. |
+
+An unrecognised value (e.g. `COOKIE_SECURE=yes`) is ignored and the safe
+default applies, so a typo can never silently disable the flag.
+
+The current VPS needs `COOKIE_SECURE=false`. **Switch it to `true` as soon as
+TLS is put in front of the app** — a non-Secure cookie may be transmitted in
+cleartext, so this setting is a stopgap for an HTTP deployment, not a
+recommended end state.
+
+Only `Secure` is configurable. `httpOnly: true`, `sameSite: 'lax'` and
+`path: '/'` are constants in `src/web/cookie-policy.ts` and are never relaxed;
+the token is never exposed to JavaScript, `localStorage`, `sessionStorage` or
+query parameters. `X-Forwarded-Proto` is deliberately **not** trusted: the
+header is attacker-controlled without a trusted-proxy model, and honouring it
+would let a client dictate its own cookie security.
+
+---
+
 **Editing `ADMIN_PASSWORD` in `.env` does NOT change an existing password.**
 PostgreSQL (`admin_users`) is the source of truth, and `db:seed` creates the
 account only when it is absent — otherwise every deploy would silently reset a
@@ -416,7 +452,7 @@ record.
 ## Testing
 
 ```bash
-npm test                                                   # 587 tests
+npm test                                                   # 615 tests
 SMOKE_BASE_URL=http://127.0.0.1:3000 npx vitest run        # + live HTTP tests
 ```
 
