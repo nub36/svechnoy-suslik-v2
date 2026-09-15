@@ -19,21 +19,27 @@ Everything below was fixed while the only available data was
 
 | item | value |
 |---|---|
-| freeze commit | the commit that added this file (see note below) |
+| freeze commit | `4839074` (pushed) — supersedes the pre-reset hash `97184ac` |
 | parent commit (audited read-only) | `60aac85` |
 | branch | `arena/01a09fa1-svechnoy-suslik-v2` |
 | date frozen (Europe/Moscow) | 2026-09-14 |
 | real Binance history loaded at freeze time | **NO — none, ever** |
 
-> A commit cannot contain its own hash, so the freeze commit is identified by
-> its **parent**, `60aac85`, which is fixed. Resolve the exact hash with:
+> **Hash note.** This freeze was first committed locally as `97184ac`. Before
+> it could be pushed, the development sandbox was reset: the git history was
+> re-cloned from the remote (which was still at `60aac85`) and `node_modules`
+> and `fixtures/` were wiped, while the working-tree source survived intact.
+> The identical changeset was therefore recommitted on top of `60aac85` and
+> pushed as **`4839074`**.
+>
+> `97184ac` never existed on any remote and is unrecoverable; **`4839074` is
+> the authoritative freeze commit.** The content is the same changeset (same 9
+> files) and was re-verified after the reset: typecheck pass, 922 tests pass,
+> build pass. Resolve it independently with:
 >
 > ```
 > git log --oneline --diff-filter=A -- docs/V2_RESEARCH_FREEZE.md
 > ```
->
-> The freeze is the unique child of `60aac85` on branch
-> `arena/01a09fa1-svechnoy-suslik-v2` that adds this file.
 | V2 enabled | **NO** (`v2.enabled = false`) |
 | LIVE trading | **BLOCKED** (`LIVE_TRADING_ENABLED = false`, compile-time `as const`) |
 
