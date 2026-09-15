@@ -1,0 +1,522 @@
+{
+  "slice": "train",
+  "models": {
+    "A": {
+      "actionableSetups": 328894,
+      "pendingCreated": 328894,
+      "terminal": {
+        "FILLED": 328894
+      },
+      "fillRate": 100,
+      "fillRateOfActionable": 100,
+      "ambiguous": 0,
+      "cancelReasons": {},
+      "closed": 328872,
+      "open": 22,
+      "tp": 43277,
+      "sl": 204660,
+      "timeout": 80935,
+      "grossExpectancyPerFilled": -0.7289,
+      "grossExpectancyPerActionableSetup": -0.7289,
+      "grossMedianR": -1.1761,
+      "grossTotalR": -239721.25,
+      "grossPF": 0.416,
+      "maxDrawdownR": -239791.53,
+      "positiveRRate": 25.74,
+      "tpRate": 13.16,
+      "slRate": 62.23,
+      "timeoutRate": 24.61,
+      "riskPct": {
+        "p25": 0.1379,
+        "median": 0.2951,
+        "p75": 0.7174
+      },
+      "riskAtrMedian": 1.6063,
+      "riskUnder0_10pct": 22.34,
+      "riskUnder0_20pct": 47.13,
+      "riskUnder0_50pct": 74.97,
+      "netExpectancyPerFilled": {
+        "2bps": -0.8817,
+        "5bps": -1.1109,
+        "10bps": -1.4928,
+        "20bps": -2.2567
+      },
+      "entryImprovement": {
+        "medianPct": null,
+        "medianAtr": null,
+        "medianPctLong": null,
+        "medianPctShort": null
+      },
+      "missed": {
+        "n": 0,
+        "medianBarsToMiss": null
+      },
+      "bySetupKind": {
+        "CONTINUATION": {
+          "n": 280150,
+          "expectancy": -0.7143
+        },
+        "REVERSAL": {
+          "n": 48722,
+          "expectancy": -0.8129
+        }
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 106668,
+          "expectancy": -0.6106
+        },
+        "SHORT": {
+          "n": 222204,
+          "expectancy": -0.7857
+        }
+      },
+      "byTimeframe": {
+        "1m": {
+          "pending": 246697,
+          "filled": 246697,
+          "n": 246692,
+          "expectancy": -0.8664,
+          "fillRate": 100
+        },
+        "5m": {
+          "pending": 51162,
+          "filled": 51162,
+          "n": 51160,
+          "expectancy": -0.4008,
+          "fillRate": 100
+        },
+        "15m": {
+          "pending": 17020,
+          "filled": 17020,
+          "n": 17016,
+          "expectancy": -0.2245,
+          "fillRate": 100
+        },
+        "30m": {
+          "pending": 8505,
+          "filled": 8505,
+          "n": 8503,
+          "expectancy": -0.1549,
+          "fillRate": 100
+        },
+        "1h": {
+          "pending": 4346,
+          "filled": 4346,
+          "n": 4344,
+          "expectancy": -0.0982,
+          "fillRate": 100
+        },
+        "4h": {
+          "pending": 1030,
+          "filled": 1030,
+          "n": 1025,
+          "expectancy": 0.0321,
+          "fillRate": 100
+        },
+        "1d": {
+          "pending": 134,
+          "filled": 134,
+          "n": 132,
+          "expectancy": 0.3263,
+          "fillRate": 100
+        }
+      }
+    },
+    "B": {
+      "actionableSetups": 1219225,
+      "pendingCreated": 934314,
+      "terminal": {
+        "EXPIRED": 320978,
+        "FILLED": 121304,
+        "MISSED": 369350,
+        "CANCELLED": 122035,
+        "REJECTED_GEOMETRY": 626
+      },
+      "fillRate": 12.983215492864284,
+      "fillRateOfActionable": 9.94927105333306,
+      "ambiguous": 122035,
+      "cancelReasons": {
+        "expiry_12_bars": 320978,
+        "tp1_reached_before_retracement": 369350,
+        "ambiguous_same_bar_fill_and_sl": 122035,
+        "rr1_below_min_rr": 626
+      },
+      "closed": 121300,
+      "open": 4,
+      "tp": 8948,
+      "sl": 105173,
+      "timeout": 7179,
+      "grossExpectancyPerFilled": -5.3159,
+      "grossExpectancyPerActionableSetup": -0.5289,
+      "grossMedianR": -2.2596,
+      "grossTotalR": -644823.43,
+      "grossPF": 0.406,
+      "maxDrawdownR": -674775.2,
+      "positiveRRate": 12.59,
+      "tpRate": 7.38,
+      "slRate": 86.7,
+      "timeoutRate": 5.92,
+      "riskPct": {
+        "p25": 0.0337,
+        "median": 0.0657,
+        "p75": 0.1325
+      },
+      "riskAtrMedian": 0.3948,
+      "riskUnder0_10pct": 74.28,
+      "riskUnder0_20pct": 89.83,
+      "riskUnder0_50pct": 98.23,
+      "netExpectancyPerFilled": {
+        "2bps": -7.0848,
+        "5bps": -9.738,
+        "10bps": -14.16,
+        "20bps": -23.0041
+      },
+      "entryImprovement": {
+        "medianPct": 0.21763,
+        "medianAtr": 1.1718,
+        "medianPctLong": 0.14101,
+        "medianPctShort": 0.21416
+      },
+      "missed": {
+        "n": 369350,
+        "medianBarsToMiss": 2
+      },
+      "bySetupKind": {
+        "CONTINUATION": {
+          "n": 120401,
+          "expectancy": -5.35
+        },
+        "REVERSAL": {
+          "n": 899,
+          "expectancy": -0.7497
+        }
+      },
+      "byDirection": {
+        "SHORT": {
+          "n": 95484,
+          "expectancy": -1.6705
+        },
+        "LONG": {
+          "n": 25816,
+          "expectancy": -18.7993
+        }
+      },
+      "byTimeframe": {
+        "1m": {
+          "pending": 712986,
+          "filled": 84090,
+          "n": 84090,
+          "expectancy": -7.755,
+          "fillRate": 11.79
+        },
+        "5m": {
+          "pending": 140906,
+          "filled": 22913,
+          "n": 22913,
+          "expectancy": 0.2885,
+          "fillRate": 16.26
+        },
+        "15m": {
+          "pending": 44631,
+          "filled": 7984,
+          "n": 7984,
+          "expectancy": -0.1458,
+          "fillRate": 17.89
+        },
+        "30m": {
+          "pending": 21961,
+          "filled": 3889,
+          "n": 3889,
+          "expectancy": 0.2091,
+          "fillRate": 17.71
+        },
+        "1h": {
+          "pending": 10715,
+          "filled": 1932,
+          "n": 1932,
+          "expectancy": 0.3552,
+          "fillRate": 18.03
+        },
+        "4h": {
+          "pending": 2702,
+          "filled": 436,
+          "n": 436,
+          "expectancy": 0.4865,
+          "fillRate": 16.14
+        },
+        "1d": {
+          "pending": 392,
+          "filled": 56,
+          "n": 56,
+          "expectancy": 2.4888,
+          "fillRate": 14.29
+        }
+      }
+    },
+    "C": {
+      "actionableSetups": 1489734,
+      "pendingCreated": 656270,
+      "terminal": {
+        "FILLED": 167293,
+        "MISSED": 221248,
+        "EXPIRED": 88840,
+        "CANCELLED": 70358,
+        "REJECTED_GEOMETRY": 108519
+      },
+      "fillRate": 25.491489783168515,
+      "fillRateOfActionable": 11.229722890126693,
+      "ambiguous": 46327,
+      "cancelReasons": {
+        "tp1_reached_before_retracement": 221248,
+        "expiry_12_bars": 88840,
+        "ambiguous_same_bar_fill_and_sl": 46327,
+        "rr1_below_min_rr": 108519,
+        "structural_invalidation_before_fill": 24031
+      },
+      "closed": 167280,
+      "open": 13,
+      "tp": 13125,
+      "sl": 107636,
+      "timeout": 46519,
+      "grossExpectancyPerFilled": -3.5594,
+      "grossExpectancyPerActionableSetup": -0.3997,
+      "grossMedianR": -1.2508,
+      "grossTotalR": -595423.31,
+      "grossPF": 0.2303,
+      "maxDrawdownR": -629397.47,
+      "positiveRRate": 23.54,
+      "tpRate": 7.85,
+      "slRate": 64.34,
+      "timeoutRate": 27.81,
+      "riskPct": {
+        "p25": 0.109,
+        "median": 0.2346,
+        "p75": 0.5726
+      },
+      "riskAtrMedian": 1.4184,
+      "riskUnder0_10pct": 27.69,
+      "riskUnder0_20pct": 51.46,
+      "riskUnder0_50pct": 76.9,
+      "netExpectancyPerFilled": {
+        "2bps": -4.4102,
+        "5bps": -5.6862,
+        "10bps": -7.813,
+        "20bps": -12.0666
+      },
+      "entryImprovement": {
+        "medianPct": 0.1352,
+        "medianAtr": 0.9696,
+        "medianPctLong": 0.12743,
+        "medianPctShort": 0.1218
+      },
+      "missed": {
+        "n": 221248,
+        "medianBarsToMiss": 2
+      },
+      "bySetupKind": {
+        "CONTINUATION": {
+          "n": 152398,
+          "expectancy": -3.7524
+        },
+        "REVERSAL": {
+          "n": 14882,
+          "expectancy": -1.5832
+        }
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 56778,
+          "expectancy": -0.5761
+        },
+        "SHORT": {
+          "n": 110502,
+          "expectancy": -5.0923
+        }
+      },
+      "byTimeframe": {
+        "1m": {
+          "pending": 502955,
+          "filled": 126629,
+          "n": 126629,
+          "expectancy": -4.8447,
+          "fillRate": 25.18
+        },
+        "5m": {
+          "pending": 99288,
+          "filled": 26008,
+          "n": 26008,
+          "expectancy": 0.7256,
+          "fillRate": 26.19
+        },
+        "15m": {
+          "pending": 30441,
+          "filled": 8142,
+          "n": 8142,
+          "expectancy": -0.1066,
+          "fillRate": 26.75
+        },
+        "30m": {
+          "pending": 14399,
+          "filled": 3950,
+          "n": 3950,
+          "expectancy": -0.0005,
+          "fillRate": 27.43
+        },
+        "1h": {
+          "pending": 7105,
+          "filled": 1985,
+          "n": 1985,
+          "expectancy": -0.0218,
+          "fillRate": 27.94
+        },
+        "4h": {
+          "pending": 1790,
+          "filled": 499,
+          "n": 499,
+          "expectancy": 0.1282,
+          "fillRate": 27.88
+        },
+        "1d": {
+          "pending": 280,
+          "filled": 67,
+          "n": 67,
+          "expectancy": 0.4988,
+          "fillRate": 23.93
+        }
+      }
+    },
+    "D": {
+      "actionableSetups": 1770071,
+      "pendingCreated": 604501,
+      "terminal": {
+        "FILLED": 129278,
+        "MISSED": 220498,
+        "REJECTED_GEOMETRY": 62855,
+        "CANCELLED": 79822,
+        "EXPIRED": 112031
+      },
+      "fillRate": 21.385903414551837,
+      "fillRateOfActionable": 7.303548840696221,
+      "ambiguous": 45322,
+      "cancelReasons": {
+        "tp1_reached_before_retracement": 220498,
+        "rr1_below_min_rr": 62855,
+        "structural_invalidation_before_fill": 34500,
+        "ambiguous_same_bar_fill_and_sl": 45322,
+        "expiry_12_bars": 112031
+      },
+      "closed": 129271,
+      "open": 7,
+      "tp": 8693,
+      "sl": 84983,
+      "timeout": 35595,
+      "grossExpectancyPerFilled": -0.9386,
+      "grossExpectancyPerActionableSetup": -0.0685,
+      "grossMedianR": -1.311,
+      "grossTotalR": -121328.26,
+      "grossPF": 0.4856,
+      "maxDrawdownR": -121552.63,
+      "positiveRRate": 22.45,
+      "tpRate": 6.72,
+      "slRate": 65.74,
+      "timeoutRate": 27.54,
+      "riskPct": {
+        "p25": 0.0926,
+        "median": 0.2025,
+        "p75": 0.5012
+      },
+      "riskAtrMedian": 1.2661,
+      "riskUnder0_10pct": 31.45,
+      "riskUnder0_20pct": 54.44,
+      "riskUnder0_50pct": 78.16,
+      "netExpectancyPerFilled": {
+        "2bps": -1.2128,
+        "5bps": -1.6241,
+        "10bps": -2.3096,
+        "20bps": -3.6807
+      },
+      "entryImprovement": {
+        "medianPct": 0.16105,
+        "medianAtr": 1.1372,
+        "medianPctLong": 0.15398,
+        "medianPctShort": 0.14412
+      },
+      "missed": {
+        "n": 220498,
+        "medianBarsToMiss": 2
+      },
+      "bySetupKind": {
+        "CONTINUATION": {
+          "n": 116547,
+          "expectancy": -0.9098
+        },
+        "REVERSAL": {
+          "n": 12724,
+          "expectancy": -1.2019
+        }
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 42741,
+          "expectancy": -0.801
+        },
+        "SHORT": {
+          "n": 86530,
+          "expectancy": -1.0065
+        }
+      },
+      "byTimeframe": {
+        "1m": {
+          "pending": 455747,
+          "filled": 97527,
+          "n": 97527,
+          "expectancy": -1.126,
+          "fillRate": 21.4
+        },
+        "5m": {
+          "pending": 93820,
+          "filled": 20270,
+          "n": 20270,
+          "expectancy": -0.5326,
+          "fillRate": 21.61
+        },
+        "15m": {
+          "pending": 30460,
+          "filled": 6447,
+          "n": 6447,
+          "expectancy": -0.1968,
+          "fillRate": 21.17
+        },
+        "30m": {
+          "pending": 14988,
+          "filled": 3085,
+          "n": 3085,
+          "expectancy": 0.0388,
+          "fillRate": 20.58
+        },
+        "1h": {
+          "pending": 7336,
+          "filled": 1509,
+          "n": 1509,
+          "expectancy": 0.2234,
+          "fillRate": 20.57
+        },
+        "4h": {
+          "pending": 1851,
+          "filled": 363,
+          "n": 363,
+          "expectancy": 0.2377,
+          "fillRate": 19.61
+        },
+        "1d": {
+          "pending": 282,
+          "filled": 70,
+          "n": 70,
+          "expectancy": 0.1742,
+          "fillRate": 24.82
+        }
+      }
+    }
+  }
+}
