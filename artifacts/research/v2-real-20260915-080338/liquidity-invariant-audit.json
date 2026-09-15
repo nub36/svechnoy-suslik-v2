@@ -1,0 +1,19 @@
+{
+  "invariant": "A SWEPT or CONSUMED liquidity pool must never be used as a future target.",
+  "method": "Re-derives pools with the frozen findLiquidityPools over the EXACT window evaluateV2 uses (visible.slice(-lookback)), then checks every INTERNAL_LIQUIDITY target against the pool it was copied from. EQUILIBRIUM / RANGE_EDGE / R_MULTIPLE rungs are geometric levels, not pool-sourced, and are correctly out of scope.",
+  "barsPerSeries": 4000,
+  "evaluations": 149406,
+  "poolStateCensus": {
+    "FRESH": 1422064,
+    "TOUCHED": 14442,
+    "SWEPT": 323891,
+    "CONSUMED": 3423257
+  },
+  "targetsTotal": 405053,
+  "targetsFromLiquidity": 301789,
+  "targetsFromRestingPool": 301789,
+  "liquidityTargetsUnmatched": 0,
+  "violations": 0,
+  "verdict": "INVARIANT_HELD",
+  "violationSamples": []
+}
