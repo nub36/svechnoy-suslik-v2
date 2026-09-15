@@ -21,3 +21,12 @@ fixtures/
 
 # Next.js generated types
 next-env.d.ts
+
+# Real-data research run artifacts. The Binance dataset checkout and the
+# derived binary candle cache live OUTSIDE the project tree entirely
+# (~/.cache/binance-data, ~/.cache/v2real). Trade-level CSV/JSON dumps from a
+# run are large and regenerable, so only the small manifests and reports are
+# committed; see docs/V2_REAL_REPLAY_PROTOCOL.md.
+artifacts/research/**/v1-trades.*
+artifacts/research/**/v2-trades.*
+artifacts/research/**/zip-checksums.json

@@ -1,0 +1,42 @@
+{
+  "runId": "v2-real-20260915-080338",
+  "createdAt": "2026-09-15T08:17:00.955Z",
+  "strategyCommit": "f766b516617af71f262054a80cb211c842d577b2",
+  "frozenStrategyCommit": "48390748ff1ed1f08b104206c3430142059d7430",
+  "datasetRepo": "https://github.com/nub36/svechnoy-suslik-binance-data.git",
+  "datasetCommit": "c3c1dcecfe2784a147f591f2b5b4526cbf99df9f",
+  "datasetManifestSha256": "e31d739fc21d82331a45b366512c87ea9b296d2ae32f41933303ea7877cee39e",
+  "zipChecksumsSha256": "7c36e62ec8e028daed311fa2683efccb81c0b5d73c2d9d42f065bd587af748fc",
+  "settingsSha256": "92311c4f9a96bc2e6922fc952aacc53ae473ffb22bcb6749b11c2a0cfa0cd3f9",
+  "splitsSha256": "a44eed9ae3ad036853f14845113e392c434081301b21647398a4a3af2ab84f0b",
+  "node": "v22.22.3",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "timeframes": [
+    "1m",
+    "5m",
+    "15m",
+    "30m",
+    "1h",
+    "4h",
+    "1d"
+  ],
+  "totals": {
+    "zips": 2016,
+    "candles": 16681073,
+    "duplicateOpenTime": 0,
+    "outOfOrder": 0,
+    "gapCount": 31,
+    "missingCandles": 625,
+    "invalidOhlc": 0,
+    "invalidVolume": 0,
+    "badCloseTime": 30
+  },
+  "testFirstViewAt": null
+}

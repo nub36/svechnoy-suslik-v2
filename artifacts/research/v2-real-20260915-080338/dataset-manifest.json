@@ -1,0 +1,1289 @@
+{
+  "datasetRepo": "https://github.com/nub36/svechnoy-suslik-binance-data.git",
+  "datasetCommit": "c3c1dcecfe2784a147f591f2b5b4526cbf99df9f",
+  "provenance": {
+    "exchange": "Binance",
+    "market": "Spot",
+    "quote": "USDT",
+    "originalSource": "https://data.binance.vision/data/spot/monthly/klines/",
+    "note": "Original unmodified monthly ZIP archives, re-hosted on GitHub by the user."
+  },
+  "generatedAt": "2026-09-15T08:04:45.141Z",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "timeframes": [
+    "1m",
+    "5m",
+    "15m",
+    "30m",
+    "1h",
+    "4h",
+    "1d"
+  ],
+  "period": {
+    "from": "2022-01",
+    "to": "2025-12"
+  },
+  "spotChecks": [
+    {
+      "file": "BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+      "detectedUnit": "ms",
+      "rawFirstOpenTime": 1640995200000,
+      "normalisedMs": 1640995200000,
+      "firstOpenUtc": "2022-01-01T00:00:00.000Z",
+      "firstCloseUtc": "2022-01-01T00:00:59.999Z",
+      "ohlcv": {
+        "open": 46216.93,
+        "high": 46271.08,
+        "low": 46208.37,
+        "close": 46250,
+        "volume": 40.57574
+      },
+      "rows": 44640
+    },
+    {
+      "file": "BTCUSDT/15m/BTCUSDT-15m-2024-06.zip",
+      "detectedUnit": "ms",
+      "rawFirstOpenTime": 1717200000000,
+      "normalisedMs": 1717200000000,
+      "firstOpenUtc": "2024-06-01T00:00:00.000Z",
+      "firstCloseUtc": "2024-06-01T00:14:59.999Z",
+      "ohlcv": {
+        "open": 67540.01,
+        "high": 67703.89,
+        "low": 67540,
+        "close": 67586.61,
+        "volume": 274.50877
+      },
+      "rows": 2880
+    },
+    {
+      "file": "ETHUSDT/1h/ETHUSDT-1h-2025-12.zip",
+      "detectedUnit": "us",
+      "rawFirstOpenTime": 1764547200000000,
+      "normalisedMs": 1764547200000,
+      "firstOpenUtc": "2025-12-01T00:00:00.000Z",
+      "firstCloseUtc": "2025-12-01T00:59:59.999Z",
+      "ohlcv": {
+        "open": 2991.25,
+        "high": 2999.47,
+        "low": 2830.63,
+        "close": 2836.4,
+        "volume": 100170.4911
+      },
+      "rows": 744
+    }
+  ],
+  "series": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "1m",
+      "files": 48,
+      "candles": 2103760,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225540000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:59:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 80,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:39:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 80
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BTCUSDT-1m.bin",
+      "cacheSha256": "4d624396d246ef274565c985b49a79858e39df2ca0aefed91976bca7802e90d0"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "5m",
+      "files": 48,
+      "candles": 420752,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225300000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:55:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 16,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:35:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 16
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BTCUSDT-5m.bin",
+      "cacheSha256": "ecd424d3887520352b67cafc4f10885e8405bc983af85358fee09c3fa36bc0d4"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "15m",
+      "files": 48,
+      "candles": 140251,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767224700000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:45:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 5,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 5
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BTCUSDT-15m.bin",
+      "cacheSha256": "db23500bfe29b257a3b058d0acf6c26064f59d70c5756138319a62a6745f9c95"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "30m",
+      "files": 48,
+      "candles": 70126,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767223800000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:30:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 2,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 2
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BTCUSDT-30m.bin",
+      "cacheSha256": "d577b2174a1a9dd92d030ffa2a6ecb045c55221200015a332b0e13c7757b0223"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BTCUSDT-1h.bin",
+      "cacheSha256": "3655b74d276cf93db8872f069bdac334a35a7f914382a8635bec2fe461aa4c66"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BTCUSDT-4h.bin",
+      "cacheSha256": "8bfbc880692c62c3d784f5fea5293504193f350d2fdcb0dea9883175d754d914"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "1d",
+      "files": 48,
+      "candles": 1461,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767139200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T00:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BTCUSDT-1d.bin",
+      "cacheSha256": "e950eec2933ff57e9360718c47712d81a565a32c857c28cfe2d6aca2520d4fcb"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "1m",
+      "files": 48,
+      "candles": 2103760,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225540000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:59:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 80,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:39:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 80
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/ETHUSDT-1m.bin",
+      "cacheSha256": "ad48782acfbff27660e5355fa072f5c9e64e29a96ff26d8d94cc70bd49fb635f"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "5m",
+      "files": 48,
+      "candles": 420752,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225300000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:55:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 16,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:35:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 16
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/ETHUSDT-5m.bin",
+      "cacheSha256": "4ea217e52241d0097e208e9f031ea6564b6cf6a8e8a838eb04736ec44eb4d4df"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "15m",
+      "files": 48,
+      "candles": 140251,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767224700000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:45:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 5,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 5
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/ETHUSDT-15m.bin",
+      "cacheSha256": "e01a01728a11168fb7ba7a571acfd23b57acedff3f023f2577f85eba43ff01c8"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "30m",
+      "files": 48,
+      "candles": 70126,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767223800000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:30:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 2,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 2
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/ETHUSDT-30m.bin",
+      "cacheSha256": "08d4ea464d5da396227bdc7c699a73d7ba40df9d21fba2f2485ac287d8ea5645"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/ETHUSDT-1h.bin",
+      "cacheSha256": "ddb9c38683ffc095c8ab94fc45cfa83669487a707cc960a0c23c36dfb662c6ad"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/ETHUSDT-4h.bin",
+      "cacheSha256": "d01919851019470f1f34426eba74aff73738ef9c0e80b33c71338fba1fa3f111"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "1d",
+      "files": 48,
+      "candles": 1461,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767139200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T00:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/ETHUSDT-1d.bin",
+      "cacheSha256": "50b5d8ed8aad1428499b8cefe524cf88578f9dcefbf556f2f9c002cb2cf602a5"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "1m",
+      "files": 48,
+      "candles": 2103760,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225540000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:59:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 80,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:39:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 80
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BNBUSDT-1m.bin",
+      "cacheSha256": "53236547af24948ec2ab16f1e2763510fc6a1781142de083e2773f9a70ffa38b"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "5m",
+      "files": 48,
+      "candles": 420752,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225300000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:55:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 16,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:35:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 16
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BNBUSDT-5m.bin",
+      "cacheSha256": "f8b162b9d0ea4de8c0ce54874d10b0d21426ab89550ebf658828d265d89462f2"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "15m",
+      "files": 48,
+      "candles": 140251,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767224700000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:45:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 5,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 5
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BNBUSDT-15m.bin",
+      "cacheSha256": "0f47f290d6c4161af3323ca7b51f1090d7c6ef7682ac94f17b6355b0900b839e"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "30m",
+      "files": 48,
+      "candles": 70126,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767223800000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:30:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 2,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 2
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BNBUSDT-30m.bin",
+      "cacheSha256": "5cc2c1c7bf58558c3c832e396f9685ba7914cc6cb7b79c3423d6b8cfaf0e62a6"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BNBUSDT-1h.bin",
+      "cacheSha256": "2d80d77720d36199b4293191e3657fe045b825ae5eeeb642f35f4596cf69b84e"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BNBUSDT-4h.bin",
+      "cacheSha256": "f56f9b7e47f9a078ad52a175dbb67178649e639927c65420848506957fb6a60c"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "1d",
+      "files": 48,
+      "candles": 1461,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767139200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T00:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/BNBUSDT-1d.bin",
+      "cacheSha256": "bc628fb7d4d946f3e32bb59c91c5e905af90433bc9b575b54d431f9a60ab0b44"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "1m",
+      "files": 48,
+      "candles": 2103759,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225540000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:59:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 2,
+      "missingCandles": 81,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-02-14T16:38:00Z",
+          "toUtc": "2023-02-14T16:40:00Z",
+          "missing": 1
+        },
+        {
+          "fromUtc": "2023-03-24T12:39:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 80
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/SOLUSDT-1m.bin",
+      "cacheSha256": "1cd4d49b57355a8772b77af9306500c1f02037147049898649c116a9afe74038"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "5m",
+      "files": 48,
+      "candles": 420752,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225300000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:55:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 16,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:35:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 16
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/SOLUSDT-5m.bin",
+      "cacheSha256": "0b5f1a7cb1f5d6bcf7b46ed760ea831691a54df1230a68fb425aafe8d9b2ff23"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "15m",
+      "files": 48,
+      "candles": 140251,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767224700000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:45:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 5,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 5
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/SOLUSDT-15m.bin",
+      "cacheSha256": "f16ef4c6a65ba4fa8c042f0010dc04ed45040c92bda47dc8b01f36ac36cc457f"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "30m",
+      "files": 48,
+      "candles": 70126,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767223800000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:30:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 2,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 2
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/SOLUSDT-30m.bin",
+      "cacheSha256": "9c1452ff81bf34e82114f4afc1b3c537111f4428c256ec3033f54d0eb1d806c5"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/SOLUSDT-1h.bin",
+      "cacheSha256": "6d555ff822ced437692907b9433fb5e0205c903eac8f7dfa4a1e83090da4be03"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/SOLUSDT-4h.bin",
+      "cacheSha256": "435608bcc500e327018f88e48e3057acf2567fad49b4f12ee7a901d44532eb60"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "1d",
+      "files": 48,
+      "candles": 1461,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767139200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T00:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/SOLUSDT-1d.bin",
+      "cacheSha256": "47c08ba5b24bfc09a83f853a55520aac8b1348a33b9da2dd55bdeb1407a0fb49"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "1m",
+      "files": 48,
+      "candles": 2103760,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225540000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:59:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 80,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:39:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 80
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/XRPUSDT-1m.bin",
+      "cacheSha256": "d26a4045cac700bf226616e43be59999b3f2542d4b45de071ac4fe7f04cc19d8"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "5m",
+      "files": 48,
+      "candles": 420752,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225300000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:55:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 16,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:35:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 16
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/XRPUSDT-5m.bin",
+      "cacheSha256": "a0fe76ed55b5b0aed4d220a633487740db8b5fb7f38bfb6907bc04538d3a8544"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "15m",
+      "files": 48,
+      "candles": 140251,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767224700000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:45:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 5,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 5
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/XRPUSDT-15m.bin",
+      "cacheSha256": "1aa016f8d0ac26d5a99d0ee3bad5a200167cd2fd8d5ecd404245e69a9b3bd518"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "30m",
+      "files": 48,
+      "candles": 70126,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767223800000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:30:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 2,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 2
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/XRPUSDT-30m.bin",
+      "cacheSha256": "1bf80a5c6b9d8a659c12e102396471797b3c297c5a25df9c219829814f630e50"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/XRPUSDT-1h.bin",
+      "cacheSha256": "bc4bf885f7f7bdb2fb70919ae1a122dd7e872c31f07b650e3eb935a4d854e084"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/XRPUSDT-4h.bin",
+      "cacheSha256": "a43a2a6743dec69032e78ecf72c604aeddc34c1901c3aa51d37352f2f23f1b1d"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "1d",
+      "files": 48,
+      "candles": 1461,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767139200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T00:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/XRPUSDT-1d.bin",
+      "cacheSha256": "613f08c0dfc2b9e05da4a0faa77457a70a8b55e53359b5d5dd72d6beb19214de"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "1m",
+      "files": 48,
+      "candles": 2103760,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225540000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:59:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 80,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:39:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 80
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/DOGEUSDT-1m.bin",
+      "cacheSha256": "df661dccd5a60caf25544245b5e486e97ad57afd5c7df4520a1e339329b06b79"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "5m",
+      "files": 48,
+      "candles": 420752,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767225300000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:55:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 16,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:35:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 16
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/DOGEUSDT-5m.bin",
+      "cacheSha256": "942b351766a1935f87e35a34f8b159ac5d98a395e1154b7d775373fd89b1b576"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "15m",
+      "files": 48,
+      "candles": 140251,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767224700000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:45:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 5,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 5
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/DOGEUSDT-15m.bin",
+      "cacheSha256": "1784cefd891ac5c033862336523d34dad620afedde719802ba77c05915048ee9"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "30m",
+      "files": 48,
+      "candles": 70126,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767223800000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:30:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 2,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:30:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 2
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/DOGEUSDT-30m.bin",
+      "cacheSha256": "651fc6a410961fe2ee8a54a2447f6ec8a689b46ba8d86222d0a91202aad460e0"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/DOGEUSDT-1h.bin",
+      "cacheSha256": "16d5c1f794daa649f20a4c1eef5e6eee07ced3010ba90169c4ddcf338858b722"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/DOGEUSDT-4h.bin",
+      "cacheSha256": "a947ede31357a33f3dc3238ff4b6122600a28243909dc81c6879f776ff1b3c79"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "1d",
+      "files": 48,
+      "candles": 1461,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767139200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T00:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/home/user/.cache/v2real/cache/DOGEUSDT-1d.bin",
+      "cacheSha256": "9c53ded83e9d050d67510b3e7483ee06b8c51779846b3789b1655706c71195b8"
+    }
+  ],
+  "totals": {
+    "zips": 2016,
+    "candles": 16681073,
+    "duplicateOpenTime": 0,
+    "outOfOrder": 0,
+    "gapCount": 31,
+    "missingCandles": 625,
+    "invalidOhlc": 0,
+    "invalidVolume": 0,
+    "badCloseTime": 30
+  }
+}

@@ -1,0 +1,562 @@
+{
+  "runId": "v2-real-20260915-080338",
+  "source": "SETTINGS_REGISTRY defaults via Settings.fromDefaults()",
+  "note": "Deliberately NOT read from the production database. DB rows are operator-editable and would make this run irreproducible. These are the frozen registry defaults.",
+  "strategyCommit": "f766b516617af71f262054a80cb211c842d577b2",
+  "settingsCount": 74,
+  "settings": {
+    "detectors.BOS.enabled": true,
+    "detectors.BOS.weight": 25,
+    "detectors.FVG.enabled": true,
+    "detectors.FVG.weight": 15,
+    "detectors.INTERNAL_STRUCTURE.enabled": true,
+    "detectors.INTERNAL_STRUCTURE.weight": 8,
+    "detectors.LIQUIDITY_SWEEP.enabled": true,
+    "detectors.LIQUIDITY_SWEEP.weight": 15,
+    "detectors.OB_FVG_CONFLUENCE.enabled": true,
+    "detectors.OB_FVG_CONFLUENCE.weight": 7,
+    "detectors.ORDER_BLOCK.enabled": true,
+    "detectors.ORDER_BLOCK.weight": 20,
+    "detectors.RANGE_POSITION.enabled": true,
+    "detectors.RANGE_POSITION.weight": 10,
+    "detectors.bos_min_break_pct": 0,
+    "detectors.confluence_min_overlap_pct": 20,
+    "detectors.event_ttl_bars": 12,
+    "detectors.fvg_min_pct": 0.05,
+    "detectors.internal_structure_legs": 3,
+    "detectors.internal_structure_strength": 1,
+    "detectors.ob_lookback_bars": 8,
+    "detectors.ob_min_displacement": 1.6,
+    "detectors.range_edge_band": 0.35,
+    "detectors.sweep_min_wick_ratio": 0,
+    "engine.enabled": true,
+    "engine.lookback_candles": 300,
+    "engine.max_catchup_candles": 500,
+    "engine.min_components": 2,
+    "engine.score_threshold": 55,
+    "engine.swing_lookback": 3,
+    "engine.timeframes": [
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "4h",
+      "1d",
+      "1w"
+    ],
+    "engine.trading_mode": "FORWARD_TEST",
+    "market.candle_limit": 500,
+    "market.enabled_symbols": [],
+    "market.exclude_symbols": [
+      "USDCUSDT",
+      "FDUSDUSDT",
+      "TUSDUSDT",
+      "BUSDUSDT",
+      "USDPUSDT",
+      "USD1USDT",
+      "EURUSDT",
+      "GBPUSDT",
+      "AEURUSDT",
+      "DAIUSDT",
+      "SUSDUSDT",
+      "PYUSDUSDT"
+    ],
+    "market.quote_asset": "USDT",
+    "market.refresh_top_minutes": 30,
+    "market.top_n": 10,
+    "outcome.fee_pct": 0.1,
+    "outcome.sl_priority_on_ambiguous_bar": true,
+    "outcome.timeout_bars": 48,
+    "risk.account_quote": 10000,
+    "risk.atr_period": 14,
+    "risk.max_concurrent": 8,
+    "risk.min_rr": 1,
+    "risk.risk_pct": 1,
+    "risk.signal_expiry_bars": 3,
+    "risk.sl_atr_mult": 1.5,
+    "risk.sl_policy": "ATR_OR_STRUCTURE",
+    "risk.tp1_r": 1,
+    "risk.tp2_r": 2,
+    "risk.tp3_r": 3,
+    "system.candle_retention_per_series": 1500,
+    "system.log_retention_rows": 5000,
+    "v2.adx_period": 14,
+    "v2.breakout_hold_window": 3,
+    "v2.breakout_min_body_atr": 0.5,
+    "v2.breakout_min_close_atr": 0.25,
+    "v2.displacement_min_body_atr": 0.6,
+    "v2.enabled": false,
+    "v2.fvg_min_size_atr": 0.15,
+    "v2.liquidity_tol_atr": 0.25,
+    "v2.min_evidence": 0.45,
+    "v2.min_net_evidence": 0.12,
+    "v2.min_range_confidence": 0.25,
+    "v2.min_room_r": 1.5,
+    "v2.range_edge_pct": 0.25,
+    "v2.rsi_period": 14,
+    "v2.stop_buffer_atr": 0.25,
+    "v2.structure_min_penetration_atr": 0.05,
+    "v2.sweep_min_penetration_atr": 0.1,
+    "v2.sweep_min_wick_ratio": 0.25,
+    "v2.sweep_reclaim_window": 3,
+    "v2.volume_period": 20
+  },
+  "hardCoded": {
+    "COMPONENT_WEIGHTS": {
+      "structure": 1.4,
+      "liquidity": 1.4,
+      "displacement": 1.1,
+      "obFvg": 0.9,
+      "volume": 0.8,
+      "htf": 1,
+      "trend": 0.8,
+      "momentum": 0.8,
+      "volatility": 0.5,
+      "roomToTarget": 1.1
+    },
+    "HTF_MAP": {
+      "1m": [
+        "5m",
+        "15m"
+      ],
+      "5m": [
+        "15m",
+        "1h"
+      ],
+      "15m": [
+        "1h",
+        "4h"
+      ],
+      "30m": [
+        "1h",
+        "4h"
+      ],
+      "1h": [
+        "4h",
+        "1d"
+      ],
+      "4h": [
+        "1d"
+      ],
+      "1d": [
+        "1w"
+      ],
+      "1w": []
+    },
+    "macd": {
+      "fast": 12,
+      "slow": 26,
+      "signal": 9
+    },
+    "ema": [
+      20,
+      50,
+      200
+    ],
+    "smoothing": "Wilder for ATR/RSI/ADX",
+    "rvolScore": "clamp01((rvol - 0.8) / 1.2)",
+    "v2MinBars": "max(60, swing_lookback*6 + 30)",
+    "v2RunnerMinBars": "max(80, swing_lookback*6 + 40)",
+    "v1RunnerMinBars": "max(30, swing_lookback*6 + 5)",
+    "windowedReplay": {
+      "windowMargin": 60,
+      "htfWindow": 600,
+      "note": "Performance windowing only; proven identical to replayV2Series by scripts/real-data/verify-equivalence.ts and tests/real-data-tooling.test.ts"
+    }
+  },
+  "registryDocumentation": [
+    {
+      "key": "engine.trading_mode",
+      "default": "FORWARD_TEST",
+      "type": "string"
+    },
+    {
+      "key": "engine.enabled",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "engine.score_threshold",
+      "default": 55,
+      "type": "number"
+    },
+    {
+      "key": "engine.min_components",
+      "default": 2,
+      "type": "number"
+    },
+    {
+      "key": "engine.timeframes",
+      "default": [
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "4h",
+        "1d",
+        "1w"
+      ],
+      "type": "json"
+    },
+    {
+      "key": "engine.max_catchup_candles",
+      "default": 500,
+      "type": "number"
+    },
+    {
+      "key": "engine.lookback_candles",
+      "default": 300,
+      "type": "number"
+    },
+    {
+      "key": "engine.swing_lookback",
+      "default": 3,
+      "type": "number"
+    },
+    {
+      "key": "detectors.BOS.enabled",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "detectors.BOS.weight",
+      "default": 25,
+      "type": "number"
+    },
+    {
+      "key": "detectors.ORDER_BLOCK.enabled",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "detectors.ORDER_BLOCK.weight",
+      "default": 20,
+      "type": "number"
+    },
+    {
+      "key": "detectors.FVG.enabled",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "detectors.FVG.weight",
+      "default": 15,
+      "type": "number"
+    },
+    {
+      "key": "detectors.LIQUIDITY_SWEEP.enabled",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "detectors.LIQUIDITY_SWEEP.weight",
+      "default": 15,
+      "type": "number"
+    },
+    {
+      "key": "detectors.RANGE_POSITION.enabled",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "detectors.RANGE_POSITION.weight",
+      "default": 10,
+      "type": "number"
+    },
+    {
+      "key": "detectors.INTERNAL_STRUCTURE.enabled",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "detectors.INTERNAL_STRUCTURE.weight",
+      "default": 8,
+      "type": "number"
+    },
+    {
+      "key": "detectors.OB_FVG_CONFLUENCE.enabled",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "detectors.OB_FVG_CONFLUENCE.weight",
+      "default": 7,
+      "type": "number"
+    },
+    {
+      "key": "v2.enabled",
+      "default": false,
+      "type": "boolean"
+    },
+    {
+      "key": "v2.range_edge_pct",
+      "default": 0.25,
+      "type": "number"
+    },
+    {
+      "key": "v2.min_range_confidence",
+      "default": 0.25,
+      "type": "number"
+    },
+    {
+      "key": "v2.sweep_min_penetration_atr",
+      "default": 0.1,
+      "type": "number"
+    },
+    {
+      "key": "v2.sweep_min_wick_ratio",
+      "default": 0.25,
+      "type": "number"
+    },
+    {
+      "key": "v2.sweep_reclaim_window",
+      "default": 3,
+      "type": "number"
+    },
+    {
+      "key": "v2.breakout_min_close_atr",
+      "default": 0.25,
+      "type": "number"
+    },
+    {
+      "key": "v2.breakout_min_body_atr",
+      "default": 0.5,
+      "type": "number"
+    },
+    {
+      "key": "v2.breakout_hold_window",
+      "default": 3,
+      "type": "number"
+    },
+    {
+      "key": "v2.displacement_min_body_atr",
+      "default": 0.6,
+      "type": "number"
+    },
+    {
+      "key": "v2.structure_min_penetration_atr",
+      "default": 0.05,
+      "type": "number"
+    },
+    {
+      "key": "v2.fvg_min_size_atr",
+      "default": 0.15,
+      "type": "number"
+    },
+    {
+      "key": "v2.liquidity_tol_atr",
+      "default": 0.25,
+      "type": "number"
+    },
+    {
+      "key": "v2.min_evidence",
+      "default": 0.45,
+      "type": "number"
+    },
+    {
+      "key": "v2.min_net_evidence",
+      "default": 0.12,
+      "type": "number"
+    },
+    {
+      "key": "v2.min_room_r",
+      "default": 1.5,
+      "type": "number"
+    },
+    {
+      "key": "v2.stop_buffer_atr",
+      "default": 0.25,
+      "type": "number"
+    },
+    {
+      "key": "v2.rsi_period",
+      "default": 14,
+      "type": "number"
+    },
+    {
+      "key": "v2.adx_period",
+      "default": 14,
+      "type": "number"
+    },
+    {
+      "key": "v2.volume_period",
+      "default": 20,
+      "type": "number"
+    },
+    {
+      "key": "detectors.event_ttl_bars",
+      "default": 12,
+      "type": "number"
+    },
+    {
+      "key": "detectors.bos_min_break_pct",
+      "default": 0,
+      "type": "number"
+    },
+    {
+      "key": "detectors.ob_min_displacement",
+      "default": 1.6,
+      "type": "number"
+    },
+    {
+      "key": "detectors.ob_lookback_bars",
+      "default": 8,
+      "type": "number"
+    },
+    {
+      "key": "detectors.fvg_min_pct",
+      "default": 0.05,
+      "type": "number"
+    },
+    {
+      "key": "detectors.sweep_min_wick_ratio",
+      "default": 0,
+      "type": "number"
+    },
+    {
+      "key": "detectors.range_edge_band",
+      "default": 0.35,
+      "type": "number"
+    },
+    {
+      "key": "detectors.internal_structure_strength",
+      "default": 1,
+      "type": "number"
+    },
+    {
+      "key": "detectors.internal_structure_legs",
+      "default": 3,
+      "type": "number"
+    },
+    {
+      "key": "detectors.confluence_min_overlap_pct",
+      "default": 20,
+      "type": "number"
+    },
+    {
+      "key": "risk.atr_period",
+      "default": 14,
+      "type": "number"
+    },
+    {
+      "key": "risk.sl_atr_mult",
+      "default": 1.5,
+      "type": "number"
+    },
+    {
+      "key": "risk.sl_policy",
+      "default": "ATR_OR_STRUCTURE",
+      "type": "string"
+    },
+    {
+      "key": "risk.tp1_r",
+      "default": 1,
+      "type": "number"
+    },
+    {
+      "key": "risk.tp2_r",
+      "default": 2,
+      "type": "number"
+    },
+    {
+      "key": "risk.tp3_r",
+      "default": 3,
+      "type": "number"
+    },
+    {
+      "key": "risk.signal_expiry_bars",
+      "default": 3,
+      "type": "number"
+    },
+    {
+      "key": "risk.account_quote",
+      "default": 10000,
+      "type": "number"
+    },
+    {
+      "key": "risk.risk_pct",
+      "default": 1,
+      "type": "number"
+    },
+    {
+      "key": "risk.max_concurrent",
+      "default": 8,
+      "type": "number"
+    },
+    {
+      "key": "risk.min_rr",
+      "default": 1,
+      "type": "number"
+    },
+    {
+      "key": "market.top_n",
+      "default": 10,
+      "type": "number"
+    },
+    {
+      "key": "market.quote_asset",
+      "default": "USDT",
+      "type": "string"
+    },
+    {
+      "key": "market.exclude_symbols",
+      "default": [
+        "USDCUSDT",
+        "FDUSDUSDT",
+        "TUSDUSDT",
+        "BUSDUSDT",
+        "USDPUSDT",
+        "USD1USDT",
+        "EURUSDT",
+        "GBPUSDT",
+        "AEURUSDT",
+        "DAIUSDT",
+        "SUSDUSDT",
+        "PYUSDUSDT"
+      ],
+      "type": "json"
+    },
+    {
+      "key": "market.enabled_symbols",
+      "default": [],
+      "type": "json"
+    },
+    {
+      "key": "market.candle_limit",
+      "default": 500,
+      "type": "number"
+    },
+    {
+      "key": "market.refresh_top_minutes",
+      "default": 30,
+      "type": "number"
+    },
+    {
+      "key": "outcome.timeout_bars",
+      "default": 48,
+      "type": "number"
+    },
+    {
+      "key": "outcome.sl_priority_on_ambiguous_bar",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "key": "outcome.fee_pct",
+      "default": 0.1,
+      "type": "number"
+    },
+    {
+      "key": "system.log_retention_rows",
+      "default": 5000,
+      "type": "number"
+    },
+    {
+      "key": "system.candle_retention_per_series",
+      "default": 1500,
+      "type": "number"
+    }
+  ]
+}
