@@ -200,14 +200,19 @@ function htfUpperBound(candles: readonly Candle[], asOfCloseTime: number, span: 
  *
  * `V2Setup` does not expose the pool list, so the invariant cannot be read off
  * the engine's output. Rather than modify frozen code to publish it, this
- * recomputes the pools from the SAME candles, at the SAME index, with the SAME
- * frozen detector (`findLiquidityPools`) and the SAME settings the engine used.
- * The pool census is therefore the engine's own view of the market.
+ * recomputes the pools with the SAME frozen detector (`findLiquidityPools`),
+ * the SAME settings, and — critically — the SAME WINDOW the engine used:
+ * `evaluateV2` builds its pools from `visible.slice(-lookback)`, NOT from the
+ * whole array it is handed. Reproducing that window is what makes the pool set
+ * identical to the engine's own.
  *
- * The invariant being tested: a target whose price coincides with a SWEPT or
- * CONSUMED pool (on the side the trade is travelling toward, within the same
- * clustering tolerance the engine uses) must never appear in the ladder. If one
- * does, `buildTargets`' lifecycle filter has failed and the run is invalid.
+ * SCOPE. The invariant constrains pool-sourced targets only. `buildTargets`
+ * emits four bases; only `INTERNAL_LIQUIDITY` is copied from a pool.
+ * `EQUILIBRIUM` (range mid), `RANGE_EDGE` (far boundary) and `R_MULTIPLE` are
+ * geometric levels that exist independently of any pool, so a swept pool
+ * happening to sit near one of them is not a lifecycle breach. An earlier
+ * version of this audit flagged proximity for every basis and reported 312,866
+ * false "violations"; see docs/V2_REAL_REPLAY_PROTOCOL.md §8.
  */
 function auditLiquidity(
   setup: V2Setup,
@@ -224,38 +229,37 @@ function auditLiquidity(
   const swingStrength = Math.floor(settings.num('engine.swing_lookback'));
   const lookback = Math.floor(settings.num('engine.lookback_candles'));
   const tolAtr = settings.num('v2.liquidity_tol_atr');
-  const swings = findSwingsV2(candles, swingStrength);
-  const pools = findLiquidityPools(candles, swings, atIndex, atr, tolAtr, lookback, {
+
+  // Reproduce evaluateV2's window exactly: visible = [0..atIndex], then the
+  // trailing `lookback` bars of that.
+  const visible = candles.slice(0, atIndex + 1);
+  const window = visible.slice(Math.max(0, visible.length - lookback));
+  const wi = window.length - 1;
+
+  const swings = findSwingsV2(window, swingStrength);
+  const pools = findLiquidityPools(window, swings, wi, atr, tolAtr, lookback, {
     sweepPenetrationAtr: settings.num('v2.sweep_min_penetration_atr'),
     acceptanceAtr: settings.num('v2.breakout_min_close_atr'),
   });
 
   for (const p of pools) diag.liquidity[p.state] = (diag.liquidity[p.state] ?? 0) + 1;
 
-  if (setup.targets.length === 0) return;
-  const tol = atr * tolAtr;
-  const dir = setup.direction;
-  // Only a directional setup has a meaningful "side we travel toward".
-  const wantSide = dir === 'LONG' ? 'BUY_SIDE' : dir === 'SHORT' ? 'SELL_SIDE' : null;
-
   for (const t of setup.targets) {
     diag.targetsTotal++;
-    if (t.basis === 'INTERNAL_LIQUIDITY') diag.targetsFromRestingLiquidity++;
-    if (wantSide === null) continue;
-    for (const p of pools) {
-      if (p.side !== wantSide) continue;
-      if (p.resting) continue; // FRESH / TOUCHED are legitimate destinations
-      if (Math.abs(p.price - t.price) <= tol) {
-        diag.violations.push({
-          symbol, timeframe,
-          timeUtc: new Date(setup.time).toISOString(),
-          detail:
-            `target ${t.basis} @${t.price} coincides with ${p.state} pool @${p.price} ` +
-            `(tol ${tol.toFixed(6)}, clusterId ${p.clusterId})`,
-        });
-        break;
-      }
-    }
+    // Only pool-sourced rungs are in scope for the lifecycle invariant.
+    if (t.basis !== 'INTERNAL_LIQUIDITY') continue;
+    // buildTargets copies the pool price verbatim, so the source pool is
+    // identifiable by exact price equality.
+    const src = pools.filter((p) => p.price === t.price);
+    if (src.length === 0) continue; // pool aged out of the window; not a breach
+    if (src.some((p) => p.resting)) { diag.targetsFromRestingLiquidity++; continue; }
+    diag.violations.push({
+      symbol, timeframe,
+      timeUtc: new Date(setup.time).toISOString(),
+      detail:
+        `INTERNAL_LIQUIDITY target @${t.price} matched only non-resting pools ` +
+        `[${src.map((p) => p.state).join(',')}]`,
+    });
   }
 }
 

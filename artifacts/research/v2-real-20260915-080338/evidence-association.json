@@ -1,0 +1,158 @@
+{
+  "train": {
+    "note": "Evidence is NOT a probability. Association only; no calibration performed.",
+    "buckets": [
+      {
+        "bucket": "0.45-0.50",
+        "n": 62846,
+        "avgR": -0.8833,
+        "medianR": -1.4131,
+        "positiveRRate": 22.9354,
+        "tpExitRate": 14.3016,
+        "timeoutRate": 13.8115
+      },
+      {
+        "bucket": "0.50-0.60",
+        "n": 111429,
+        "avgR": -0.8474,
+        "medianR": -1.3762,
+        "positiveRRate": 24.1347,
+        "tpExitRate": 14.2566,
+        "timeoutRate": 16.7712
+      },
+      {
+        "bucket": "0.60-0.70",
+        "n": 71676,
+        "avgR": -0.7672,
+        "medianR": -1.2815,
+        "positiveRRate": 25.6013,
+        "tpExitRate": 13.6754,
+        "timeoutRate": 22.8026
+      },
+      {
+        "bucket": "0.70-0.80",
+        "n": 47902,
+        "avgR": -0.5296,
+        "medianR": -1.061,
+        "positiveRRate": 28.2807,
+        "tpExitRate": 11.4233,
+        "timeoutRate": 37.3909
+      },
+      {
+        "bucket": "0.80-1.00",
+        "n": 35019,
+        "avgR": -0.2689,
+        "medianR": -0.3459,
+        "positiveRRate": 32.6794,
+        "tpExitRate": 8.9351,
+        "timeoutRate": 55.1472
+      }
+    ],
+    "spearmanEvidenceVsR": 0.1944,
+    "n": 328872
+  },
+  "validation": {
+    "note": "Evidence is NOT a probability. Association only; no calibration performed.",
+    "buckets": [
+      {
+        "bucket": "0.45-0.50",
+        "n": 20449,
+        "avgR": -0.837,
+        "medianR": -1.411,
+        "positiveRRate": 23.0476,
+        "tpExitRate": 15.502,
+        "timeoutRate": 11.5507
+      },
+      {
+        "bucket": "0.50-0.60",
+        "n": 38215,
+        "avgR": -0.8198,
+        "medianR": -1.3911,
+        "positiveRRate": 24.1083,
+        "tpExitRate": 15.6405,
+        "timeoutRate": 13.7014
+      },
+      {
+        "bucket": "0.60-0.70",
+        "n": 24213,
+        "avgR": -0.7398,
+        "medianR": -1.2915,
+        "positiveRRate": 25.445,
+        "tpExitRate": 14.2898,
+        "timeoutRate": 20.6583
+      },
+      {
+        "bucket": "0.70-0.80",
+        "n": 15663,
+        "avgR": -0.4601,
+        "medianR": -1.0459,
+        "positiveRRate": 30.0134,
+        "tpExitRate": 11.6836,
+        "timeoutRate": 37.7067
+      },
+      {
+        "bucket": "0.80-1.00",
+        "n": 13025,
+        "avgR": -0.2301,
+        "medianR": -0.3113,
+        "positiveRRate": 34.096,
+        "tpExitRate": 9.4587,
+        "timeoutRate": 54.6564
+      }
+    ],
+    "spearmanEvidenceVsR": 0.2062,
+    "n": 111565
+  },
+  "test": {
+    "note": "Evidence is NOT a probability. Association only; no calibration performed.",
+    "buckets": [
+      {
+        "bucket": "0.45-0.50",
+        "n": 20225,
+        "avgR": -1.0034,
+        "medianR": -1.5061,
+        "positiveRRate": 22.5661,
+        "tpExitRate": 15.6934,
+        "timeoutRate": 10.3733
+      },
+      {
+        "bucket": "0.50-0.60",
+        "n": 38536,
+        "avgR": -0.9934,
+        "medianR": -1.4837,
+        "positiveRRate": 23.4015,
+        "tpExitRate": 15.4168,
+        "timeoutRate": 12.8373
+      },
+      {
+        "bucket": "0.60-0.70",
+        "n": 24361,
+        "avgR": -0.8606,
+        "medianR": -1.3611,
+        "positiveRRate": 25.5531,
+        "tpExitRate": 14.6956,
+        "timeoutRate": 19.7652
+      },
+      {
+        "bucket": "0.70-0.80",
+        "n": 16186,
+        "avgR": -0.5532,
+        "medianR": -1.0778,
+        "positiveRRate": 29.4699,
+        "tpExitRate": 11.6953,
+        "timeoutRate": 36.3648
+      },
+      {
+        "bucket": "0.80-1.00",
+        "n": 13399,
+        "avgR": -0.3236,
+        "medianR": -0.3209,
+        "positiveRRate": 33.1069,
+        "tpExitRate": 7.8961,
+        "timeoutRate": 56.0713
+      }
+    ],
+    "spearmanEvidenceVsR": 0.2131,
+    "n": 112707
+  }
+}

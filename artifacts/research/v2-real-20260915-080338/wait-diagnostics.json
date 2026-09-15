@@ -1,0 +1,56 @@
+{
+  "train": {
+    "evaluations": 3414620,
+    "longDecisions": 732068,
+    "shortDecisions": 539341,
+    "waits": 2143211,
+    "waitRate": 62.7657,
+    "byDecisiveReason": {
+      "insufficient_evidence": 1284401,
+      "insufficient_net_evidence": 241235,
+      "no_liquidity_event": 245940,
+      "insufficient_room_to_target": 0,
+      "no_structural_stop": 0,
+      "no_valid_target": 371635,
+      "invalid_or_stale_range": 0,
+      "other": 0
+    },
+    "note": "Diagnostic only. No threshold was changed."
+  },
+  "validation": {
+    "evaluations": 1197590,
+    "longDecisions": 252192,
+    "shortDecisions": 192781,
+    "waits": 752617,
+    "waitRate": 62.8443,
+    "byDecisiveReason": {
+      "insufficient_evidence": 458350,
+      "insufficient_net_evidence": 88693,
+      "no_liquidity_event": 48299,
+      "insufficient_room_to_target": 0,
+      "no_structural_stop": 0,
+      "no_valid_target": 157275,
+      "invalid_or_stale_range": 0,
+      "other": 0
+    },
+    "note": "Diagnostic only. No threshold was changed."
+  },
+  "test": {
+    "evaluations": 1201228,
+    "longDecisions": 254750,
+    "shortDecisions": 195290,
+    "waits": 751188,
+    "waitRate": 62.535,
+    "byDecisiveReason": {
+      "insufficient_evidence": 452937,
+      "insufficient_net_evidence": 91627,
+      "no_liquidity_event": 43702,
+      "insufficient_room_to_target": 0,
+      "no_structural_stop": 0,
+      "no_valid_target": 162922,
+      "invalid_or_stale_range": 0,
+      "other": 0
+    },
+    "note": "Diagnostic only. No threshold was changed."
+  }
+}

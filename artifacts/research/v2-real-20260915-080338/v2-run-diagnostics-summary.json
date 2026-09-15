@@ -1,0 +1,112 @@
+{
+  "evaluatedCandles": {
+    "train": {
+      "v1": 1235851,
+      "v2": 3414620
+    },
+    "validation": {
+      "v1": 401255,
+      "v2": 1197590
+    },
+    "test": {
+      "v1": 417170,
+      "v2": 1201228
+    }
+  },
+  "perSlice": {
+    "train": {
+      "evaluations": 3414620,
+      "longDecisions": 732068,
+      "shortDecisions": 539341,
+      "waits": 2143211,
+      "waitByCategory": {
+        "insufficient_evidence": 1284401,
+        "insufficient_net_evidence": 241235,
+        "no_liquidity_event": 245940,
+        "insufficient_room_to_target": 0,
+        "no_structural_stop": 0,
+        "no_valid_target": 371635,
+        "invalid_or_stale_range": 0,
+        "other": 0
+      },
+      "htfCoverage": {
+        "ALIGNED": 1119741,
+        "COUNTER_TREND": 993173,
+        "NEUTRAL": 1053998,
+        "UNKNOWN": 247708
+      },
+      "liquidity": {
+        "FRESH": 28247619,
+        "TOUCHED": 781650,
+        "SWEPT": 6014219,
+        "CONSUMED": 68008498
+      },
+      "targetsFromRestingLiquidity": 6872559,
+      "targetsTotal": 9303191,
+      "originalDefectiveViolationCount": 186217
+    },
+    "validation": {
+      "evaluations": 1197590,
+      "longDecisions": 252192,
+      "shortDecisions": 192781,
+      "waits": 752617,
+      "waitByCategory": {
+        "insufficient_evidence": 458350,
+        "insufficient_net_evidence": 88693,
+        "no_liquidity_event": 48299,
+        "insufficient_room_to_target": 0,
+        "no_structural_stop": 0,
+        "no_valid_target": 157275,
+        "invalid_or_stale_range": 0,
+        "other": 0
+      },
+      "htfCoverage": {
+        "ALIGNED": 402856,
+        "COUNTER_TREND": 362578,
+        "NEUTRAL": 383137,
+        "UNKNOWN": 49019
+      },
+      "liquidity": {
+        "FRESH": 10969925,
+        "TOUCHED": 179632,
+        "SWEPT": 2001088,
+        "CONSUMED": 27115186
+      },
+      "targetsFromRestingLiquidity": 2559009,
+      "targetsTotal": 3387175,
+      "originalDefectiveViolationCount": 62974
+    },
+    "test": {
+      "evaluations": 1201228,
+      "longDecisions": 254750,
+      "shortDecisions": 195290,
+      "waits": 751188,
+      "waitByCategory": {
+        "insufficient_evidence": 452937,
+        "insufficient_net_evidence": 91627,
+        "no_liquidity_event": 43702,
+        "insufficient_room_to_target": 0,
+        "no_structural_stop": 0,
+        "no_valid_target": 162922,
+        "invalid_or_stale_range": 0,
+        "other": 0
+      },
+      "htfCoverage": {
+        "ALIGNED": 408408,
+        "COUNTER_TREND": 362523,
+        "NEUTRAL": 385915,
+        "UNKNOWN": 44382
+      },
+      "liquidity": {
+        "FRESH": 11214536,
+        "TOUCHED": 145126,
+        "SWEPT": 2110237,
+        "CONSUMED": 28406124
+      },
+      "targetsFromRestingLiquidity": 2587318,
+      "targetsTotal": 3414486,
+      "originalDefectiveViolationCount": 63675
+    }
+  },
+  "note": "Violation lists removed: they came from the DEFECTIVE first audit (see liquidity-diagnostics.json correction). The raw 80MB file is gitignored."
+}

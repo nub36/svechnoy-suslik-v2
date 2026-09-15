@@ -1,0 +1,638 @@
+{
+  "train": {
+    "n": 659992,
+    "availableWeightDistribution": {
+      "n": 659992,
+      "min": 18,
+      "p25": 30,
+      "median": 45,
+      "p75": 60,
+      "p90": 75,
+      "p95": 78,
+      "max": 100
+    },
+    "normalizedScoreDistribution": {
+      "n": 659992,
+      "min": 55,
+      "p25": 67.8002,
+      "median": 74.3585,
+      "p75": 83.0473,
+      "p90": 94,
+      "p95": 100,
+      "max": 100
+    },
+    "byWeightBucket": [
+      {
+        "group": "<30",
+        "n": 144830,
+        "open": 0,
+        "tp": 31747,
+        "sl": 101928,
+        "timeout": 11155,
+        "tpExitRate": 21.9202,
+        "positiveRRate": 26.034,
+        "timeoutRate": 7.7021,
+        "avgR": -0.8956,
+        "medianR": -1.3838,
+        "totalR": -129705.2945,
+        "profitFactor": 0.3653
+      },
+      {
+        "group": "30-50",
+        "n": 269001,
+        "open": 0,
+        "tp": 59667,
+        "sl": 188134,
+        "timeout": 21200,
+        "tpExitRate": 22.181,
+        "positiveRRate": 25.9776,
+        "timeoutRate": 7.881,
+        "avgR": -0.9368,
+        "medianR": -1.4212,
+        "totalR": -252007.6838,
+        "profitFactor": 0.3505
+      },
+      {
+        "group": ">50",
+        "n": 246161,
+        "open": 0,
+        "tp": 54465,
+        "sl": 173556,
+        "timeout": 18140,
+        "tpExitRate": 22.1258,
+        "positiveRRate": 26.4871,
+        "timeoutRate": 7.3692,
+        "avgR": -0.6512,
+        "medianR": -1.276,
+        "totalR": -160305.1197,
+        "profitFactor": 0.4602
+      }
+    ],
+    "byScoreBucket": [
+      {
+        "group": "<70",
+        "n": 220790,
+        "open": 0,
+        "tp": 49789,
+        "sl": 155954,
+        "timeout": 15047,
+        "tpExitRate": 22.5504,
+        "positiveRRate": 26.1819,
+        "timeoutRate": 6.8151,
+        "avgR": -0.7912,
+        "medianR": -1.4113,
+        "totalR": -174682.5793,
+        "profitFactor": 0.3998
+      },
+      {
+        "group": "70-90",
+        "n": 346688,
+        "open": 0,
+        "tp": 76220,
+        "sl": 243242,
+        "timeout": 27226,
+        "tpExitRate": 21.9852,
+        "positiveRRate": 26.1717,
+        "timeoutRate": 7.8532,
+        "avgR": -0.8151,
+        "medianR": -1.3262,
+        "totalR": -282574.6963,
+        "profitFactor": 0.3928
+      },
+      {
+        "group": "90-100",
+        "n": 92514,
+        "open": 0,
+        "tp": 19870,
+        "sl": 64422,
+        "timeout": 8222,
+        "tpExitRate": 21.4778,
+        "positiveRRate": 26.2068,
+        "timeoutRate": 8.8873,
+        "avgR": -0.9162,
+        "medianR": -1.2961,
+        "totalR": -84760.8225,
+        "profitFactor": 0.3622
+      }
+    ],
+    "crossTab": [
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "<70",
+        "n": 24509,
+        "avgR": -0.9235,
+        "medianR": -1.4556,
+        "positiveRRate": 25.7171,
+        "tpExitRate": 22.2326,
+        "profitFactor": 0.3496
+      },
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "70-90",
+        "n": 63936,
+        "avgR": -0.9142,
+        "medianR": -1.4058,
+        "positiveRRate": 26.0417,
+        "tpExitRate": 22.1769,
+        "profitFactor": 0.3596
+      },
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "90-100",
+        "n": 56385,
+        "avgR": -0.8623,
+        "medianR": -1.3321,
+        "positiveRRate": 26.163,
+        "tpExitRate": 21.4933,
+        "profitFactor": 0.379
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "<70",
+        "n": 81740,
+        "avgR": -0.8532,
+        "medianR": -1.4457,
+        "positiveRRate": 26.1329,
+        "tpExitRate": 22.4541,
+        "profitFactor": 0.3758
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "70-90",
+        "n": 158519,
+        "avgR": -0.9265,
+        "medianR": -1.4089,
+        "positiveRRate": 26.0366,
+        "tpExitRate": 22.0731,
+        "profitFactor": 0.3537
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "90-100",
+        "n": 28742,
+        "avgR": -1.2316,
+        "medianR": -1.4106,
+        "positiveRRate": 25.2105,
+        "tpExitRate": 21.9992,
+        "profitFactor": 0.2778
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "<70",
+        "n": 114541,
+        "avgR": -0.7186,
+        "medianR": -1.3827,
+        "positiveRRate": 26.3163,
+        "tpExitRate": 22.6871,
+        "profitFactor": 0.4304
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "70-90",
+        "n": 124233,
+        "avgR": -0.6219,
+        "medianR": -1.2185,
+        "positiveRRate": 26.4109,
+        "tpExitRate": 21.7744,
+        "profitFactor": 0.474
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "90-100",
+        "n": 7387,
+        "avgR": -0.1004,
+        "medianR": -1.0402,
+        "positiveRRate": 30.4183,
+        "tpExitRate": 19.3313,
+        "profitFactor": 0.867
+      }
+    ],
+    "spearmanNormalizedScoreVsR": 0.0428,
+    "spearmanAvailableWeightVsR": 0.0989,
+    "note": "Diagnostic only. V1 was NOT modified."
+  },
+  "validation": {
+    "n": 231999,
+    "availableWeightDistribution": {
+      "n": 231999,
+      "min": 18,
+      "p25": 30,
+      "median": 45,
+      "p75": 60,
+      "p90": 75,
+      "p95": 82,
+      "max": 100
+    },
+    "normalizedScoreDistribution": {
+      "n": 231999,
+      "min": 55,
+      "p25": 67.0591,
+      "median": 73.5568,
+      "p75": 82.1662,
+      "p90": 93.8138,
+      "p95": 100,
+      "max": 100
+    },
+    "byWeightBucket": [
+      {
+        "group": "<30",
+        "n": 52304,
+        "open": 0,
+        "tp": 12302,
+        "sl": 36830,
+        "timeout": 3172,
+        "tpExitRate": 23.5202,
+        "positiveRRate": 27.2369,
+        "timeoutRate": 6.0645,
+        "avgR": -0.7196,
+        "medianR": -1.3662,
+        "totalR": -37638.7646,
+        "profitFactor": 0.4377
+      },
+      {
+        "group": "30-50",
+        "n": 89549,
+        "open": 0,
+        "tp": 20762,
+        "sl": 63368,
+        "timeout": 5419,
+        "tpExitRate": 23.1851,
+        "positiveRRate": 26.533,
+        "timeoutRate": 6.0514,
+        "avgR": -0.8108,
+        "medianR": -1.4108,
+        "totalR": -72603.6609,
+        "profitFactor": 0.3973
+      },
+      {
+        "group": ">50",
+        "n": 90146,
+        "open": 0,
+        "tp": 20726,
+        "sl": 63733,
+        "timeout": 5687,
+        "tpExitRate": 22.9916,
+        "positiveRRate": 27.0628,
+        "timeoutRate": 6.3087,
+        "avgR": -0.5959,
+        "medianR": -1.2806,
+        "totalR": -53714.652,
+        "profitFactor": 0.4934
+      }
+    ],
+    "byScoreBucket": [
+      {
+        "group": "<70",
+        "n": 85484,
+        "open": 0,
+        "tp": 20068,
+        "sl": 60610,
+        "timeout": 4806,
+        "tpExitRate": 23.4757,
+        "positiveRRate": 26.791,
+        "timeoutRate": 5.6221,
+        "avgR": -0.7306,
+        "medianR": -1.4093,
+        "totalR": -62457.1778,
+        "profitFactor": 0.4296
+      },
+      {
+        "group": "70-90",
+        "n": 115300,
+        "open": 0,
+        "tp": 26484,
+        "sl": 81486,
+        "timeout": 7330,
+        "tpExitRate": 22.9696,
+        "positiveRRate": 26.8395,
+        "timeoutRate": 6.3573,
+        "avgR": -0.6953,
+        "medianR": -1.3145,
+        "totalR": -80164.1792,
+        "profitFactor": 0.4463
+      },
+      {
+        "group": "90-100",
+        "n": 31215,
+        "open": 0,
+        "tp": 7238,
+        "sl": 21835,
+        "timeout": 2142,
+        "tpExitRate": 23.1876,
+        "positiveRRate": 27.4035,
+        "timeoutRate": 6.8621,
+        "avgR": -0.6835,
+        "medianR": -1.2835,
+        "totalR": -21335.7205,
+        "profitFactor": 0.4555
+      }
+    ],
+    "crossTab": [
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "<70",
+        "n": 8935,
+        "avgR": -0.7713,
+        "medianR": -1.4248,
+        "positiveRRate": 27.7448,
+        "tpExitRate": 24.5439,
+        "profitFactor": 0.4184
+      },
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "70-90",
+        "n": 22220,
+        "avgR": -0.756,
+        "medianR": -1.3832,
+        "positiveRRate": 26.8587,
+        "tpExitRate": 23.4023,
+        "profitFactor": 0.4205
+      },
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "90-100",
+        "n": 21149,
+        "avgR": -0.6595,
+        "medianR": -1.3281,
+        "positiveRRate": 27.4197,
+        "tpExitRate": 23.2115,
+        "profitFactor": 0.4655
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "<70",
+        "n": 30569,
+        "avgR": -0.7861,
+        "medianR": -1.444,
+        "positiveRRate": 26.975,
+        "tpExitRate": 23.7724,
+        "profitFactor": 0.4079
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "70-90",
+        "n": 51161,
+        "avgR": -0.8055,
+        "medianR": -1.3959,
+        "positiveRRate": 26.2915,
+        "tpExitRate": 22.7947,
+        "profitFactor": 0.398
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "90-100",
+        "n": 7819,
+        "avgR": -0.942,
+        "medianR": -1.3621,
+        "positiveRRate": 26.3844,
+        "tpExitRate": 23.4429,
+        "profitFactor": 0.3559
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "<70",
+        "n": 45980,
+        "avgR": -0.6859,
+        "medianR": -1.388,
+        "positiveRRate": 26.4833,
+        "tpExitRate": 23.0709,
+        "profitFactor": 0.4473
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "70-90",
+        "n": 41919,
+        "avgR": -0.5285,
+        "medianR": -1.2062,
+        "positiveRRate": 27.4983,
+        "tpExitRate": 22.9538,
+        "profitFactor": 0.5318
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "90-100",
+        "n": 2247,
+        "avgR": -0.0098,
+        "medianR": -1.036,
+        "positiveRRate": 30.7966,
+        "tpExitRate": 22.0739,
+        "profitFactor": 0.9867
+      }
+    ],
+    "spearmanNormalizedScoreVsR": 0.0598,
+    "spearmanAvailableWeightVsR": 0.0851,
+    "note": "Diagnostic only. V1 was NOT modified."
+  },
+  "test": {
+    "n": 241008,
+    "availableWeightDistribution": {
+      "n": 241008,
+      "min": 18,
+      "p25": 30,
+      "median": 45,
+      "p75": 60,
+      "p90": 75,
+      "p95": 82,
+      "max": 100
+    },
+    "normalizedScoreDistribution": {
+      "n": 241008,
+      "min": 55.0001,
+      "p25": 67.2755,
+      "median": 73.8336,
+      "p75": 82.386,
+      "p90": 94,
+      "p95": 100,
+      "max": 100
+    },
+    "byWeightBucket": [
+      {
+        "group": "<30",
+        "n": 55457,
+        "open": 0,
+        "tp": 13136,
+        "sl": 39403,
+        "timeout": 2918,
+        "tpExitRate": 23.6868,
+        "positiveRRate": 25.9625,
+        "timeoutRate": 5.2617,
+        "avgR": -0.9496,
+        "medianR": -1.4584,
+        "totalR": -52663.2039,
+        "profitFactor": 0.3513
+      },
+      {
+        "group": "30-50",
+        "n": 91771,
+        "open": 0,
+        "tp": 22005,
+        "sl": 64916,
+        "timeout": 4850,
+        "tpExitRate": 23.9782,
+        "positiveRRate": 25.7347,
+        "timeoutRate": 5.2849,
+        "avgR": -1.0327,
+        "medianR": -1.4921,
+        "totalR": -94772.2119,
+        "profitFactor": 0.3246
+      },
+      {
+        "group": ">50",
+        "n": 93780,
+        "open": 0,
+        "tp": 21742,
+        "sl": 66645,
+        "timeout": 5393,
+        "tpExitRate": 23.184,
+        "positiveRRate": 26.335,
+        "timeoutRate": 5.7507,
+        "avgR": -0.7659,
+        "medianR": -1.3684,
+        "totalR": -71823.2322,
+        "profitFactor": 0.4133
+      }
+    ],
+    "byScoreBucket": [
+      {
+        "group": "<70",
+        "n": 86494,
+        "open": 0,
+        "tp": 20602,
+        "sl": 61599,
+        "timeout": 4293,
+        "tpExitRate": 23.819,
+        "positiveRRate": 26.2076,
+        "timeoutRate": 4.9634,
+        "avgR": -0.8788,
+        "medianR": -1.4849,
+        "totalR": -76011.8426,
+        "profitFactor": 0.3712
+      },
+      {
+        "group": "70-90",
+        "n": 120919,
+        "open": 0,
+        "tp": 28525,
+        "sl": 85491,
+        "timeout": 6903,
+        "tpExitRate": 23.5902,
+        "positiveRRate": 26.0439,
+        "timeoutRate": 5.7088,
+        "avgR": -0.9104,
+        "medianR": -1.4017,
+        "totalR": -110082.6862,
+        "profitFactor": 0.363
+      },
+      {
+        "group": "90-100",
+        "n": 33595,
+        "open": 0,
+        "tp": 7756,
+        "sl": 23874,
+        "timeout": 1965,
+        "tpExitRate": 23.0868,
+        "positiveRRate": 25.4562,
+        "timeoutRate": 5.8491,
+        "avgR": -0.9872,
+        "medianR": -1.3967,
+        "totalR": -33164.1193,
+        "profitFactor": 0.3399
+      }
+    ],
+    "crossTab": [
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "<70",
+        "n": 9039,
+        "avgR": -0.9911,
+        "medianR": -1.5259,
+        "positiveRRate": 26.3082,
+        "tpExitRate": 24.4275,
+        "profitFactor": 0.3382
+      },
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "70-90",
+        "n": 23244,
+        "avgR": -0.9889,
+        "medianR": -1.4702,
+        "positiveRRate": 25.8906,
+        "tpExitRate": 23.7266,
+        "profitFactor": 0.3392
+      },
+      {
+        "availableWeight": "<30",
+        "scoreBucket": "90-100",
+        "n": 23174,
+        "avgR": -0.894,
+        "medianR": -1.4194,
+        "positiveRRate": 25.8997,
+        "tpExitRate": 23.3581,
+        "profitFactor": 0.3695
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "<70",
+        "n": 29911,
+        "avgR": -0.9364,
+        "medianR": -1.5152,
+        "positiveRRate": 26.3181,
+        "tpExitRate": 24.262,
+        "profitFactor": 0.353
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "70-90",
+        "n": 53073,
+        "avgR": -1.026,
+        "medianR": -1.478,
+        "positiveRRate": 25.7909,
+        "tpExitRate": 24.0197,
+        "profitFactor": 0.327
+      },
+      {
+        "availableWeight": "30-50",
+        "scoreBucket": "90-100",
+        "n": 8787,
+        "avgR": -1.4012,
+        "medianR": -1.5008,
+        "positiveRRate": 23.4096,
+        "tpExitRate": 22.7609,
+        "profitFactor": 0.2365
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "<70",
+        "n": 47544,
+        "avgR": -0.8212,
+        "medianR": -1.4624,
+        "positiveRRate": 26.119,
+        "tpExitRate": 23.4246,
+        "profitFactor": 0.3906
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "70-90",
+        "n": 44602,
+        "avgR": -0.7319,
+        "medianR": -1.2821,
+        "positiveRRate": 26.4248,
+        "tpExitRate": 23.0079,
+        "profitFactor": 0.4283
+      },
+      {
+        "availableWeight": ">50",
+        "scoreBucket": "90-100",
+        "n": 1634,
+        "avgR": -0.0824,
+        "medianR": -1.0446,
+        "positiveRRate": 30.1714,
+        "tpExitRate": 20.9914,
+        "profitFactor": 0.8928
+      }
+    ],
+    "spearmanNormalizedScoreVsR": 0.0294,
+    "spearmanAvailableWeightVsR": 0.0801,
+    "note": "Diagnostic only. V1 was NOT modified."
+  }
+}

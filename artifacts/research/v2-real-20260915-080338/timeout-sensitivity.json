@@ -1,0 +1,74 @@
+{
+  "train.v1": {
+    "timeoutCount": 50495,
+    "timeoutPositive": 34055,
+    "timeoutNegative": 16438,
+    "timeoutAvgR": 0.4405,
+    "timeoutMedianR": 0.4571,
+    "timeoutTotalR": 22243.8773,
+    "expectancyAllClosed": -0.8212,
+    "expectancyExcludingTimeout": -0.9258,
+    "signFlips": false,
+    "note": "expectancyExcludingTimeout is DIAGNOSTIC SENSITIVITY ONLY."
+  },
+  "train.v2": {
+    "timeoutCount": 80935,
+    "timeoutPositive": 42047,
+    "timeoutNegative": 38884,
+    "timeoutAvgR": 0.2979,
+    "timeoutMedianR": 0.0341,
+    "timeoutTotalR": 24107.4198,
+    "expectancyAllClosed": -0.7289,
+    "expectancyExcludingTimeout": -1.0641,
+    "signFlips": false,
+    "note": "expectancyExcludingTimeout is DIAGNOSTIC SENSITIVITY ONLY."
+  },
+  "validation.v1": {
+    "timeoutCount": 14278,
+    "timeoutPositive": 9957,
+    "timeoutNegative": 4321,
+    "timeoutAvgR": 0.5134,
+    "timeoutMedianR": 0.5391,
+    "timeoutTotalR": 7329.6425,
+    "expectancyAllClosed": -0.7067,
+    "expectancyExcludingTimeout": -0.7867,
+    "signFlips": false,
+    "note": "expectancyExcludingTimeout is DIAGNOSTIC SENSITIVITY ONLY."
+  },
+  "validation.v2": {
+    "timeoutCount": 25625,
+    "timeoutPositive": 13729,
+    "timeoutNegative": 11896,
+    "timeoutAvgR": 0.3392,
+    "timeoutMedianR": 0.0546,
+    "timeoutTotalR": 8691.2843,
+    "expectancyAllClosed": -0.6862,
+    "expectancyExcludingTimeout": -0.992,
+    "signFlips": false,
+    "note": "expectancyExcludingTimeout is DIAGNOSTIC SENSITIVITY ONLY."
+  },
+  "test.v1": {
+    "timeoutCount": 13161,
+    "timeoutPositive": 8926,
+    "timeoutNegative": 4235,
+    "timeoutAvgR": 0.4432,
+    "timeoutMedianR": 0.4586,
+    "timeoutTotalR": 5832.8005,
+    "expectancyAllClosed": -0.9098,
+    "expectancyExcludingTimeout": -0.9879,
+    "signFlips": false,
+    "note": "expectancyExcludingTimeout is DIAGNOSTIC SENSITIVITY ONLY."
+  },
+  "test.v2": {
+    "timeoutCount": 25259,
+    "timeoutPositive": 13622,
+    "timeoutNegative": 11637,
+    "timeoutAvgR": 0.3388,
+    "timeoutMedianR": 0.0564,
+    "timeoutTotalR": 8558.9441,
+    "expectancyAllClosed": -0.8237,
+    "expectancyExcludingTimeout": -1.1594,
+    "signFlips": false,
+    "note": "expectancyExcludingTimeout is DIAGNOSTIC SENSITIVITY ONLY."
+  }
+}

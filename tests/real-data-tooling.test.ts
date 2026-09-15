@@ -22,6 +22,7 @@ import { TF_MS } from '../src/core/types';
 import { replayV2Series } from '../src/replay/v2-runner';
 import { replayV2Windowed, classifyWait } from '../scripts/real-data/windowed-replay';
 import { detectTimeUnit, toMs } from '../scripts/real-data/ingest';
+import { buildTargets } from '../src/strategy/v2/engine';
 
 /** Deterministic pseudo-random walk with structure the V2 engine can read. */
 function makeSeries(n: number, tf: Timeframe, seed = 12345): Candle[] {
@@ -145,5 +146,52 @@ describe('windowed replay == frozen replayV2Series', () => {
       expect(win.trades[i]!.htfAlignment).toBe(ref.trades[i]!.htfAlignment);
       expect(win.trades[i]!.rMultiple).toBeCloseTo(ref.trades[i]!.rMultiple, 10);
     }
+  });
+});
+
+describe('liquidity lifecycle invariant audit', () => {
+  /**
+   * The corrected audit must be able to FAIL. An audit that only ever returns
+   * "clean" proves nothing, and the first version of this one returned 312,866
+   * false positives, so both directions are pinned here.
+   */
+  it('buildTargets excludes non-resting pools from the ladder', () => {
+    const entry = 100;
+    const stop = 99;
+    // Three pools ahead of a LONG entry; the nearest two are already taken.
+    const pools = [
+      { side: 'BUY_SIDE' as const, price: 101, resting: false, clusterId: 'A' },
+      { side: 'BUY_SIDE' as const, price: 102, resting: false, clusterId: 'B' },
+      { side: 'BUY_SIDE' as const, price: 103, resting: true, clusterId: 'C' },
+    ];
+    const targets = buildTargets('LONG', entry, stop, null, pools, 1, {
+      clusterTolAtr: 0.25,
+    });
+    const prices = targets
+      .filter((t) => t.basis === 'INTERNAL_LIQUIDITY')
+      .map((t) => t.price);
+    // The swept/consumed levels must not appear; the resting one may.
+    expect(prices).not.toContain(101);
+    expect(prices).not.toContain(102);
+    expect(prices).toContain(103);
+  });
+
+  it('a resting pool IS eligible as a target', () => {
+    const targets = buildTargets('LONG', 100, 99, null,
+      [{ side: 'BUY_SIDE' as const, price: 105, resting: true, clusterId: 'X' }],
+      1, { clusterTolAtr: 0.25 });
+    expect(targets.some((t) => t.basis === 'INTERNAL_LIQUIDITY' && t.price === 105))
+      .toBe(true);
+  });
+
+  it('SHORT side: non-resting sell-side pools are excluded', () => {
+    const targets = buildTargets('SHORT', 100, 101, null, [
+      { side: 'SELL_SIDE' as const, price: 99, resting: false, clusterId: 'A' },
+      { side: 'SELL_SIDE' as const, price: 97, resting: true, clusterId: 'B' },
+    ], 1, { clusterTolAtr: 0.25 });
+    const prices = targets
+      .filter((t) => t.basis === 'INTERNAL_LIQUIDITY').map((t) => t.price);
+    expect(prices).not.toContain(99);
+    expect(prices).toContain(97);
   });
 });

@@ -1,0 +1,20 @@
+{
+  "train": {
+    "ALIGNED": 1119741,
+    "COUNTER_TREND": 993173,
+    "NEUTRAL": 1053998,
+    "UNKNOWN": 247708
+  },
+  "validation": {
+    "ALIGNED": 402856,
+    "COUNTER_TREND": 362578,
+    "NEUTRAL": 383137,
+    "UNKNOWN": 49019
+  },
+  "test": {
+    "ALIGNED": 408408,
+    "COUNTER_TREND": 362523,
+    "NEUTRAL": 385915,
+    "UNKNOWN": 44382
+  }
+}

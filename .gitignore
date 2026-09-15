@@ -30,3 +30,4 @@ next-env.d.ts
 artifacts/research/**/v1-trades.*
 artifacts/research/**/v2-trades.*
 artifacts/research/**/zip-checksums.json
+artifacts/research/**/v2-run-diagnostics.json

@@ -1,0 +1,425 @@
+{
+  "invariant": "A SWEPT or CONSUMED pool must never be used as a future target.",
+  "totalViolations": 0,
+  "verdict": "INVARIANT_HELD",
+  "perSlice": {
+    "train": {
+      "poolStateCensus": {
+        "FRESH": 28247619,
+        "TOUCHED": 781650,
+        "SWEPT": 6014219,
+        "CONSUMED": 68008498
+      },
+      "targetsTotal": 9303191,
+      "targetsFromRestingLiquidity": 6872559,
+      "invariantViolations": 186217,
+      "violationSamples": [
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-01T09:32:00.000Z",
+          "detail": "target EQUILIBRIUM @47114.745 coincides with CONSUMED pool @47113.6 (tol 7.119913, clusterId SELL_SIDE#186)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-01T11:40:00.000Z",
+          "detail": "target INTERNAL_LIQUIDITY @47081.02 coincides with CONSUMED pool @47086.16 (tol 9.524953, clusterId BUY_SIDE#250)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-01T13:49:00.000Z",
+          "detail": "target EQUILIBRIUM @47007.07 coincides with CONSUMED pool @47007.01 (tol 8.404153, clusterId SELL_SIDE#289)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-01T16:29:00.000Z",
+          "detail": "target RANGE_EDGE @47491.14 coincides with SWEPT pool @47491.14 (tol 12.185701, clusterId BUY_SIDE#308)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-01T16:31:00.000Z",
+          "detail": "target RANGE_EDGE @47491.14 coincides with SWEPT pool @47491.14 (tol 11.880694, clusterId BUY_SIDE#306)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-01T22:12:00.000Z",
+          "detail": "target RANGE_EDGE @47244.51 coincides with SWEPT pool @47238.81 (tol 8.707934, clusterId SELL_SIDE#60)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-01T22:13:00.000Z",
+          "detail": "target RANGE_EDGE @47244.51 coincides with SWEPT pool @47238.81 (tol 8.572546, clusterId SELL_SIDE#59)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-01T22:14:00.000Z",
+          "detail": "target RANGE_EDGE @47244.51 coincides with SWEPT pool @47244.51 (tol 8.801472, clusterId SELL_SIDE#68)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T06:10:00.000Z",
+          "detail": "target INTERNAL_LIQUIDITY @47387.95 coincides with CONSUMED pool @47393.45 (tol 9.275400, clusterId BUY_SIDE#175)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T06:18:00.000Z",
+          "detail": "target INTERNAL_LIQUIDITY @47387.95 coincides with CONSUMED pool @47393.45 (tol 10.062088, clusterId BUY_SIDE#167)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T07:57:00.000Z",
+          "detail": "target EQUILIBRIUM @47118.67 coincides with SWEPT pool @47119.11 (tol 6.007135, clusterId SELL_SIDE#348)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T08:34:00.000Z",
+          "detail": "target EQUILIBRIUM @47092.98 coincides with CONSUMED pool @47087.62 (tol 7.158459, clusterId SELL_SIDE#266)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T09:03:00.000Z",
+          "detail": "target EQUILIBRIUM @47092.98 coincides with CONSUMED pool @47087.62 (tol 6.736795, clusterId SELL_SIDE#237)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T11:35:00.000Z",
+          "detail": "target EQUILIBRIUM @47234.75 coincides with CONSUMED pool @47240 (tol 6.415232, clusterId SELL_SIDE#312)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T11:38:00.000Z",
+          "detail": "target EQUILIBRIUM @47234.75 coincides with CONSUMED pool @47240 (tol 6.492321, clusterId SELL_SIDE#309)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T11:42:00.000Z",
+          "detail": "target EQUILIBRIUM @47234.75 coincides with CONSUMED pool @47240 (tol 5.516577, clusterId SELL_SIDE#305)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T11:43:00.000Z",
+          "detail": "target EQUILIBRIUM @47234.75 coincides with CONSUMED pool @47240 (tol 5.402357, clusterId SELL_SIDE#304)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T12:22:00.000Z",
+          "detail": "target EQUILIBRIUM @47234.75 coincides with CONSUMED pool @47235.86 (tol 8.833830, clusterId BUY_SIDE#121)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T12:22:00.000Z",
+          "detail": "target INTERNAL_LIQUIDITY @47400 coincides with SWEPT pool @47391.32 (tol 8.833830, clusterId BUY_SIDE#194)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2022-01-02T12:23:00.000Z",
+          "detail": "target EQUILIBRIUM @47234.75 coincides with CONSUMED pool @47235.86 (tol 8.619985, clusterId BUY_SIDE#120)"
+        }
+      ]
+    },
+    "validation": {
+      "poolStateCensus": {
+        "FRESH": 10969925,
+        "TOUCHED": 179632,
+        "SWEPT": 2001088,
+        "CONSUMED": 27115186
+      },
+      "targetsTotal": 3387175,
+      "targetsFromRestingLiquidity": 2559009,
+      "invariantViolations": 62974,
+      "violationSamples": [
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-26T16:38:00.000Z",
+          "detail": "target EQUILIBRIUM @69033.8 coincides with CONSUMED pool @69039.77 (tol 8.038404, clusterId BUY_SIDE#109)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-27T08:26:00.000Z",
+          "detail": "target RANGE_EDGE @68901.74 coincides with SWEPT pool @68901.74 (tol 6.756975, clusterId BUY_SIDE#95)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-27T08:27:00.000Z",
+          "detail": "target RANGE_EDGE @68901.74 coincides with SWEPT pool @68901.74 (tol 7.348798, clusterId BUY_SIDE#94)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-27T08:28:00.000Z",
+          "detail": "target RANGE_EDGE @68901.74 coincides with SWEPT pool @68901.74 (tol 7.406384, clusterId BUY_SIDE#93)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-27T11:52:00.000Z",
+          "detail": "target EQUILIBRIUM @68597.1 coincides with CONSUMED pool @68590 (tol 9.743892, clusterId BUY_SIDE#202)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-27T11:53:00.000Z",
+          "detail": "target EQUILIBRIUM @68597.1 coincides with CONSUMED pool @68590 (tol 9.333436, clusterId BUY_SIDE#201)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-27T11:54:00.000Z",
+          "detail": "target EQUILIBRIUM @68597.1 coincides with CONSUMED pool @68590 (tol 9.327833, clusterId BUY_SIDE#200)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T08:34:00.000Z",
+          "detail": "target EQUILIBRIUM @67811.83499999999 coincides with CONSUMED pool @67804 (tol 8.432148, clusterId SELL_SIDE#101)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T16:41:00.000Z",
+          "detail": "target EQUILIBRIUM @68009.2 coincides with CONSUMED pool @68022.4 (tol 14.971189, clusterId BUY_SIDE#189)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T18:58:00.000Z",
+          "detail": "target EQUILIBRIUM @67869.22 coincides with CONSUMED pool @67860.34 (tol 18.304813, clusterId BUY_SIDE#226)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T18:58:00.000Z",
+          "detail": "target INTERNAL_LIQUIDITY @68155.9 coincides with CONSUMED pool @68165.21 (tol 18.304813, clusterId BUY_SIDE#112)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T19:00:00.000Z",
+          "detail": "target INTERNAL_LIQUIDITY @68155.9 coincides with CONSUMED pool @68165.21 (tol 17.671727, clusterId BUY_SIDE#110)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T19:29:00.000Z",
+          "detail": "target EQUILIBRIUM @67869.22 coincides with CONSUMED pool @67861.96 (tol 14.098403, clusterId SELL_SIDE#116)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T19:35:00.000Z",
+          "detail": "target EQUILIBRIUM @67869.22 coincides with CONSUMED pool @67874 (tol 13.425999, clusterId SELL_SIDE#110)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T19:38:00.000Z",
+          "detail": "target EQUILIBRIUM @67869.22 coincides with CONSUMED pool @67861.96 (tol 12.867988, clusterId SELL_SIDE#107)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T19:48:00.000Z",
+          "detail": "target EQUILIBRIUM @67869.22 coincides with CONSUMED pool @67874 (tol 11.503806, clusterId SELL_SIDE#97)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T22:05:00.000Z",
+          "detail": "target RANGE_EDGE @68598.33 coincides with SWEPT pool @68598.33 (tol 8.481102, clusterId BUY_SIDE#231)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-28T22:06:00.000Z",
+          "detail": "target RANGE_EDGE @68598.33 coincides with SWEPT pool @68598.33 (tol 8.644595, clusterId BUY_SIDE#230)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-29T01:27:00.000Z",
+          "detail": "target EQUILIBRIUM @68392.66 coincides with CONSUMED pool @68391.61 (tol 7.654006, clusterId SELL_SIDE#263)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2024-05-29T01:28:00.000Z",
+          "detail": "target INTERNAL_LIQUIDITY @68554 coincides with CONSUMED pool @68560 (tol 8.095506, clusterId BUY_SIDE#195)"
+        }
+      ]
+    },
+    "test": {
+      "poolStateCensus": {
+        "FRESH": 11214536,
+        "TOUCHED": 145126,
+        "SWEPT": 2110237,
+        "CONSUMED": 28406124
+      },
+      "targetsTotal": 3414486,
+      "targetsFromRestingLiquidity": 2587318,
+      "invariantViolations": 63675,
+      "violationSamples": [
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-14T20:20:00.000Z",
+          "detail": "target RANGE_EDGE @83949.19 coincides with SWEPT pool @83949.19 (tol 16.375876, clusterId SELL_SIDE#133)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-14T20:38:00.000Z",
+          "detail": "target EQUILIBRIUM @84375.055 coincides with CONSUMED pool @84377.69 (tol 20.996332, clusterId BUY_SIDE#228)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-14T20:39:00.000Z",
+          "detail": "target EQUILIBRIUM @84375.055 coincides with CONSUMED pool @84377.69 (tol 22.366773, clusterId BUY_SIDE#227)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-14T22:21:00.000Z",
+          "detail": "target EQUILIBRIUM @84323.57 coincides with CONSUMED pool @84325 (tol 13.177017, clusterId SELL_SIDE#114)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-14T23:00:00.000Z",
+          "detail": "target EQUILIBRIUM @84323.57 coincides with CONSUMED pool @84325 (tol 8.276738, clusterId SELL_SIDE#75)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T00:11:00.000Z",
+          "detail": "target EQUILIBRIUM @84290.005 coincides with CONSUMED pool @84282.26 (tol 10.703075, clusterId BUY_SIDE#151)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T00:20:00.000Z",
+          "detail": "target EQUILIBRIUM @84221.91 coincides with CONSUMED pool @84220 (tol 8.957517, clusterId BUY_SIDE#148)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T01:17:00.000Z",
+          "detail": "target RANGE_EDGE @84482.14 coincides with CONSUMED pool @84482.14 (tol 7.396830, clusterId BUY_SIDE#181)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T02:54:00.000Z",
+          "detail": "target RANGE_EDGE @84583.04 coincides with SWEPT pool @84583.04 (tol 10.584503, clusterId BUY_SIDE#263)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T02:55:00.000Z",
+          "detail": "target RANGE_EDGE @84583.04 coincides with SWEPT pool @84583.04 (tol 10.040253, clusterId BUY_SIDE#262)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T02:56:00.000Z",
+          "detail": "target RANGE_EDGE @84583.04 coincides with SWEPT pool @84583.04 (tol 9.650235, clusterId BUY_SIDE#261)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T03:17:00.000Z",
+          "detail": "target RANGE_EDGE @84632.08 coincides with SWEPT pool @84632.08 (tol 8.985110, clusterId BUY_SIDE#336)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T03:18:00.000Z",
+          "detail": "target RANGE_EDGE @84632.08 coincides with SWEPT pool @84632.08 (tol 8.584923, clusterId BUY_SIDE#335)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T12:00:00.000Z",
+          "detail": "target EQUILIBRIUM @83878.36 coincides with CONSUMED pool @83885.07 (tol 6.899198, clusterId SELL_SIDE#295)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T12:02:00.000Z",
+          "detail": "target EQUILIBRIUM @83878.36 coincides with CONSUMED pool @83885.07 (tol 7.922918, clusterId SELL_SIDE#293)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T13:01:00.000Z",
+          "detail": "target RANGE_EDGE @84250 coincides with CONSUMED pool @84250 (tol 6.256036, clusterId BUY_SIDE#317)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T13:02:00.000Z",
+          "detail": "target RANGE_EDGE @84250 coincides with CONSUMED pool @84250 (tol 6.402748, clusterId BUY_SIDE#316)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T13:03:00.000Z",
+          "detail": "target RANGE_EDGE @84250 coincides with CONSUMED pool @84250 (tol 6.254873, clusterId BUY_SIDE#315)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T13:54:00.000Z",
+          "detail": "target RANGE_EDGE @84470.74 coincides with SWEPT pool @84470.74 (tol 9.595168, clusterId BUY_SIDE#347)"
+        },
+        {
+          "symbol": "BTCUSDT",
+          "timeframe": "1m",
+          "timeUtc": "2025-03-15T15:27:00.000Z",
+          "detail": "target EQUILIBRIUM @84141.395 coincides with CONSUMED pool @84143.08 (tol 6.664470, clusterId SELL_SIDE#177)"
+        }
+      ]
+    }
+  },
+  "correction": {
+    "note": "The first audit reported 312866 violations. That was a DEFECT IN THE AUDIT, not in the strategy. Two causes: (1) it re-derived pools over the whole 360-bar evaluation slice while evaluateV2 builds pools from visible.slice(-lookback) (300 bars), so it compared a different pool set; (2) it flagged ANY target lying merely NEAR a taken pool, but only INTERNAL_LIQUIDITY rungs are pool-sourced - EQUILIBRIUM (range mid), RANGE_EDGE (far boundary) and R_MULTIPLE are geometric levels and accounted for 245783 of the flags.",
+    "correctedResult": {
+      "evaluations": 357467,
+      "liquidity": {
+        "FRESH": 3537213,
+        "TOUCHED": 37001,
+        "SWEPT": 848751,
+        "CONSUMED": 8326920
+      },
+      "targetsTotal": 1010661,
+      "targetsFromRestingLiquidity": 790023,
+      "violations": 0,
+      "samples": []
+    },
+    "directUnitEvidence": "tests/real-data-tooling.test.ts asserts buildTargets excludes SWEPT/CONSUMED pools and admits resting ones, for both LONG and SHORT.",
+    "supersedesPerSliceCounts": true
+  },
+  "perSliceNote": "perSlice.invariantViolations below come from the ORIGINAL defective audit and are superseded by correction.correctedResult."
+}

@@ -1,0 +1,122 @@
+{
+  "train": {
+    "v1": {
+      "n": 659992,
+      "totalR": -542018.098,
+      "expectancy": -0.8212,
+      "exTop1": {
+        "totalR": -542021.0937,
+        "expectancy": -0.8213
+      },
+      "exTop5": {
+        "totalR": -542033.0668,
+        "expectancy": -0.8213
+      },
+      "exTop1Pct": {
+        "totalR": -561359.303,
+        "expectancy": -0.8591,
+        "removed": 6600
+      },
+      "top1PctShareOfGrossPositive": 5.5688
+    },
+    "v2": {
+      "n": 328872,
+      "totalR": -239721.2471,
+      "expectancy": -0.7289,
+      "exTop1": {
+        "totalR": -239766.669,
+        "expectancy": -0.7291
+      },
+      "exTop5": {
+        "totalR": -239928.6279,
+        "expectancy": -0.7296
+      },
+      "exTop1Pct": {
+        "totalR": -267239.8694,
+        "expectancy": -0.8208,
+        "removed": 3289
+      },
+      "top1PctShareOfGrossPositive": 16.1159
+    }
+  },
+  "validation": {
+    "v1": {
+      "n": 231999,
+      "totalR": -163957.0775,
+      "expectancy": -0.7067,
+      "exTop1": {
+        "totalR": -163960.0698,
+        "expectancy": -0.7067
+      },
+      "exTop5": {
+        "totalR": -163972.0341,
+        "expectancy": -0.7068
+      },
+      "exTop1Pct": {
+        "totalR": -170763.3895,
+        "expectancy": -0.7435,
+        "removed": 2320
+      },
+      "top1PctShareOfGrossPositive": 5.2564
+    },
+    "v2": {
+      "n": 111565,
+      "totalR": -76558.0814,
+      "expectancy": -0.6862,
+      "exTop1": {
+        "totalR": -76593.0589,
+        "expectancy": -0.6865
+      },
+      "exTop5": {
+        "totalR": -76709.4885,
+        "expectancy": -0.6876
+      },
+      "exTop1Pct": {
+        "totalR": -86022.7959,
+        "expectancy": -0.7788,
+        "removed": 1116
+      },
+      "top1PctShareOfGrossPositive": 15.6333
+    }
+  },
+  "test": {
+    "v1": {
+      "n": 241008,
+      "totalR": -219258.6481,
+      "expectancy": -0.9098,
+      "exTop1": {
+        "totalR": -219261.6412,
+        "expectancy": -0.9098
+      },
+      "exTop5": {
+        "totalR": -219273.6064,
+        "expectancy": -0.9098
+      },
+      "exTop1Pct": {
+        "totalR": -226287.1365,
+        "expectancy": -0.9484,
+        "removed": 2411
+      },
+      "top1PctShareOfGrossPositive": 5.6371
+    },
+    "v2": {
+      "n": 112707,
+      "totalR": -92831.6637,
+      "expectancy": -0.8237,
+      "exTop1": {
+        "totalR": -92878.0699,
+        "expectancy": -0.8241
+      },
+      "exTop5": {
+        "totalR": -92979.2021,
+        "expectancy": -0.825
+      },
+      "exTop1Pct": {
+        "totalR": -102395.7219,
+        "expectancy": -0.9177,
+        "removed": 1128
+      },
+      "top1PctShareOfGrossPositive": 16.1166
+    }
+  }
+}
