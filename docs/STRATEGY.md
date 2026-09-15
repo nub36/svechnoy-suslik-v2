@@ -222,6 +222,16 @@ Rules that follow from it:
   becomes the new `high`. Invalidation covers the window between acceptance and
   that confirmation.
 
+**KNOWN LIMITATION / TODO — breakout then immediate reclaim.** There is no
+"un-break" path. Once a bar closes beyond a boundary by more than `acceptTol`
+the range stays `brokenSide != null` even if the very next bar closes back
+inside, until a new confirmed swing causes `buildRange()` to re-anchor. The
+practical effect is conservative (the stale edge is withheld as a target for a
+few bars longer than strictly necessary), never permissive, so it is **not** a
+replay-correctness bug. Whether a reclaim should restore the range is a design
+question about what a failed breakout means structurally, and it is
+deliberately **left unchanged** until real-data replay can inform it.
+
 The flag is diagnostic elsewhere: it is reported on each replay trade as
 `rangeBrokenSide` so real-data analysis can slice by it.
 
@@ -244,6 +254,49 @@ strength   = 0.6*touchScore + 0.4*ageScore
 ```
 
 Kind: 1 touch `SWING`, 2 `EQUAL`, 3+ `CLUSTER`.
+
+Every pool also carries a `clusterId` (`SIDE#earliestMemberIndex`), shared by
+all swings folded into it. That identity is what target de-duplication keys on
+(§9.x), so the two stages can never disagree about what counts as one area.
+
+### 4.1a Pool lifecycle — consumed liquidity is not a destination
+
+A pool is *resting orders sitting at a level*. Once price has actually reached
+that level the orders are gone, so the pool must stop being offered as a future
+take-profit. Each pool is therefore classified, using **only bars in
+`(knownAtIndex .. evalIndex]`**:
+
+| state | meaning | still a valid target? |
+|---|---|---|
+| `FRESH` | never revisited since confirmation | yes |
+| `TOUCHED` | reached, but shallower than a sweep and no close beyond | **yes** |
+| `SWEPT` | pierced by `>= v2.sweep_min_penetration_atr` ATR without acceptance | no |
+| `CONSUMED` | a CLOSE `>= v2.breakout_min_close_atr` ATR beyond the level | no |
+
+`resting = FRESH or TOUCHED`, and `buildTargets()` skips any pool with
+`resting === false`.
+
+Design points:
+
+* **A touch is not destruction.** Price tagging a level without taking it
+  leaves the liquidity in place, so `TOUCHED` stays targetable. Only a real
+  sweep or an acceptance retires a pool.
+* **Sweep and acceptance stay distinguishable.** They are both terminal for
+  targeting but mean opposite things structurally (rejection vs continuation),
+  so they are separate states rather than one `dead` flag. Acceptance outranks
+  an earlier sweep of the same level.
+* **No new tunables.** The thresholds are the sweep and breakout thresholds the
+  detectors already use.
+* **Strictly causal.** The scan stops at `evalIndex`, so a later candle can
+  never retro-actively retire a pool from an earlier evaluation. Re-evaluating
+  bar *i* with or without future bars present gives identical output, and that
+  is asserted by tests.
+* **The forming swing never retires its own pool** — the scan starts after the
+  confirming bar.
+
+Consumed liquidity is excluded everywhere at once: it cannot be TP1/TP2/TP3 and
+therefore cannot contribute to `room-to-target` either, since room is measured
+on the emitted ladder.
 
 ### 4.2 Sweep — the reversal trigger
 
@@ -603,20 +656,41 @@ Construction, in `buildTargets()` (`src/strategy/v2/engine.ts`):
 
 1. **Collect candidates** ahead of entry: same-side liquidity pools, the range
    mid, the opposite range edge.
-2. **Side / direction filter.** A level behind entry, on the wrong side, or
+2. **Liquidity lifecycle filter.** Pools that are no longer `resting` (`SWEPT`
+   or `CONSUMED`, see §4.1a) are skipped. Liquidity price has already taken is
+   not somewhere price is still travelling to.
+3. **Side / direction filter.** A level behind entry, on the wrong side, or
    already passed is never a candidate. Equilibrium is *not* automatically TP2:
    a LONG entered above the 50% line has no equilibrium target at all.
-3. **Range-invalidation filter.** If `range.brokenSide !== null`, the opposite
+4. **Range-invalidation filter.** If `range.brokenSide !== null`, the opposite
    edge is dropped — see §3.4. A continuation trade that just broke out does not
    aim back across the stale range.
-4. **Order by distance** from entry, then keep only the **nearest three**. This
+5. **Order by distance** from entry, then keep only the **nearest three**. This
    is what prevents TP2 from skipping a dozen pools to land on equilibrium.
-5. **Collapse near-duplicates** within `0.15 × ATR` (or 0.05% of price when ATR
-   is unusable).
-6. **Guarantee** strictly positive, strictly increasing R.
+6. **Collapse duplicate AREAS** — see below.
+7. **Guarantee** strictly positive, strictly increasing R.
 
-Each rung carries `price`, `basis`, `reason`, `r`, and `atrDistance` (a real
-directional distance — see §9.4).
+Each rung carries `price`, `basis`, `reason`, `clusterId`, `r`, and
+`atrDistance` (a real directional distance — see §9.4).
+
+**Area de-duplication.** TP1/TP2/TP3 must be three *different* structural
+areas, or the ladder reports as three separate achievements what is really one
+level reached once. Two candidates are the same area when **either** they share
+a `clusterId` (they came from one liquidity cluster) **or** they sit within
+`v2.liquidity_tol_atr` ATR of each other — the *same* tolerance that clustered
+swings into pools in the first place.
+
+Using one tolerance for both stages is the point. Previously pools clustered at
+0.25 ATR while the ladder collapsed at a hard-coded 0.15 ATR, so two levels the
+pool builder itself called one area could take two TP slots; an audit measured
+21.7% of adjacent TP pairs closer than 0.5 ATR, with a minimum gap of 0.151 ATR.
+The tolerance is now inherited rather than chosen, so the gap cannot reappear
+and no threshold was fitted to backtest results. It applies to equilibrium and
+range-edge rungs too, and to the `R_MULTIPLE` fallback.
+
+`EXTERNAL_LIQUIDITY` was removed from the `basis` union: it was never emitted
+anywhere, and a dead variant invites callers to handle a case that cannot
+occur. External liquidity is already expressed as `RANGE_EDGE`.
 
 **Why this replaced the old ladder.** The audit of `b8825d1` found final targets
 at 10R–45R: the opposite edge of a 300-bar envelope (median ~35 ATR wide)
@@ -638,12 +712,26 @@ atrDistance      = directional distance to the final target, in ATR:
 firstAtrDistance = the same measure for the first target
 
 adequate = finalR >= v2.min_room_r         (1.5)
-       AND firstR >= v2.min_first_target_r  (0.5)
 ```
 
-Both floors matter. A trade is **not** admitted merely because a distant final
-target inflates `finalR`: if the nearest structural level sits 0.2R away, the
-setup is rejected with an explicit reason. Inadequate room → WAIT.
+**One quantity, one gate.** `assessRoom` applies a single acceptance
+threshold, to `finalR`. It deliberately does **not** apply a second floor to
+`firstR`.
+
+The removed `v2.min_first_target_r` (0.5) was redundant: a read-only audit
+measured `room.firstR` against the runner's `executableLadder(...).rr1` across
+748 TEST setups and found them **equal in 748/748 cases** — the same quantity.
+The engine floor of 0.5 was therefore strictly dominated by the executable gate
+`risk.min_rr = 1.0` applied downstream, and toggling it between 0 and 0.5
+produced a **byte-identical trade set** (136 vs 136 trades) while only
+relabelling WAIT reasons. Two thresholds on one number is double filtering, so
+the redundant one was deleted.
+
+`firstR`, `nextStructuralR` and `firstAtrDistance` are still computed and
+reported — they are useful diagnostics and feed the room-to-target score — but
+they are not acceptance criteria. **The single executable minimum-RR gate is
+`executableLadder(...).rr1 >= risk.min_rr`**, applied once, in the runners.
+Inadequate final room → WAIT.
 
 > **Fixed bug.** `atrDistance` previously computed `abs(targetPrice) / ATR` —
 > an absolute price divided by ATR, which for BTC produced values in the
@@ -850,7 +938,6 @@ actually read by its declared consumer.
 | `v2.min_evidence` | 0.45 | direction gate |
 | `v2.min_net_evidence` | 0.12 | conflict gate |
 | `v2.min_room_r` | 1.5 | room-to-target floor (FINAL target) |
-| `v2.min_first_target_r` | 0.5 | room-to-target floor (FIRST target) |
 | `v2.stop_buffer_atr` | 0.25 | structural stop buffer |
 | `v2.rsi_period` | 14 | RSI |
 | `v2.adx_period` | 14 | ADX |
@@ -1002,10 +1089,12 @@ stays `false` and V1 remains the production strategy.
 4. **`outcome.timeout_bars = 48`** still ends 31% of V2 trades. That share fell
    from 42.5% once the targets came closer, but a time exit remains the second
    most common way a V2 trade finishes.
-5. **Selectivity is now very high** — over 91% of evaluations return WAIT after
-   the first-target room floor was added. On real data this may prove too
-   strict; `v2.min_first_target_r` is the knob, and it must be examined on real
-   history rather than on fixtures.
+5. **Selectivity is high but no longer inflated by stale levels** — the TEST
+   WAIT rate moved 90.4% -> 68.8% once consumed liquidity stopped being offered
+   as TP1. Most of the removed WAITs were `First target is only 0.0XR away`
+   rejections, i.e. setups whose nearest "target" was a pool price had already
+   traded through. The remaining selectivity must still be judged on real
+   history, not on fixtures.
 6. **Partial exits, breakeven stops and trailing are deliberately absent.** Exit
    models will be compared only after real data is available, so today a TP1
    touch realises nothing.

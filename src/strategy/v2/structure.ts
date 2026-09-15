@@ -13,8 +13,8 @@
 import type { Candle, Direction, Timeframe } from '../../core/types';
 import type {
   BreakoutEvent, Displacement, FairValueGap, FibMap, LiquidityPool,
-  OrderBlock, RangeLocation, StructureBias, StructureBreak, SweepEvent,
-  V2Range, V2Swing,
+  LiquiditySide, LiquidityState, OrderBlock, RangeLocation, StructureBias,
+  StructureBreak, SweepEvent, V2Range, V2Swing,
 } from './types';
 
 /** Map RVOL to 0..1: 0.8x average scores 0, 2.0x scores 1. */
@@ -311,16 +311,110 @@ export function buildFib(range: V2Range | null, close: number): FibMap | null {
 /* ------------------------------------------------------------------ */
 
 /**
+ * Decide the lifecycle state of one pool using ONLY bars in
+ * `(knownAtIndex, index]`.
+ *
+ * Causality: the scan starts strictly AFTER the bar that confirmed the pool
+ * (the forming swing necessarily touched its own level, which must not count
+ * as the level being taken) and stops at `index`. A bar later than `index` can
+ * therefore never influence the verdict, so re-evaluating an earlier bar always
+ * reproduces the earlier state.
+ *
+ * NOTE on the `+ 1`: starting at `knownAtIndex` instead is an EQUIVALENT
+ * mutation, not a live bug — a swing HIGH is only confirmed by bars with lower
+ * highs, so the confirming bar cannot reach the pool price. Measured over
+ * 13,661 fixture pools the confirming bar never penetrated its own level (max
+ * penetration -0.000007 price units). The `+ 1` is kept because it states the
+ * intent explicitly and stays correct if swing confirmation is ever relaxed.
+ *
+ * Thresholds are the SAME ones the sweep and breakout detectors already use —
+ * no new tunable is introduced here:
+ *   sweep penetration >= `sweepPenetrationAtr` ATR beyond the level (wick), and
+ *   acceptance        >= `acceptanceAtr`       ATR beyond the level (close).
+ */
+function classifyPoolLifecycle(
+  candles: readonly Candle[],
+  side: LiquiditySide,
+  price: number,
+  knownAtIndex: number,
+  index: number,
+  atr: number,
+  sweepPenetrationAtr: number,
+  acceptanceAtr: number,
+): Pick<LiquidityPool, 'state' | 'stateAtIndex' | 'resting' | 'stateReason'> {
+  const isBuySide = side === 'BUY_SIDE';
+  const sweepTol = atr * sweepPenetrationAtr;
+  const acceptTol = atr * acceptanceAtr;
+
+  let state: LiquidityState = 'FRESH';
+  let stateAtIndex: number | null = null;
+  let reason = 'Untouched since it was confirmed — resting liquidity';
+
+  for (let i = knownAtIndex + 1; i <= index; i++) {
+    const c = candles[i];
+    if (!c) continue;
+
+    // (B) ACCEPTANCE — a CLOSE decisively beyond the level. Terminal.
+    const closeBeyond = isBuySide ? c.close - price : price - c.close;
+    if (closeBeyond >= acceptTol) {
+      return {
+        state: 'CONSUMED',
+        stateAtIndex: i,
+        resting: false,
+        stateReason:
+          `Price ACCEPTED beyond ${price} at bar ${i} `
+          + `(close ${(closeBeyond / atr).toFixed(2)} ATR past the level) — liquidity consumed`,
+      };
+    }
+
+    // (A) SWEEP — a wick raid deep enough to fill the resting orders, with no
+    // acceptance. Terminal for targeting, but keeps looking for a later
+    // acceptance so the more severe verdict wins.
+    const penetration = isBuySide ? c.high - price : price - c.low;
+    if (penetration >= sweepTol && state !== 'SWEPT') {
+      state = 'SWEPT';
+      stateAtIndex = i;
+      reason =
+        `Swept at bar ${i} — price pierced ${price} by `
+        + `${(penetration / atr).toFixed(2)} ATR without accepting beyond it`;
+      continue;
+    }
+    if (state === 'SWEPT') continue;
+
+    // (C) TOUCH — price reached the level but only grazed it. Not destructive.
+    if (penetration >= 0) {
+      state = 'TOUCHED';
+      stateAtIndex = i;
+      reason = `Touched at bar ${i} without a real sweep — level still holds resting orders`;
+    }
+  }
+
+  return {
+    state,
+    stateAtIndex,
+    resting: state === 'FRESH' || state === 'TOUCHED',
+    stateReason: reason,
+  };
+}
+
+/**
  * Liquidity rests above highs (buy-side) and below lows (sell-side).
  * Equal highs/lows within `tolAtr` ATR of each other are clustered into one
  * pool — clustered levels hold more resting orders and are stronger.
+ *
+ * Every pool also carries its LIFECYCLE (see `LiquidityState`): liquidity that
+ * price has already taken is not a place price is still travelling to, so a
+ * swept or consumed pool must never become a future target. The state is
+ * derived only from candles at or before `index`.
  */
 export function findLiquidityPools(
+  candles: readonly Candle[],
   swings: readonly V2Swing[],
   index: number,
   atr: number | null,
   tolAtr: number,
   lookback: number,
+  opts: { sweepPenetrationAtr: number; acceptanceAtr: number },
 ): LiquidityPool[] {
   if (atr === null || atr <= 0) return [];
   const tol = atr * tolAtr;
@@ -346,14 +440,23 @@ export function findLiquidityPools(
       const age = index - knownAt;
       const ageScore = Math.min(1, Math.max(0, age) / 20);
       const touchScore = Math.min(1, touches / 3);
+      const memberIndexes = group.map((g) => g.index);
       out.push({
         side,
         price,
         knownAtIndex: knownAt,
-        memberIndexes: group.map((g) => g.index),
+        memberIndexes,
         touches,
         strength: Math.max(0, Math.min(1, touchScore * 0.6 + ageScore * 0.4)),
         kind: touches >= 3 ? 'CLUSTER' : touches === 2 ? 'EQUAL' : 'SWING',
+        // Cluster identity: the side plus the earliest member that formed it.
+        // Every level folded into this cluster shares this id, which is what
+        // target de-duplication keys on.
+        clusterId: `${side}#${Math.min(...memberIndexes)}`,
+        ...classifyPoolLifecycle(
+          candles, side, price, knownAt, index, atr,
+          opts.sweepPenetrationAtr, opts.acceptanceAtr,
+        ),
       });
       i = j;
     }

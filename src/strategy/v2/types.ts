@@ -110,6 +110,36 @@ export interface FibMap {
 
 export type LiquiditySide = 'BUY_SIDE' | 'SELL_SIDE';
 
+/**
+ * LIQUIDITY LIFECYCLE.
+ *
+ * A pool is resting orders sitting at a level. Once price has actually reached
+ * that level the orders are gone, so the pool must stop being offered as a
+ * FUTURE destination. The four states are ordered by severity and are computed
+ * strictly from bars at or before the evaluation index:
+ *
+ *   FRESH     price has never traded to the level since the pool was confirmed.
+ *             Untouched resting liquidity — a valid future target.
+ *
+ *   TOUCHED   price reached the level but only grazed it: penetration stayed
+ *             below the sweep threshold and no bar closed beyond it. A touch
+ *             alone does NOT destroy a level; it stays a valid target.
+ *
+ *   SWEPT     price pierced the level by at least the sweep penetration
+ *             threshold WITHOUT accepting beyond it (a wick raid, typically
+ *             reclaimed). The resting orders were taken. It is no longer
+ *             untouched resting liquidity and must not be a future target.
+ *
+ *   CONSUMED  price CLOSED beyond the level by at least the acceptance
+ *             threshold — full acceptance through the level. The pool is gone
+ *             and must not be a future target.
+ *
+ * SWEPT and CONSUMED are both terminal for targeting purposes; they are kept
+ * distinct because a sweep (rejection) and an acceptance (continuation) mean
+ * opposite things structurally.
+ */
+export type LiquidityState = 'FRESH' | 'TOUCHED' | 'SWEPT' | 'CONSUMED';
+
 export interface LiquidityPool {
   side: LiquiditySide;
   price: number;
@@ -122,6 +152,26 @@ export interface LiquidityPool {
   /** 0..1 strength: touches, tightness and age. */
   strength: number;
   kind: 'SWING' | 'EQUAL' | 'CLUSTER';
+  /**
+   * Stable identity of the structural AREA this pool occupies. Every swing
+   * clustered into this pool shares it. Two targets carrying the same
+   * `clusterId` are the same area and must never occupy two TP slots.
+   */
+  clusterId: string;
+  /** Lifecycle state as known at the evaluation index — never later. */
+  state: LiquidityState;
+  /**
+   * Index of the bar that moved the pool into its current state, or null while
+   * it is still FRESH. Always <= the evaluation index.
+   */
+  stateAtIndex: number | null;
+  /**
+   * True while the pool is still untaken resting liquidity (FRESH or TOUCHED)
+   * and may therefore be used as a future target. False once SWEPT/CONSUMED.
+   */
+  resting: boolean;
+  /** Human-readable explanation of the lifecycle verdict. */
+  stateReason: string;
 }
 
 export interface SweepEvent {
@@ -385,9 +435,25 @@ export interface StructuralStop {
 
 export interface TargetPlan {
   price: number;
-  /** What market feature this target corresponds to. */
-  basis: 'INTERNAL_LIQUIDITY' | 'EQUILIBRIUM' | 'RANGE_EDGE' | 'EXTERNAL_LIQUIDITY' | 'R_MULTIPLE';
+  /**
+   * What market feature this target corresponds to.
+   *
+   * NOTE: there is deliberately no `EXTERNAL_LIQUIDITY` member. It existed in
+   * this union but was never emitted anywhere in `src/`, and a dead variant
+   * invites callers to switch on a case that cannot occur. External liquidity
+   * (the far side of the range) is already expressed as `RANGE_EDGE`. If a
+   * genuinely separate external-liquidity source is ever introduced, add the
+   * member together with the code that emits it — not before.
+   */
+  basis: 'INTERNAL_LIQUIDITY' | 'EQUILIBRIUM' | 'RANGE_EDGE' | 'R_MULTIPLE';
   reason: string;
+  /**
+   * Structural AREA identity, used for target de-duplication. Liquidity-derived
+   * targets inherit the `clusterId` of the pool they came from, so two rungs
+   * from one liquidity cluster are recognised as one area regardless of their
+   * exact prices. Non-liquidity rungs get a synthetic id.
+   */
+  clusterId: string;
   /** R multiple this target represents, given entry and stop. */
   r: number;
   /**

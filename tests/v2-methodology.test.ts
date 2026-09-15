@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Settings, SETTINGS_REGISTRY } from '../src/core/settings';
+import { Settings, SETTINGS_REGISTRY, SETTINGS_BY_KEY } from '../src/core/settings';
 import { LIVE_TRADING_ENABLED, assertAllowedMode, LiveTradingLockedError } from '../src/core/mode';
 import { readFileSync } from 'node:fs';
 import type { Candle, Timeframe } from '../src/core/types';
@@ -351,30 +351,50 @@ describe('structural target ladder', () => {
     expect(checked).toBeGreaterThan(50);
   });
 
-  it('rejects a setup whose FIRST target leaves too little room, despite a huge finalR', () => {
-    const strict = Settings.fromEntries([['v2.min_first_target_r', 0.5]]);
-    const loose = Settings.fromEntries([['v2.min_first_target_r', 0]]);
-    let strictRejections = 0;
-    let accepted = 0;
-    for (const sym of LAB_SYMBOLS) {
-      for (const tf of ['15m', '1h', '4h'] as Timeframe[]) {
-        const bars = loadFixtureCandles('fixtures', sym, tf);
-        if (bars.length < 200) continue;
-        for (let i = 150; i < bars.length; i += 3) {
-          const a = evaluateV2({ symbol: sym, timeframe: tf, candles: bars, atIndex: i, settings: strict });
-          const b = evaluateV2({ symbol: sym, timeframe: tf, candles: bars, atIndex: i, settings: loose });
-          if (!a || !b) continue;
-          if (a.direction === 'WAIT' && b.direction !== 'WAIT') strictRejections++;
-          if (a.direction !== 'WAIT' && a.room) {
-            accepted++;
-            expect(a.room.firstR).toBeGreaterThanOrEqual(0.5 - 1e-9);
-          }
-        }
-      }
+  it('REQUIREMENT: the engine applies exactly ONE room gate, to finalR only', () => {
+    // The removed `v2.min_first_target_r` is gone from the registry...
+    expect(SETTINGS_REGISTRY.some((d) => d.key === 'v2.min_first_target_r')).toBe(false);
+    // ...and the engine no longer READS it or carries a param for it. (The
+    // file may still mention the key in the comment explaining its removal.)
+    const engineSrc = readFileSync('src/strategy/v2/engine.ts', 'utf8');
+    expect(engineSrc).not.toMatch(/n\(\s*'v2\.min_first_target_r'/);
+    expect(engineSrc).not.toContain('minFirstTargetR');
+    expect(engineSrc).not.toContain('minFirstR');
+
+    // assessRoom takes exactly four arguments: no second threshold can be passed.
+    expect(assessRoom.length).toBe(4);
+
+    // Acceptance must track finalR alone. A ladder whose TP1 is microscopic but
+    // whose final target clears the floor is ADEQUATE as far as the engine is
+    // concerned — the executable RR decision belongs to risk.min_rr downstream.
+    const thinFirst = buildTargets(
+      'LONG', 100, 98, null,
+      [{ side: 'BUY_SIDE', price: 100.2 }, { side: 'BUY_SIDE', price: 120 }],
+      0.5,
+    );
+    const room = assessRoom(thinFirst, 100, 0.5, 1.5);
+    expect(room.firstR).toBeCloseTo(0.1, 9);   // still REPORTED as a diagnostic
+    expect(room.finalR).toBeCloseTo(10, 9);
+    expect(room.adequate).toBe(true);          // but it is NOT an acceptance gate
+    expect(room.reason).not.toMatch(/First target is only/i);
+
+    // ...and the final-room floor itself still bites.
+    expect(assessRoom(thinFirst, 100, 0.5, 12).adequate).toBe(false);
+  });
+
+  it('REQUIREMENT: risk.min_rr is the single executable minimum-RR gate', () => {
+    // Value must be untouched by this change.
+    const def = SETTINGS_BY_KEY.get('risk.min_rr');
+    expect(def?.default).toBe(1);
+
+    // The runners gate on executableLadder().rr1 >= risk.min_rr, and nothing
+    // else applies a second floor to that same ratio.
+    for (const f of ['src/replay/v2-runner.ts', 'src/replay/runner.ts', 'src/strategy/engine-runner.ts']) {
+      const src = readFileSync(f, 'utf8');
+      expect(src, `${f} must read risk.min_rr`).toContain('risk.min_rr');
+      expect(src, `${f} must not reintroduce a first-target floor`)
+        .not.toContain('min_first_target_r');
     }
-    // The guard must actually bite, and must not reject everything.
-    expect(strictRejections).toBeGreaterThan(0);
-    expect(accepted).toBeGreaterThan(0);
   });
 });
 
@@ -497,28 +517,33 @@ describe('buildTargets — direct, with explicit numbers', () => {
     expect(out.map((t) => t.r)).toEqual([1, 2, 3]);
   });
 
-  it('assessRoom reports first / next / final separately and rejects a thin TP1', () => {
+  it('assessRoom reports first / next / final separately, gating on finalR alone', () => {
     const pools = [
       { side: 'BUY_SIDE' as const, price: 120.4 }, // only 0.2R away
       { side: 'BUY_SIDE' as const, price: 160 },
     ];
     const targets = buildTargets('LONG', 120, 118, range(), pools, 2);
-    const room = assessRoom(targets, 120, 2, 1.5, 0.5);
+    const room = assessRoom(targets, 120, 2, 1.5);
 
+    // All three distances are still reported — they are diagnostics.
     expect(room.firstR).toBeCloseTo(0.2, 6);
     expect(room.finalR).toBeGreaterThan(1.5);
-    // Final room is fine, but the nearest structural target is too thin.
-    expect(room.adequate).toBe(false);
-    expect(room.reason).toMatch(/First target/i);
+    expect(room.firstR).toBeLessThanOrEqual(room.nextStructuralR + 1e-9);
+    expect(room.nextStructuralR).toBeLessThanOrEqual(room.finalR + 1e-9);
 
-    // Same ladder with the floor removed is acceptable.
-    expect(assessRoom(targets, 120, 2, 1.5, 0).adequate).toBe(true);
+    // A thin TP1 no longer rejects the setup here: the executable RR gate is
+    // risk.min_rr, applied once, in the runner.
+    expect(room.adequate).toBe(true);
+    expect(room.reason).not.toMatch(/First target is only/i);
+
+    // Raising the FINAL floor above finalR is what rejects it.
+    expect(assessRoom(targets, 120, 2, 100).adequate).toBe(false);
   });
 
   it('assessRoom.atrDistance is directional, verified with explicit numbers', () => {
     // entry 100, stop 98 (risk 2), ATR 4, single target at 116.
     const targets = buildTargets('LONG', 100, 98, null, [{ side: 'BUY_SIDE', price: 116 }], 4);
-    const room = assessRoom(targets, 100, 4, 1.5, 0.5);
+    const room = assessRoom(targets, 100, 4, 1.5);
     // (116 - 100) / 4 = 4 ATR, NOT abs(116)/4 = 29.
     expect(room.atrDistance).toBeCloseTo(4, 10);
     expect(room.firstAtrDistance).toBeCloseTo(4, 10);
@@ -527,7 +552,7 @@ describe('buildTargets — direct, with explicit numbers', () => {
 
     // SHORT mirror: entry 100, stop 102, target 84, ATR 4 -> 4 ATR again.
     const shortT = buildTargets('SHORT', 100, 102, null, [{ side: 'SELL_SIDE', price: 84 }], 4);
-    const shortRoom = assessRoom(shortT, 100, 4, 1.5, 0.5);
+    const shortRoom = assessRoom(shortT, 100, 4, 1.5);
     expect(shortRoom.atrDistance).toBeCloseTo(4, 10);
     expect(shortRoom.finalR).toBeCloseTo(8, 10);
   });

@@ -314,6 +314,13 @@ describe('V2 range and Fibonacci', () => {
 /* ================================================================== */
 
 describe('V2 liquidity, sweep and breakout', () => {
+  /**
+   * Lifecycle thresholds for these detector fixtures. They mirror the sweep /
+   * breakout thresholds used by the assertions below, so a pool is only retired
+   * by the same event the detector under test is looking for.
+   */
+  const LIFECYCLE = { sweepPenetrationAtr: 0.3, acceptanceAtr: 0.2 };
+
   /** Range with two equal highs at 110, then a decision bar. */
   function equalHighs(decision: Candle): Candle[] {
     const bars: Candle[] = [];
@@ -328,7 +335,7 @@ describe('V2 liquidity, sweep and breakout', () => {
     const bars = equalHighs(c(23, 100, 101, 99, 100));
     const sw = findSwingsV2(bars, 1);
     const atr = buildAtrContext(bars, bars.length - 1, 14).atr;
-    const pools = findLiquidityPools(sw, bars.length - 1, atr, 0.5, 100);
+    const pools = findLiquidityPools(bars, sw, bars.length - 1, atr, 0.5, 100, LIFECYCLE);
     const buy = pools.filter((p) => p.side === 'BUY_SIDE');
     expect(buy.length).toBeGreaterThan(0);
     const top = buy.reduce((a, b) => (b.price > a.price ? b : a));
@@ -343,7 +350,7 @@ describe('V2 liquidity, sweep and breakout', () => {
     const sw = findSwingsV2(bars, 1);
     const i = bars.length - 1;
     const atr = buildAtrContext(bars, i, 14).atr;
-    const pools = findLiquidityPools(sw, i, atr, 0.5, 100);
+    const pools = findLiquidityPools(bars, sw, i, atr, 0.5, 100, LIFECYCLE);
     const sweep = detectSweep(bars, pools, i, atr, 1, {
       minPenetrationAtr: 0.3, minWickRatio: 0.3, reclaimWindow: 3,
     });
@@ -356,7 +363,7 @@ describe('V2 liquidity, sweep and breakout', () => {
     const sw = findSwingsV2(bars, 1);
     const i = bars.length - 1;
     const atr = buildAtrContext(bars, i, 14).atr;
-    const pools = findLiquidityPools(sw, i, atr, 0.5, 100);
+    const pools = findLiquidityPools(bars, sw, i, atr, 0.5, 100, LIFECYCLE);
     const sweep = detectSweep(bars, pools, i, atr, 3, {
       minPenetrationAtr: 0.3, minWickRatio: 0.3, reclaimWindow: 3,
     });
@@ -377,7 +384,7 @@ describe('V2 liquidity, sweep and breakout', () => {
     const sw = findSwingsV2(bars, 1);
     const i = bars.length - 1;
     const atr = buildAtrContext(bars, i, 14).atr;
-    const pools = findLiquidityPools(sw, i, atr, 0.5, 100);
+    const pools = findLiquidityPools(bars, sw, i, atr, 0.5, 100, LIFECYCLE);
     const sweep = detectSweep(bars, pools, i, atr, 3, {
       minPenetrationAtr: 0.3, minWickRatio: 0.3, reclaimWindow: 0,
     });
@@ -389,7 +396,7 @@ describe('V2 liquidity, sweep and breakout', () => {
     const sw = findSwingsV2(bars, 1);
     const i = bars.length - 1;
     const atr = buildAtrContext(bars, i, 14).atr;
-    const pools = findLiquidityPools(sw, i, atr, 0.5, 100);
+    const pools = findLiquidityPools(bars, sw, i, atr, 0.5, 100, LIFECYCLE);
     const bo = detectBreakout(bars, pools, i, atr, 3, {
       minCloseBeyondAtr: 0.2, minBodyAtr: 0.4, holdWindow: 3,
     });
@@ -404,7 +411,7 @@ describe('V2 liquidity, sweep and breakout', () => {
     const sw = findSwingsV2(bars, 1);
     const i = bars.length - 1;
     const atr = buildAtrContext(bars, i, 14).atr;
-    const pools = findLiquidityPools(sw, i, atr, 0.5, 100);
+    const pools = findLiquidityPools(bars, sw, i, atr, 0.5, 100, LIFECYCLE);
     const bo = detectBreakout(bars, pools, i, atr, 3, {
       minCloseBeyondAtr: 0.2, minBodyAtr: 0.4, holdWindow: 3,
     });
@@ -420,7 +427,7 @@ describe('V2 liquidity, sweep and breakout', () => {
       const sw = findSwingsV2(bars, 1);
       const i = bars.length - 1;
       const atr = buildAtrContext(bars, i, 14).atr;
-      const pools = findLiquidityPools(sw, i, atr, 0.5, 100);
+      const pools = findLiquidityPools(bars, sw, i, atr, 0.5, 100, LIFECYCLE);
       const s = detectSweep(bars, pools, i, atr, 3, {
         minPenetrationAtr: 0.3, minWickRatio: 0.3, reclaimWindow: 3,
       });

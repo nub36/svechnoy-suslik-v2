@@ -60,7 +60,6 @@ export interface V2Params {
   minEvidence: number;
   minNetEvidence: number;
   minRoomR: number;
-  minFirstTargetR: number;
   stopBufferAtr: number;
   rsiPeriod: number;
   atrPeriod: number;
@@ -96,7 +95,6 @@ export function paramsFromSettings(s: Settings): V2Params {
     minEvidence: n('v2.min_evidence', 0.45),
     minNetEvidence: n('v2.min_net_evidence', 0.12),
     minRoomR: n('v2.min_room_r', 1.5),
-    minFirstTargetR: n('v2.min_first_target_r', 0.5),
     stopBufferAtr: n('v2.stop_buffer_atr', 0.25),
     rsiPeriod: Math.floor(n('v2.rsi_period', 14)),
     atrPeriod: Math.floor(n('risk.atr_period', 14)),
@@ -143,6 +141,25 @@ export function aggregateEvidence(p: ComponentProfile): number {
 /* ------------------------------------------------------------------ */
 
 /**
+ * The pool shape `buildTargets` needs. A full `LiquidityPool` satisfies it;
+ * unit tests may pass the minimal `{side, price}`, in which case the pool is
+ * treated as resting and gets a price-derived cluster identity.
+ */
+export interface TargetPool {
+  side: 'BUY_SIDE' | 'SELL_SIDE';
+  price: number;
+  resting?: boolean;
+  clusterId?: string;
+}
+
+/**
+ * Fallback area tolerance for direct callers that do not pass settings. It
+ * mirrors the registry default of `v2.liquidity_tol_atr`; the engine always
+ * passes the live value so the two stages cannot drift apart.
+ */
+export const DEFAULT_CLUSTER_TOL_ATR = 0.25;
+
+/**
  * Targets are STRUCTURAL, not arbitrary R multiples, and — crucially — they are
  * the NEXT levels the move must actually pass through:
  *
@@ -174,8 +191,9 @@ export function buildTargets(
   entry: number,
   stop: number,
   range: V2Range | null,
-  pools: readonly { side: 'BUY_SIDE' | 'SELL_SIDE'; price: number }[],
+  pools: readonly TargetPool[],
   atr: number | null,
+  opts: { clusterTolAtr: number } = { clusterTolAtr: DEFAULT_CLUSTER_TOL_ATR },
 ): TargetPlan[] {
   const risk = Math.abs(entry - stop);
   if (!(risk > 0)) return [];
@@ -195,18 +213,27 @@ export function buildTargets(
     price: number;
     basis: TargetPlan['basis'];
     reason: string;
+    clusterId: string;
   }
   const candidates: Candidate[] = [];
 
   // Internal liquidity on the side we are travelling toward.
+  //
+  // LIFECYCLE FILTER: only liquidity that is still RESTING can be a
+  // destination. A pool price has already swept or accepted through holds no
+  // orders any more, so it is not somewhere price is still travelling to.
+  // Pools without lifecycle information (direct unit-test callers) are treated
+  // as resting, which keeps this function usable with plain {side, price}.
   const wantSide = direction === 'LONG' ? 'BUY_SIDE' : 'SELL_SIDE';
   for (const p of pools) {
     if (p.side !== wantSide) continue;
     if (!ahead(p.price)) continue;
+    if (p.resting === false) continue;
     candidates.push({
       price: p.price,
       basis: 'INTERNAL_LIQUIDITY',
       reason: 'Resting liquidity in the direction of travel',
+      clusterId: p.clusterId ?? `${p.side}@${p.price}`,
     });
   }
 
@@ -218,6 +245,7 @@ export function buildTargets(
         price: range.mid,
         basis: 'EQUILIBRIUM',
         reason: 'Range equilibrium (50% of the range)',
+        clusterId: 'EQUILIBRIUM',
       });
     }
 
@@ -233,6 +261,7 @@ export function buildTargets(
         price: far,
         basis: 'RANGE_EDGE',
         reason: `Opposite side of the range (${farSide}) — external liquidity`,
+        clusterId: `RANGE_EDGE#${farSide}`,
       });
     }
   }
@@ -241,21 +270,43 @@ export function buildTargets(
   candidates.sort((a, b) =>
     direction === 'LONG' ? a.price - b.price : b.price - a.price);
 
-  // Near-duplicate collapsing: two levels within 0.15 ATR (or 0.05% of price
-  // when ATR is unusable) are the same structural level in practice.
-  const nearTol = atr && atr > 0 ? atr * 0.15 : Math.abs(entry) * 0.0005;
+  // AREA DE-DUPLICATION.
+  //
+  // TP1/TP2/TP3 must be three DIFFERENT structural areas, otherwise the ladder
+  // reports as three separate achievements what is really one level reached
+  // once. Two candidates are the same area when EITHER:
+  //
+  //   (a) they carry the same `clusterId` — they came from one liquidity
+  //       cluster, so the pool builder already judged them one area; or
+  //   (b) they sit within `clusterTolAtr` ATR of each other — the SAME
+  //       tolerance that clustered swings into pools in the first place.
+  //
+  // Rule (b) is what makes the two stages consistent. The old ladder collapsed
+  // at 0.15 ATR while pools clustered at 0.25 ATR, so two distinct pools
+  // 0.16-0.25 ATR apart — one practical area by the pool builder's own
+  // definition — could take two TP slots. Sharing one tolerance removes the
+  // gap by construction rather than by a threshold picked from backtests.
+  // It applies to equilibrium and range-edge rungs too: if equilibrium
+  // coincides with a liquidity level, they are one area and take one slot.
+  const clusterTol = atr && atr > 0
+    ? atr * opts.clusterTolAtr
+    : Math.abs(entry) * 0.0005;
 
   const out: TargetPlan[] = [];
+  const usedClusters = new Set<string>();
   for (const c of candidates) {
     if (out.length >= 3) break;
     const r = rOf(c.price);
     if (!(r > 0)) continue; // must be ahead of entry
+    if (usedClusters.has(c.clusterId)) continue; // same cluster identity
     const prev = out[out.length - 1];
-    if (prev && Math.abs(c.price - prev.price) <= nearTol) continue; // duplicate
+    if (prev && Math.abs(c.price - prev.price) <= clusterTol) continue; // same area
+    usedClusters.add(c.clusterId);
     out.push({
       price: c.price,
       basis: c.basis,
       reason: c.reason,
+      clusterId: c.clusterId,
       r,
       atrDistance: atrOf(c.price),
     });
@@ -267,14 +318,17 @@ export function buildTargets(
     const r = fallback[out.length] ?? out.length + 1;
     const p = direction === 'LONG' ? entry + risk * r : entry - risk * r;
     const prev = out[out.length - 1];
-    // Never emit a fallback that sits behind a structural rung we already have.
+    // Never emit a fallback that sits behind a structural rung we already have,
+    // nor one that lands inside the same area as that rung.
     if (prev && ((direction === 'LONG' && p <= prev.price) || (direction === 'SHORT' && p >= prev.price))) {
       break;
     }
+    if (prev && Math.abs(p - prev.price) <= clusterTol) break;
     out.push({
       price: p,
       basis: 'R_MULTIPLE',
       reason: `No structural level available; ${r}R fallback`,
+      clusterId: `R_MULTIPLE#${r}`,
       r,
       atrDistance: atrOf(p),
     });
@@ -299,12 +353,32 @@ export function buildTargets(
  * leave workable room, otherwise the ladder is "TP1 at 0.2R then a 50R moon
  * shot", which is exactly the pathology the audit found.
  */
+/**
+ * Room-to-target assessment.
+ *
+ * SINGLE RR GATE. This function applies exactly ONE acceptance threshold, to
+ * the FINAL target: `finalR >= minRoomR`. It deliberately does not apply a
+ * second, independent floor to `firstR`.
+ *
+ * Why: the READ-ONLY audit of 60aac85 measured `room.firstR` against the
+ * runner's `executableLadder(...).rr1` over 748 TEST setups and found them
+ * equal in 748/748 cases — they are the same quantity. The engine floor
+ * (`v2.min_first_target_r` = 0.5) was therefore strictly dominated by the
+ * executable gate (`risk.min_rr` = 1.0) applied downstream in the replay and
+ * live runners: toggling the engine floor between 0 and 0.5 produced a
+ * byte-identical trade set and only relabelled WAIT reasons. Two thresholds on
+ * one quantity is double filtering, so the redundant one was removed.
+ *
+ * `firstR` / `firstAtrDistance` / `nextStructuralR` are still computed and
+ * reported — they are useful diagnostics and feed room-to-target scoring — but
+ * they are NOT an acceptance criterion here. The one executable minimum-RR gate
+ * lives in `executableLadder(...) >= risk.min_rr`.
+ */
 export function assessRoom(
   targets: readonly TargetPlan[],
   entry: number,
   atr: number | null,
   minRoomR: number,
-  minFirstR: number,
 ): RoomToTarget {
   void entry;
   if (targets.length === 0) {
@@ -320,17 +394,11 @@ export function assessRoom(
   const firstR = first.r;
   const nextStructuralR = (targets[1] ?? last).r;
 
-  const finalOk = finalR >= minRoomR;
-  const firstOk = firstR >= minFirstR;
-  const adequate = finalOk && firstOk;
+  const adequate = finalR >= minRoomR;
 
   let reason: string;
-  if (!finalOk) {
+  if (!adequate) {
     reason = `Only ${finalR.toFixed(2)}R to the final target, below the ${minRoomR}R floor`;
-  } else if (!firstOk) {
-    reason =
-      `First target is only ${firstR.toFixed(2)}R away (floor ${minFirstR}R) — ` +
-      `the nearest structural level leaves too little room, even though the final target is ${finalR.toFixed(2)}R`;
   } else {
     reason =
       `First target ${firstR.toFixed(2)}R, next ${nextStructuralR.toFixed(2)}R, ` +
@@ -387,7 +455,13 @@ export function evaluateV2(args: V2EvaluateArgs): V2Setup | null {
   const range = buildRange(window, swings, i, atr, p.lookback, timeframe);
   const location = rangeLocation(range, p.rangeEdgePct);
   const fib = buildFib(range, bar.close);
-  const pools = findLiquidityPools(swings, i, atr, p.liquidityTolAtr, p.lookback);
+  const pools = findLiquidityPools(window, swings, i, atr, p.liquidityTolAtr, p.lookback, {
+    // Lifecycle thresholds are the detectors' own: a pool is SWEPT once price
+    // pierces it as deeply as a sweep requires, and CONSUMED once price closes
+    // beyond it as decisively as a breakout requires. No new tunable.
+    sweepPenetrationAtr: p.sweepMinPenetrationAtr,
+    acceptanceAtr: p.breakoutMinCloseAtr,
+  });
 
   const structBreak = detectStructureBreak(
     window, swings, i, atr, p.structureMinPenetrationAtr,
@@ -582,8 +656,13 @@ export function evaluateV2(args: V2EvaluateArgs): V2Setup | null {
     }
 
     if (stop) {
-      targets = buildTargets(candidate, entry, stop.price, range, pools, atr);
-      room = assessRoom(targets, entry, atr, p.minRoomR, p.minFirstTargetR);
+      targets = buildTargets(candidate, entry, stop.price, range, pools, atr, {
+        // Target areas are de-duplicated with the SAME tolerance that clustered
+        // swings into liquidity pools, so the two stages cannot disagree about
+        // what counts as one structural area.
+        clusterTolAtr: p.liquidityTolAtr,
+      });
+      room = assessRoom(targets, entry, atr, p.minRoomR);
       const rScore = clamp01(room.finalR / (p.minRoomR * 2));
       if (candidate === 'LONG') longP.roomToTarget = rScore;
       else shortP.roomToTarget = rScore;

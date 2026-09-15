@@ -461,19 +461,6 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     consumedBy: ['src/strategy/v2/engine.ts'],
   },
   {
-    key: 'v2.min_first_target_r',
-    type: 'number',
-    category: 'risk',
-    label: 'V2 min room to FIRST target (R)',
-    description:
-      'Reject a setup whose nearest structural target is closer than this many R, '
-      + 'even when a distant final target would satisfy the final-room floor.',
-    default: 0.5,
-    min: 0,
-    max: 5,
-    consumedBy: ['src/strategy/v2/engine.ts'],
-  },
-  {
     key: 'v2.stop_buffer_atr',
     type: 'number',
     category: 'risk',
