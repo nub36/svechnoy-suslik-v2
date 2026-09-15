@@ -1,0 +1,28 @@
+{
+  "gate": "MODEL_A_BASELINE_FIDELITY",
+  "verdict": "PASS",
+  "note": "Environment was destroyed by a sandbox re-clone (candle cache, dataset, node_modules and the gitignored baseline trade files were all lost). Dataset re-cloned at frozen commit c3c1dce, cache rebuilt, and Model A re-run over TRAIN. Aggregates reproduce the frozen baseline exactly.",
+  "modelA_rebuilt": {
+    "closed": 328872,
+    "open": 22,
+    "tp": 43277,
+    "sl": 204660,
+    "timeout": 80935,
+    "totalR": -239721.2471,
+    "expectancy": -0.7289,
+    "profitFactor": 0.416
+  },
+  "frozen_baseline": {
+    "closed": 328872,
+    "open": 22,
+    "tp": 43277,
+    "sl": 204660,
+    "timeout": 80935,
+    "totalR": -239721.2471,
+    "expectancy": -0.7289,
+    "profitFactor": 0.416
+  },
+  "datasetCommit": "c3c1dcecfe2784a147f591f2b5b4526cbf99df9f",
+  "manifestTotalsIdenticalToFrozen": true,
+  "allSeriesMatchFrozenSplits": "42/42"
+}
