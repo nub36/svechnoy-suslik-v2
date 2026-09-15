@@ -1,5 +1,10 @@
 # REAL BINANCE DATA — ACQUISITION BLOCKED
 
+> **UPDATE (second attempt, user-hosted mirror).** The user supplied the dataset
+> over plain HTTP at `http://89.125.24.50:8080/`. That host is **also**
+> unreachable, and the diagnosis below proves the cause is *this sandbox's
+> egress filter*, not the user's server. See §6.
+
 **Status:** the real-historical-data stage **cannot start** from this
 environment. This document records the exact technical cause, the evidence, and
 what would unblock it. No synthetic substitute was used, and none will be.
@@ -134,3 +139,94 @@ DOGEUSDT` at `5m 15m 30m 1h 4h 1d` (1m optional), from 2022-01-01 (intraday) /
 No data tooling was written speculatively: a downloader that cannot reach its
 source, and a pipeline with nothing to validate, would be untested code
 pretending to be progress.
+
+
+---
+
+## 6. Second attempt — user-hosted HTTP mirror (also blocked)
+
+The user made the data available outside Binance:
+
+| item | value |
+|---|---|
+| dataset URL | `http://89.125.24.50:8080/binance-data/binance-history-2022-2025.tar` |
+| checksum URL | `…/binance-history-2022-2025.tar.sha256` |
+| expected SHA-256 | `86f7dca71423f800441de5602421efa9dc20c65417b1856d62cffc522e273bc4` |
+| expected size | 717 762 560 bytes |
+| contents | 2016 original Binance monthly ZIPs (6 symbols x 7 timeframes x 48 months, 2022-01..2025-12) |
+
+**Result: not downloadable. Zero bytes of payload ever arrive.**
+
+```
+$ curl -I http://89.125.24.50:8080/binance-data/binance-history-2022-2025.tar
+curl: (56) Recv failure: Connection reset by peer
+
+$ curl -v http://89.125.24.50:8080/binance-data/…tar.sha256
+*   Trying 89.125.24.50:8080...
+* Connected to 89.125.24.50 (89.125.24.50) port 8080   <- looks fine
+> GET /binance-data/…tar.sha256 HTTP/1.1
+> Host: 89.125.24.50:8080
+* Empty reply from server                              <- reset on payload
+curl: (52) Empty reply from server
+```
+
+Tried and all `000`: ports 8080, 80, 8000, 443, and HTTPS on 443.
+
+### The TCP "connection" is fake — proof it is a local filter
+
+A bash `/dev/tcp` probe reports the port OPEN. That is misleading: **every**
+address reports OPEN, including addresses that cannot exist on the internet.
+
+```
+OPEN  89.125.24.50:8080
+OPEN  89.125.24.50:22
+OPEN  89.125.24.50:9999      <- arbitrary unused port
+OPEN  192.0.2.1:8080         <- RFC 5737 TEST-NET-1, non-routable by definition
+```
+
+`192.0.2.0/24` is reserved for documentation and is guaranteed unreachable, yet
+it "connects" and then resets exactly like the dataset host:
+
+```
+$ curl -v http://192.0.2.1:8080/anything
+* Connected to 192.0.2.1 (192.0.2.1) port 8080
+* Recv failure: Connection reset by peer
+```
+
+A transparent middlebox therefore accepts the SYN for **all** destinations and
+resets as soon as an HTTP request is written. Identical behaviour for
+`203.0.113.77` (TEST-NET-3), `1.1.1.1`, `8.8.8.8`, `example.com`,
+`neverssl.com` — all `000`.
+
+**Conclusion: the user's server is almost certainly fine. Nothing reaches it.**
+Egress is a strict allowlist; arbitrary IP:port destinations are impossible.
+
+### Current allowlist (measured)
+
+| reachable | blocked |
+|---|---|
+| `github.com` 200 | `raw.githubusercontent.com` 000 |
+| `api.github.com` 200 | `objects.githubusercontent.com` 000 |
+| `codeload.github.com` 301 | `deb.debian.org` 000 |
+| `registry.npmjs.org` 200 | any bare IP:port 000 |
+| `pypi.org`, `files.pythonhosted.org` 200 | all exchange/market-data hosts 000 |
+
+No proxy variables are set, so there is no configured egress path to opt into.
+
+### What would work
+
+The only channel that moves bytes is **git over `github.com:443`** (verified:
+`git clone` and `git ls-remote` both succeed). Therefore:
+
+1. **Preferred — push the data to a GitHub repo** (public or one this sandbox's
+   token can read) and give the clone URL. For 685 MB, split into <2 GB pushes;
+   Git LFS will **not** work because `objects.githubusercontent.com` is blocked,
+   so the files must be committed as ordinary blobs, ideally the 2016 ZIPs
+   unchanged so their Binance provenance and per-file SHA-256 stay verifiable.
+2. **Or** allowlist `89.125.24.50:8080` (or `data.binance.vision:443`) for this
+   sandbox.
+3. **Or** attach the archive directly into the workspace filesystem.
+
+Nothing was downloaded, so **no integrity check could be performed**: this is
+**not** a `DATASET_INTEGRITY_FAILURE` (which would mean a hash mismatch). The
+correct status is **dataset unreachable — acquisition blocked**.
