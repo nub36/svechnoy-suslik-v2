@@ -1,0 +1,357 @@
+{
+  "datasetRepo": "https://github.com/nub36/svechnoy-suslik-binance-data.git",
+  "datasetCommit": "c3c1dcecfe2784a147f591f2b5b4526cbf99df9f",
+  "generatedAt": "2026-09-16T15:35:44.807Z",
+  "scope": {
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "DOGEUSDT"
+    ],
+    "timeframes": [
+      "1h",
+      "4h"
+    ],
+    "note": "V3.0 validation subset: 1h execution + 4h structure"
+  },
+  "series": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/BTCUSDT-1h.bin",
+      "cacheSha256": "3655b74d276cf93db8872f069bdac334a35a7f914382a8635bec2fe461aa4c66"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/BTCUSDT-4h.bin",
+      "cacheSha256": "8bfbc880692c62c3d784f5fea5293504193f350d2fdcb0dea9883175d754d914"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/ETHUSDT-1h.bin",
+      "cacheSha256": "ddb9c38683ffc095c8ab94fc45cfa83669487a707cc960a0c23c36dfb662c6ad"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/ETHUSDT-4h.bin",
+      "cacheSha256": "d01919851019470f1f34426eba74aff73738ef9c0e80b33c71338fba1fa3f111"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/BNBUSDT-1h.bin",
+      "cacheSha256": "2d80d77720d36199b4293191e3657fe045b825ae5eeeb642f35f4596cf69b84e"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/BNBUSDT-4h.bin",
+      "cacheSha256": "f56f9b7e47f9a078ad52a175dbb67178649e639927c65420848506957fb6a60c"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/SOLUSDT-1h.bin",
+      "cacheSha256": "6d555ff822ced437692907b9433fb5e0205c903eac8f7dfa4a1e83090da4be03"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/SOLUSDT-4h.bin",
+      "cacheSha256": "435608bcc500e327018f88e48e3057acf2567fad49b4f12ee7a901d44532eb60"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/XRPUSDT-1h.bin",
+      "cacheSha256": "bc4bf885f7f7bdb2fb70919ae1a122dd7e872c31f07b650e3eb935a4d854e084"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/XRPUSDT-4h.bin",
+      "cacheSha256": "a43a2a6743dec69032e78ecf72c604aeddc34c1901c3aa51d37352f2f23f1b1d"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "1h",
+      "files": 48,
+      "candles": 35063,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767222000000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T23:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 1,
+      "missingCandles": 1,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 1,
+      "gaps": [
+        {
+          "fromUtc": "2023-03-24T12:00:00Z",
+          "toUtc": "2023-03-24T14:00:00Z",
+          "missing": 1
+        }
+      ],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/DOGEUSDT-1h.bin",
+      "cacheSha256": "16d5c1f794daa649f20a4c1eef5e6eee07ced3010ba90169c4ddcf338858b722"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "timeframe": "4h",
+      "files": 48,
+      "candles": 8766,
+      "firstOpenTimeMs": 1640995200000,
+      "lastOpenTimeMs": 1767211200000,
+      "firstOpenUtc": "2022-01-01T00:00:00Z",
+      "lastOpenUtc": "2025-12-31T20:00:00Z",
+      "duplicateOpenTime": 0,
+      "outOfOrder": 0,
+      "gapCount": 0,
+      "missingCandles": 0,
+      "invalidOhlc": 0,
+      "invalidVolume": 0,
+      "badCloseTime": 0,
+      "gaps": [],
+      "timeUnits": [
+        "ms",
+        "us"
+      ],
+      "cacheFile": "/tmp/v30/cache/DOGEUSDT-4h.bin",
+      "cacheSha256": "a947ede31357a33f3dc3238ff4b6122600a28243909dc81c6879f776ff1b3c79"
+    }
+  ],
+  "totals": {
+    "zips": 576,
+    "candles": 262974,
+    "duplicateOpenTime": 0,
+    "outOfOrder": 0,
+    "gapCount": 6,
+    "missingCandles": 6,
+    "invalidOhlc": 0,
+    "invalidVolume": 0,
+    "badCloseTime": 6
+  }
+}

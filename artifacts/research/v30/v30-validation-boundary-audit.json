@@ -1,0 +1,149 @@
+{
+  "note": "Diagnostic slice-boundary audit. Bounds a caveat; does not replace the registered run.",
+  "timeoutBars": 50,
+  "slices": {
+    "valid": {
+      "slice": "valid",
+      "reproducedArtifact": "artifacts/research/v30/v30-validation-metrics.json",
+      "exactReproduction": true,
+      "windowEndUtcBySymbol": {
+        "BTCUSDT": "2025-03-14T18:00:00.000Z",
+        "ETHUSDT": "2025-03-14T18:00:00.000Z",
+        "BNBUSDT": "2025-03-14T18:00:00.000Z",
+        "SOLUSDT": "2025-03-14T18:00:00.000Z",
+        "XRPUSDT": "2025-03-14T18:00:00.000Z",
+        "DOGEUSDT": "2025-03-14T18:00:00.000Z"
+      },
+      "windowEndIndexBySymbol": {
+        "BTCUSDT": 28049,
+        "ETHUSDT": 28049,
+        "BNBUSDT": 28049,
+        "SOLUSDT": 28049,
+        "XRPUSDT": 28049,
+        "DOGEUSDT": 28049
+      },
+      "fillsWithPostBoundaryBars": 2,
+      "affected": {
+        "count": 1,
+        "shareOfTradesPct": 0.1862,
+        "grossR": -1,
+        "feeFut4R": 0.0386,
+        "shareOfGrossRPct": -1.4867,
+        "exits": {
+          "SL": 1
+        },
+        "detail": [
+          {
+            "symbol": "DOGEUSDT",
+            "direction": "SHORT",
+            "fillIndex": 28047,
+            "fillTime": 1741968000000,
+            "exit": "SL",
+            "barsHeld": 22,
+            "grossR": -1,
+            "feeFut4": 0.0385950665131444,
+            "fillingInLastBars": true
+          }
+        ]
+      },
+      "gross": {
+        "registered": 0.1253,
+        "excludingAffected": 0.1274
+      },
+      "netFut4": {
+        "registered": 0.058,
+        "excludingAffected": 0.06,
+        "worstCaseAllAffectedAtMinus1": 0.058
+      }
+    },
+    "train": {
+      "slice": "train",
+      "reproducedArtifact": "artifacts/research/v30/v30-train-metrics.json",
+      "exactReproduction": true,
+      "windowEndUtcBySymbol": {
+        "BTCUSDT": "2024-05-26T13:00:00.000Z",
+        "ETHUSDT": "2024-05-26T13:00:00.000Z",
+        "BNBUSDT": "2024-05-26T13:00:00.000Z",
+        "SOLUSDT": "2024-05-26T13:00:00.000Z",
+        "XRPUSDT": "2024-05-26T13:00:00.000Z",
+        "DOGEUSDT": "2024-05-26T13:00:00.000Z"
+      },
+      "windowEndIndexBySymbol": {
+        "BTCUSDT": 21036,
+        "ETHUSDT": 21036,
+        "BNBUSDT": 21036,
+        "SOLUSDT": 21036,
+        "XRPUSDT": 21036,
+        "DOGEUSDT": 21036
+      },
+      "fillsWithPostBoundaryBars": 4,
+      "affected": {
+        "count": 4,
+        "shareOfTradesPct": 0.2524,
+        "grossR": 1.9433,
+        "feeFut4R": 0.3879,
+        "shareOfGrossRPct": 0.7102,
+        "exits": {
+          "TIMEOUT": 2,
+          "SL": 1,
+          "TP2": 1
+        },
+        "detail": [
+          {
+            "symbol": "BTCUSDT",
+            "direction": "SHORT",
+            "fillIndex": 21011,
+            "fillTime": 1716638400000,
+            "exit": "TIMEOUT",
+            "barsHeld": 50,
+            "grossR": 0.33275008271825995,
+            "feeFut4": 0.08663373060118983,
+            "fillingInLastBars": true
+          },
+          {
+            "symbol": "SOLUSDT",
+            "direction": "LONG",
+            "fillIndex": 21033,
+            "fillTime": 1716717600000,
+            "exit": "SL",
+            "barsHeld": 7,
+            "grossR": -1,
+            "feeFut4": 0.11884005001728566,
+            "fillingInLastBars": true
+          },
+          {
+            "symbol": "XRPUSDT",
+            "direction": "SHORT",
+            "fillIndex": 21033,
+            "fillTime": 1716717600000,
+            "exit": "TP2",
+            "barsHeld": 6,
+            "grossR": 1.1535207252859874,
+            "feeFut4": 0.14999079531668863,
+            "fillingInLastBars": true
+          },
+          {
+            "symbol": "DOGEUSDT",
+            "direction": "SHORT",
+            "fillIndex": 21024,
+            "fillTime": 1716685200000,
+            "exit": "TIMEOUT",
+            "barsHeld": 50,
+            "grossR": 1.4570373213912284,
+            "feeFut4": 0.03242294375748878,
+            "fillingInLastBars": true
+          }
+        ]
+      },
+      "gross": {
+        "registered": 0.1726,
+        "excludingAffected": 0.1718
+      },
+      "netFut4": {
+        "registered": 0.0994,
+        "excludingAffected": 0.0987,
+        "worstCaseAllAffectedAtMinus1": 0.096
+      }
+    }
+  }
+}

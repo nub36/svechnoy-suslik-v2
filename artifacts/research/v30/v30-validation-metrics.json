@@ -1,0 +1,123 @@
+{
+  "slice": "valid",
+  "execTimeframe": "1h",
+  "structuralTimeframe": "4h",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "constants": {
+    "MIN_BODY_RATIO": 0.35,
+    "MIN_RVOL": 1.25,
+    "CORRIDOR_ATR_FRAC": 0.1,
+    "CORRIDOR_EXPIRY_BARS": 3,
+    "STOP_BUFFER_ATR": 0.15,
+    "TIMEOUT_BARS": 50,
+    "MAKER_BPS": 2,
+    "TAKER_BPS": 5
+  },
+  "funnel": {
+    "signals": 691,
+    "pendingCreated": 691,
+    "filled": 537,
+    "expired": 0,
+    "cancelled": 130,
+    "rejected": 24,
+    "unresolved": 0
+  },
+  "n": 537,
+  "tp1HitRatePct": 47.3,
+  "tp2HitRatePct": 14.15,
+  "positiveRRatePct": 48.6,
+  "stopDistancePct": {
+    "p25": 0.833,
+    "median": 1.2799,
+    "p75": 1.9565
+  },
+  "feeDragR": {
+    "FUT_4": 0.0673,
+    "SPOT": 0.0961
+  },
+  "grossRPerTrade": 0.1253,
+  "netRPerTrade": {
+    "FUT_4": 0.058,
+    "SPOT": 0.0291
+  },
+  "profitFactor": 1.2438,
+  "maxDrawdownR": -25.94,
+  "grossMedianR": -1,
+  "avgWinR": 1.3146,
+  "avgLossR": -0.9994,
+  "medianBarsHeld": 7,
+  "exits": {
+    "TP2": 76,
+    "TP1_THEN_BE": 157,
+    "SL": 275,
+    "TP1_THEN_TIMEOUT": 21,
+    "TIMEOUT": 8
+  },
+  "outlierDependence": {
+    "grossExpectancy": 0.1253,
+    "exTop1": 0.0974,
+    "exTop5": 0.0462,
+    "exTop1Pct": 0.0364,
+    "removedForTop1Pct": 6
+  },
+  "byDirection": {
+    "SHORT": {
+      "n": 307,
+      "grossExpectancy": 0.1564
+    },
+    "LONG": {
+      "n": 230,
+      "grossExpectancy": 0.0837
+    }
+  },
+  "bySymbol": {
+    "BTCUSDT": {
+      "n": 107,
+      "grossExpectancy": -0.0129
+    },
+    "ETHUSDT": {
+      "n": 101,
+      "grossExpectancy": 0.4684
+    },
+    "BNBUSDT": {
+      "n": 77,
+      "grossExpectancy": 0.4272
+    },
+    "SOLUSDT": {
+      "n": 90,
+      "grossExpectancy": -0.0685
+    },
+    "XRPUSDT": {
+      "n": 87,
+      "grossExpectancy": -0.0966
+    },
+    "DOGEUSDT": {
+      "n": 75,
+      "grossExpectancy": 0.0402
+    }
+  },
+  "criterion": {
+    "rule": "net R/trade > 0 at 2/5 bps",
+    "value": 0.058,
+    "passed": true
+  },
+  "harnessFidelity": {
+    "comparedAgainst": "artifacts/research/v30/v30-train-metrics.json",
+    "sliceRequested": "valid",
+    "sliceReproduced": "train",
+    "mismatches": [],
+    "exact": true
+  },
+  "testGuard": {
+    "checked": 6,
+    "safe": true,
+    "violations": []
+  }
+}
