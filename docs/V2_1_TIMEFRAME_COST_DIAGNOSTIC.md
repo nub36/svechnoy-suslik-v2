@@ -121,3 +121,23 @@ is that any future V2.1 work on Binance Spot should be evaluated on **1h and
 above**, and that 1m/5m research is unlikely to be worth further effort unless
 the cost model itself changes (maker rebates, fee tier, or a venue with lower
 taker fees).
+
+---
+
+## 6. ACKNOWLEDGED FINDING (carried into V2.2 scope)
+
+**Binance Spot at 10 bps round trip is mathematically viable only on >= 1h.**
+
+- Frozen baseline: survives at **4h** (break-even 16.95 bps) and **1d**
+  (215.61 bps). 1h is marginally negative (0.49 bps break-even vs 10 bps cost).
+- With the Fee Drag Guard widening stops: survives from **1h** (15.79 bps),
+  **4h** (76.45) and **1d** (468.67).
+- Every sub-hourly cell fails, several with a *negative* break-even (5m −0.02,
+  15m −0.20, 30m −0.57), meaning they are unprofitable even at zero fees.
+
+This is now a binding scope constraint, recorded in
+`docs/V2_2_HTF_SPOT_ENGINE_PREREGISTRATION.md`: **V2.2 trades 1h and 4h only**,
+with 4h/1d used as HTF context. 1d is excluded as a trading timeframe on sample
+grounds (TRAIN n=132 baseline / 45 filtered), not on performance grounds.
+
+VALIDATION and TEST remain strictly untouched by this diagnostic.
