@@ -142,8 +142,8 @@ reproduce the committed artifacts exactly** (they do, both slices):
 | TRAIN | 4 | 4 | 0.25 % | +0.71 % |
 
 The single affected VALIDATION trade is `DOGEUSDT` SHORT, filled
-2025-03-14T16:00Z, stopped 22 bars later at 2025-03-15T14:00Z — one day inside
-TEST. Sensitivity:
+2025-03-14T16:00Z and stopped 22 bars in (`barsHeld = 22`), i.e. on the
+2025-03-15T13:00Z candle — one day inside TEST. Sensitivity:
 
 | net @2/5 bps | value |
 |---|---|
