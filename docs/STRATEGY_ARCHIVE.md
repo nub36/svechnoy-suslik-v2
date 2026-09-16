@@ -1,4 +1,4 @@
-# STRATEGY ARCHIVE — V2.1 … V3.2
+# STRATEGY ARCHIVE — V2.1 … V3.3
 
 Master index of every strategy developed in this research programme. Each entry
 links to a full specification with exact parameter values, verified against
@@ -31,6 +31,15 @@ the stop is 1 R. Two pre-registered EMA50-TP1 sensitivity variants clear F1
 (`V3_2_EMA50_VARIANT_UNPROMOTED`; a new pre-registration would be required, and
 no unspent validation window remains).
 
+**[V3.3 HTF Zone Mitigation & LTF Squeeze](V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md)**
+— the confluence hypothesis — was pre-registered, implemented and run on TRAIN and
+**is the first strategy since V3.0 to PASS its pre-registered primary**:
+**`V3_3_TRAIN_ONLY`** (net **+0.0267 R/trade** @2/5 bps, n = 6,957, TP1 hit
+65.24 %, fee drag 0.0511 R, PF 1.2341; all six symbols positive gross). It is
+**not validated and not to be ported**: without its best 1 % of trades the net is
+negative, the strictest reading of the same entry rule fails F1, TRAIN is burned
+data and no validation window remains.
+
 All V2.1 – V2.8 strategies are **REJECTED** or **SUPERSEDED** — none is a live
 recommendation. V2.8 was the only V2 strategy to pass a pre-registered validation,
 but it only works at **zero fees** and is therefore superseded by V3.0 as the lead
@@ -53,6 +62,9 @@ included** — validation means one unseen split survived, not deployability.
 | V3.2 pre-registration | `b631fba` — [V3_2_VOLUME_CLIMAX_PREREGISTRATION.md](V3_2_VOLUME_CLIMAX_PREREGISTRATION.md) |
 | V3.2 TRAIN result | [V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md) — **F1 FALSIFIED** (`V3_2_FALSIFIED_ON_TRAIN`) |
 | V3.2 TRAIN artifacts | `artifacts/research/v32/v32-train-metrics*.json` (4 variants) |
+| V3.3 pre-registration | `16728ef` + [amendment 1](V3_3_HTF_ZONE_MITIGATION_PREREGISTRATION_AMENDMENT_1.md) (`01cbc28`) |
+| V3.3 TRAIN result | [V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md](V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md) — **F1 PASS, tail-fragile** (`V3_3_TRAIN_ONLY`) |
+| V3.3 TRAIN artifacts | `artifacts/research/v33/v33-train-metrics-<window>-<stop>-<leg>.json` (8 runs) |
 | dataset | `c3c1dce` (Binance Spot klines, 2022-01 … 2025-12) |
 | TRAIN | 2022-01-01 … 2024-05-26 (60 %) |
 | VALIDATION | 2024-05-26 … 2025-03-14 (20 %) |
@@ -68,6 +80,7 @@ included** — validation means one unseen split survived, not deployability.
 | **V3.0** | **HTF Liquidation Trap** | **4H sweep + 1H reclaim, limit corridor** | **4H equilibrium (TP1) → BE → opposing 4H swing (TP2), 50-bar timeout** | ✅ **VALIDATED FOR RESEARCH** (lead candidate) | [**→**](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) |
 | V3.1 | HTF Trend Pullback & Mitigation | 4H trend + 1H pullback to value, displaced resumption | TP1 leg extreme → BE → 1.5 Fib extension, 60-bar timeout | ❌ **REJECTED — F1 falsified (loses before fees)** | [→](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md) |
 | V3.2 | Volume Climax & Absorption | ≥2 ATR expansion + RVOL ≥ 2.2 + rejection wick/engulfing, maker corridor | TP1 50 % of the cascade → BE → cascade origin, 48-bar timeout | ❌ **REJECTED — F1 falsified (pre-cost edge is zero)** | [→](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md) |
+| V3.3 | HTF Zone Mitigation & LTF Squeeze | fresh 4H OB/FVG mitigated on 1H + 1H exhaustion (RVOL ≥ 1.25, wick ≥ 35 % / reclaim) | TP1 leg equilibrium → BE → opposing 4H swing, 48-bar timeout | ⚠️ **TRAIN PASS — `V3_3_TRAIN_ONLY`** (tail-fragile, not validated) | [→](V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md) |
 | V2.1a | Limit Entry (B/C/D) | Retest / FVG / OB∩FVG limit | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.1b | Corridor Entry | `close(N) ± 0.10 ATR` | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.2 | HTF Spot Engine | Body reclaim + RVOL | Structural only | ❌ REJECTED (superseded) | [→](strategies/V2_2_HTF_SPOT_ENGINE.md) |
@@ -94,6 +107,8 @@ disproven, research only.
 | V3.2 Volume Climax (TRAIN, primary) | 307 | −0.0082 | −0.0620 | ❌ **F1 falsified — zero edge before fees** |
 | V3.2 Volume Climax (TRAIN, TP1=EMA50) | 213 | +0.1104 | +0.0530 | ⚠️ passes F1, falsifies F3 — **unpromoted** |
 | V3.2 Volume Climax (TRAIN, fast3+EMA50) | 97 | +0.0679 | +0.0108 | ⚠️ underpowered (n<100), fragile |
+| **V3.3 Zone Mitigation (TRAIN, primary)** | **6,957** | **+0.0778** | **+0.0267** | ⚠️ **F1 PASS — tail-fragile (ex-top-1 % is net-negative)** |
+| V3.3 (TRAIN, `first`+`protective`) | 600 | +0.0166 | −0.0253 | ❌ fails F1 under the strictest window reading |
 | Baseline (frozen V2) | 30,888 | −0.0015 | −0.1257 | no edge |
 | V2.1 limit (best, D) | — | +0.4325 | −0.9386 | fill rate 21 %, cost explosion |
 | V2.1 corridor FULL | 56,492 | +0.0076 | — | 24.09 % fill, guard killed edge |
