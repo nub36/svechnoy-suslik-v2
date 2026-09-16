@@ -6,8 +6,17 @@ not from memory.
 
 **Lead candidate:** `V3_0` HTF Liquidation Trap (§2) — `V3_0_VALIDATED_FOR_RESEARCH`
 ([validation report](V3_0_VALIDATION_RESULTS.md): net +0.0600 R/trade @2/5 bps,
-n = 536). The V2.x surface below is retained because all of it is still
-selectable for research comparison — none of it is a recommendation.
+n = 536). The V2.x surface below is retained as the record of what was measured;
+none of it is a recommendation.
+
+> **IMPLEMENTATION STATUS (2026-09-16).** This specification is now implemented
+> in the site for **V3.0 only**; see
+> [V3_0_PRODUCTION_PORT.md](V3_0_PRODUCTION_PORT.md) for the port, the parity
+> evidence and the operating rules. Two deviations are deliberate and are
+> recorded in §1 and §14: the V2.x rows are **research-only** (never ported into
+> the pipeline, so the selector does not offer them) and the "never write to
+> `src/`" rule of the research phase is superseded by the port instruction,
+> replaced by a hash pin plus a port-parity harness.
 
 > ⚠️ **Safety defaults that must ship disabled:** `v2.enabled = false` and
 > `LIVE_TRADING_ENABLED = false`. No strategy here is approved for live capital.
@@ -30,10 +39,21 @@ Dropdown. Default: **V3.0**.
 | `V2_2` | V2.2 HTF Spot Engine | Rejected | ⚠️ research only |
 | `V2_1` | V2.1 Corridor / Limit Entry | Rejected | ⚠️ research only |
 
+**Implementation note (deviation, deliberate).** The site can only run what is
+implemented in `src/` — currently `V3_0` and the original `V1_SMC` engine. The
+V2.x rows above were produced by standalone research harnesses
+(`scripts/real-data/`, `research/`) and were never ported into the production
+pipeline. Offering them in a live dropdown would let an operator select a
+strategy that emits nothing, so the admin panel lists them as **research-only**
+(`researchOnlyStrategies` in `/api/admin/strategy`) instead of selectable. All
+of their warnings are kept verbatim below for the record / for the day one of
+them is ported.
+
 **UI requirement:**
 
-- Selecting `V3_0` must show a banner: *"Candidate frozen. VALIDATION not
-  completed — TRAIN results only. Research use only."*
+- Selecting `V3_0` must show a banner: *"VALIDATION PASSED on aggregate
+  (net +0.0600 R/trade @2/5 bps, n = 536) — 3 of 6 symbols negative, outlier
+  fragility documented. Forward test only; PRODUCTION_READY is forbidden."*
 - Selecting `V2_8` or `V2_5` must show: *"Superseded by V3.0 HTF Liquidation
   Trap."*
 - Selecting anything other than `V3_0`, `V2_8` or `V2_5` must show a banner:
@@ -55,9 +75,12 @@ Freeze record: [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md).
 > the VALIDATION result. Changing any of them produces a different, untested
 > strategy.** In the
 > research implementation (`research/v30_htf_trap.ts`) they are compile-time
-> constants, not settings. Exposing them in the UI is a wiring task that is
-> **not authorised yet**; when it is implemented, a run must record the parameter
-> snapshot (hash + values) exactly as this repository does via `settings.sha256`.
+> constants; in the site they are `v30.*` settings whose **defaults are exactly
+> those constants** (`V30_FROZEN` in `src/strategy/v30/params.ts`, asserted by
+> `tests/v30-port-parity.test.ts`). The wiring is authorised and implemented; the
+> snapshot requirement is satisfied per signal: every V3.0 row stores its plan and
+> its parameter values in `signals.breakdown.v30`, and the admin panel flags any
+> deviation from the frozen values by key.
 
 | Parameter | Type | Default | Min | Max | Description |
 |----------|-----|--------|-----|------|----------|
@@ -287,8 +310,16 @@ run, which is expected to produce roughly one third of the TRAIN sample.
 
 ## 14. Implementation requirements
 
-1. **Never write to `src/`.** The frozen engine must stay byte-identical to
-   `4839074`; verify with `git diff 4839074 -- src/`.
+1. ~~**Never write to `src/`.**~~ **SUPERSEDED (2026-09-16).** That rule scoped
+   the research phase: `src/` stayed byte-identical to `4839074` while the
+   candidate was being validated, so the artifact could not be tainted. The port
+   task changed the goal — V3.0 now has to RUN in the site — so `src/` is where
+   the work happens. What replaces the rule, in order of strength:
+   `research/v30_htf_trap.ts` itself stays untouched (sha256 pinned by
+   `tests/v30-validation.test.ts`), the strategy logic is proven equivalent by
+   `scripts/real-data/v30-parity.ts` (TRAIN-only, every trade compared) and by
+   `tests/v30-port-parity.test.ts`, and `git diff 4839074 -- src/strategy/`
+   now shows the port rather than a frozen tree.
 2. **Persist a parameter snapshot** (hash + values) with every run, as this
    repository does via `settings.sha256`.
 3. **Expose read-only result fields:** n, win rate, gross R/trade, profit factor,
@@ -296,10 +327,25 @@ run, which is expected to produce roughly one third of the TRAIN sample.
 4. **Always show `ex-top-1 %` beside gross.** Several strategies here looked
    profitable until trimmed; this field is the single best fragility indicator.
 5. **Show `n` on every table row** and grey out any subgroup with n < 100.
-6. **Pin the V3.0 candidate by hash.** Any run claiming to be V3.0 must load
-   `research/v30_htf_trap.ts` unchanged — sha256
-   `a821757ff0319a100a8a9087da1bdd137abb1df0785493d644ad4d87f05dc4cd` — and a
-   mismatch must abort the run and clear the strategy label.
+6. **Pin the V3.0 candidate by hash.** The research module — sha256
+   `a821757ff0319a100a8a9087da1bdd137abb1df0785493d644ad4d87f05dc4cd` — must
+   stay unchanged; a mismatch aborts `tests/v30-validation.test.ts`. The site
+   runs the ported module rather than that file, so the pin alone is not enough:
+   `V30_RESEARCH_SHA256` and the parity status are shown in the admin panel, and
+   the parity run is the check that the port still deserves the V3.0 label.
 7. **Never run V3.0 on the TEST window.** Before loading a candle the driver must
    assert `validToMs < testFromMs`; the 2026-H1 window is unspent and must not be
    downloaded.
+
+8. **Forward test is the only remaining evidence.** Both research windows are
+   spent (TRAIN and VALIDATION were each read once) and the 2026 TEST window has
+   never been read and must stay unread. Forward testing on live data is
+   `FORWARD_TEST`/`DRY_RUN` only.
+9. **Never present a drifted configuration as validated.** If any `v30.*`
+   parameter differs from the frozen value, the admin panel must say so by key
+   and the TRAIN/VALIDATION numbers must not be attached to that run.
+10. **Keep the outcome record honest.** The `outcomes.r_multiple` a V3.0 trade
+    writes is **net of per-leg fees** (maker entry, taker on each of the two
+    exits); the gross R, the fee R and the leg count are stored beside it in
+    `signals.breakdown.v30.lastOutcome`. A net figure must never be silently
+    replaced by a gross one.

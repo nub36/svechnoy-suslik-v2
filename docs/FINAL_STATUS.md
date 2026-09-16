@@ -6,9 +6,13 @@
 > VALIDATION net +0.0600 R/trade @2/5 bps, n = 536); everything below is
 > superseded as a recommendation. See
 > [strategies/V3_0_HTF_LIQUIDATION_TRAP.md](strategies/V3_0_HTF_LIQUIDATION_TRAP.md),
-> [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md) and
-> [V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md),
-[STRATEGY_ARCHIVE.md](STRATEGY_ARCHIVE.md). V2.8 remains the only V2 strategy
+> [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md),
+> [V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md) and
+> [V3_0_PRODUCTION_PORT.md](V3_0_PRODUCTION_PORT.md) — V3.0 is now the site's
+> default strategy in **paper forward test** (`FORWARD_TEST`; `LIVE` locked,
+> `PRODUCTION_READY` forbidden), with the port's equivalence to the research
+> module proven trade by trade on TRAIN data.
+> [STRATEGY_ARCHIVE.md](STRATEGY_ARCHIVE.md). V2.8 remains the only V2 strategy
 > that passed a pre-registered validation — at **zero fees only**.
 
 **Research phase closed.** Final strategy: **V2.8 Zero-Fee Sniper + Trailing**.

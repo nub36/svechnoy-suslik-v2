@@ -394,12 +394,19 @@ export async function expireStaleSignals(
  * EXPIRED — and then only on a fresh genuine edge.
  */
 export async function symbolsWithLiveSignal(db: Kysely<Database>): Promise<Set<string>> {
+  // A recorded outcome CLOSES a signal whatever its state string says. This
+  // matters for V3.0, whose final target maps onto TP2_HIT — a state the
+  // site-wide vocabulary keeps "live" because the V1 ladder awaits TP3. Without
+  // the anti-join, a closed V3.0 trade would keep blocking its symbol (and
+  // inflating the capacity count) for the V1 engine forever.
   const rows = await db
     .selectFrom('signals')
-    .select('symbol')
+    .leftJoin('outcomes', 'outcomes.signal_id', 'signals.id')
+    .select('signals.symbol')
     .distinct()
-    .where('state', 'in', [...LIVE_SIGNAL_STATES])
-    .where('source', '=', 'LIVE_ENGINE')
+    .where('signals.state', 'in', [...LIVE_SIGNAL_STATES])
+    .where('signals.source', '=', 'LIVE_ENGINE')
+    .where('outcomes.id', 'is', null)
     .execute();
   return new Set(rows.map((r) => r.symbol));
 }
@@ -407,9 +414,11 @@ export async function symbolsWithLiveSignal(db: Kysely<Database>): Promise<Set<s
 async function countOpen(db: Kysely<Database>): Promise<number> {
   const row = await db
     .selectFrom('signals')
+    .leftJoin('outcomes', 'outcomes.signal_id', 'signals.id')
     .select((eb) => eb.fn.countAll<number>().as('n'))
-    .where('state', 'in', [...LIVE_SIGNAL_STATES])
-    .where('source', '=', 'LIVE_ENGINE')
+    .where('signals.state', 'in', [...LIVE_SIGNAL_STATES])
+    .where('signals.source', '=', 'LIVE_ENGINE')
+    .where('outcomes.id', 'is', null) // closed = not occupying capacity
     .executeTakeFirst();
   return Number(row?.n ?? 0);
 }

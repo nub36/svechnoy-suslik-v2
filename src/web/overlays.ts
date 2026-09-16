@@ -69,6 +69,33 @@ export interface SignalLevel {
   price: number;
   label: string;
   color: string;
+  /** Extra explanation shown in the level list, e.g. what TP1 is anchored to. */
+  note?: string;
+}
+
+/**
+ * V3.0-specific geometry for a persisted signal.
+ *
+ * The corridor is the resting limit order; the level is the swept 4H swing.
+ * Both come from `signals.breakdown.v30`, written by the runner at detection
+ * time and never recomputed in the browser.
+ */
+export interface V30SignalOverlay {
+  /** Swept 4H swing level. */
+  level: number;
+  /** Limit corridor, centred on the reclaim close. */
+  zoneLow: number;
+  zoneHigh: number;
+  /** 4H equilibrium target (TP1). */
+  tp1: number;
+  /** Opposing 4H swing (TP2, the final target). */
+  tp2: number;
+  corridorExpiryBars: number;
+  timeoutBars: number;
+  hitTp1: boolean;
+  hitTp2: boolean;
+  /** Present once the trade closed: the exit reason and its NET R. */
+  exit?: { reason: string; netR: number; grossR: number; barsHeld: number };
 }
 
 export interface SignalOverlay {
@@ -82,6 +109,10 @@ export interface SignalOverlay {
   entryPrice: number | null;
   levels: SignalLevel[];
   waitingForEntry: boolean;
+  /** Backend-built marker label. V3.0 has no score, so it never prints one. */
+  label: string;
+  /** Present only for V3.0 signals (the HTF Liquidation Trap). */
+  v30?: V30SignalOverlay;
   /**
    * True when no live signal exists for this symbol/timeframe and this is the
    * most recent FINISHED one (TP3_HIT / STOPPED / EXPIRED). Historical signals
@@ -478,6 +509,90 @@ export function buildChartPayload(
 
   const sorted = [...candles].sort((a, b) => a.openTime - b.openTime);
 
+  /* ---- V3.0 geometry -----------------------------------------------------
+   * Drawn AFTER the declutter caps on purpose: the corridor is a fact about a
+   * real resting order, not a suggestion from the V1 evaluator, so it must not
+   * be dropped because a V1 detector produced several boxes on the same bars.
+   */
+  if (signal?.v30) {
+    const v30 = signal.v30;
+    const last = sorted[sorted.length - 1];
+    // The corridor lives until it fills, expires or is cancelled. While it is
+    // still resting we extend it to the newest candle and let it end there.
+    const to = signal.waitingForEntry
+      ? last?.openTime ?? signal.setupCandleTime + 1000
+      : signal.entryCandleTime ?? signal.setupCandleTime;
+
+    boxes.push({
+      id: `v30-zone-${signal.id}`,
+      detector: 'LIQUIDITY_SWEEP',
+      direction: signal.direction,
+      from: signal.setupCandleTime,
+      to,
+      priceLow: v30.zoneLow,
+      priceHigh: v30.zoneHigh,
+      label: signal.waitingForEntry ? 'V3.0 LIMIT ZONE' : 'V3.0 ZONE',
+      reason: signal.waitingForEntry
+        ? `Resting limit corridor, expires after ${v30.corridorExpiryBars} bars if untouched.`
+        : 'Entry corridor of the filled trade.',
+      strength: 1,
+    });
+
+    lines.push({
+      id: `v30-level-${signal.id}`,
+      detector: 'LIQUIDITY_SWEEP',
+      direction: signal.direction,
+      from: signal.setupCandleTime,
+      to: last?.openTime ?? signal.setupCandleTime,
+      price: v30.level,
+      label: '4H LEVEL',
+      reason: 'Swept and reclaimed 4H swing — the level the trap was built around.',
+      strength: 1,
+    });
+
+    markers.push({
+      time: signal.setupCandleTime,
+      position: signal.direction === 'LONG' ? 'belowBar' : 'aboveBar',
+      shape: signal.direction === 'LONG' ? 'arrowUp' : 'arrowDown',
+      color: signal.direction === 'LONG' ? '#22c55e' : '#ef4444',
+      text: 'TRAP',
+      detector: 'LIQUIDITY_SWEEP',
+    });
+    if (signal.entryCandleTime !== null) {
+      markers.push({
+        time: signal.entryCandleTime,
+        position: signal.direction === 'LONG' ? 'belowBar' : 'aboveBar',
+        shape: 'circle',
+        color: '#e2e8f0',
+        text: 'FILL',
+        detector: 'LIQUIDITY_SWEEP',
+      });
+    }
+    if (v30.hitTp1) {
+      markers.push({
+        time: last?.openTime ?? signal.setupCandleTime,
+        position: signal.direction === 'LONG' ? 'aboveBar' : 'belowBar',
+        shape: 'circle',
+        color: '#22c55e',
+        text: 'TP1 50%',
+        detector: 'LIQUIDITY_SWEEP',
+      });
+    }
+    if (v30.exit) {
+      markers.push({
+        time: last?.openTime ?? signal.setupCandleTime,
+        position: signal.direction === 'LONG' ? 'aboveBar' : 'belowBar',
+        shape: 'circle',
+        color: v30.exit.netR >= 0 ? '#22c55e' : '#ef4444',
+        text: `${v30.exit.reason} ${v30.exit.netR >= 0 ? '+' : ''}${v30.exit.netR.toFixed(2)}R net`,
+        detector: 'LIQUIDITY_SWEEP',
+      });
+    }
+    // Keep the arrays in chronological order after appending.
+    lines.sort((a, b) => a.from - b.from);
+    markers.sort((a, b) => a.time - b.time);
+  }
+
   // Legend lists only the factors actually drawn.
   const present = new Set<FactorId>();
   for (const b of boxes) present.add(b.detector);
@@ -525,13 +640,80 @@ export function buildChartPayload(
   };
 }
 
+/**
+ * Extract the V3.0 plan (and any recorded outcome) from a `breakdown` blob.
+ * Returns null for signals produced by any other strategy, so nothing here can
+ * alter V1 rendering.
+ */
+export function readV30Overlay(breakdown: unknown): V30SignalOverlay | null {
+  let b: unknown = breakdown;
+  if (typeof b === 'string') {
+    try {
+      b = JSON.parse(b);
+    } catch {
+      return null;
+    }
+  }
+  if (b === null || typeof b !== 'object') return null;
+  const rec = (b as Record<string, unknown>)['v30'];
+  if (rec === null || typeof rec !== 'object') return null;
+  const v30 = rec as Record<string, unknown>;
+  if (v30['strategy'] !== 'V3_0') return null;
+  const plan = v30['plan'] as Record<string, unknown> | undefined;
+  const params = (v30['params'] ?? {}) as Record<string, unknown>;
+  if (!plan) return null;
+  const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : NaN);
+  const out = {
+    level: num(plan['level']),
+    zoneLow: num(plan['zoneLow']),
+    zoneHigh: num(plan['zoneHigh']),
+    tp1: num(plan['tp1']),
+    tp2: num(plan['tp2']),
+    corridorExpiryBars: num(params['corridorExpiryBars']),
+    timeoutBars: num(params['timeoutBars']),
+  };
+  if (Object.values(out).some((v) => !Number.isFinite(v))) return null;
+
+  const last = v30['lastOutcome'] as Record<string, unknown> | undefined;
+  const overlay: V30SignalOverlay = {
+    ...out,
+    hitTp1: false,
+    hitTp2: false,
+  };
+  if (last && typeof last === 'object') {
+    overlay.exit = {
+      reason: String(last['exit'] ?? ''),
+      netR: num(last['netR']),
+      grossR: num(last['grossR']),
+      barsHeld: num(last['barsHeld']),
+    };
+    overlay.hitTp1 = last['hitTp1'] === true;
+    overlay.hitTp2 = last['hitTp2'] === true;
+  }
+  return overlay;
+}
+
+/** Marker label for a persisted signal. Never invents a score. */
+export function signalLabel(row: {
+  direction: string;
+  score: number | null;
+  breakdown?: unknown;
+}): string {
+  const v30 = readV30Overlay(row.breakdown);
+  if (v30) return `V3.0 ${row.direction}`;
+  const score = row.score === null ? null : Number(row.score);
+  return score === null ? row.direction : `${row.direction} ${score.toFixed(0)}`;
+}
+
 /** Build the entry/SL/TP level set for a persisted signal. */
 export function buildSignalLevels(row: {
   entry_price: number | null;
   stop_loss: number | null;
   take_profits: unknown;
+  breakdown?: unknown;
 }): SignalLevel[] {
   const levels: SignalLevel[] = [];
+  const v30 = row.breakdown === undefined ? null : readV30Overlay(row.breakdown);
   if (row.entry_price !== null && Number.isFinite(row.entry_price)) {
     levels.push({ kind: 'ENTRY', price: row.entry_price, label: 'ENTRY', color: '#e2e8f0' });
   }
@@ -540,11 +722,13 @@ export function buildSignalLevels(row: {
   }
   const tps = Array.isArray(row.take_profits) ? (row.take_profits as number[]) : [];
   const tpKinds: Array<SignalLevel['kind']> = ['TP1', 'TP2', 'TP3'];
+  const notes = v30 ? ['4H equilibrium', 'opposing 4H swing', undefined] : [undefined, undefined, undefined];
   tps.slice(0, 3).forEach((p, i) => {
     if (!Number.isFinite(p)) return;
     const kind = tpKinds[i];
     if (!kind) return;
-    levels.push({ kind, price: p, label: kind, color: '#22c55e' });
+    const note = notes[i];
+    levels.push({ kind, price: p, label: kind, color: '#22c55e', ...(note ? { note } : {}) });
   });
   return levels;
 }

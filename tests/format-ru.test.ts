@@ -177,7 +177,10 @@ describe('identifier maps are display-only', () => {
       expect(k).toMatch(/^[A-Z0-9_]+$/);
     }
     for (const k of Object.keys(OUTCOME_RU)) expect(k).toMatch(/^[A-Z0-9_]+$/);
-    for (const k of Object.keys(CATEGORY_RU)) expect(k).toMatch(/^[a-z_]+$/);
+    // Category keys mirror the settings-registry category strings exactly, and
+    // one of those is `v30` — hence digits are allowed. What the rule protects
+    // is that the key stays the internal identifier, never a translated label.
+    for (const k of Object.keys(CATEGORY_RU)) expect(k).toMatch(/^[a-z0-9_]+$/);
   });
 
   it('falls back to the raw identifier when unmapped', () => {

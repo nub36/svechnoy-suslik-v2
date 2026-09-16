@@ -10,7 +10,9 @@ net-positive at realistic Binance futures fees on **both** TRAIN (+0.0994 R/trad
 @2/5 bps, n = 1,585) **and** the unseen VALIDATION window (**+0.0600 R/trade**
 @2/5 bps, n = 536). Frozen before validation:
 [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md); results:
-[V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md).
+[V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md). **Ported into the
+site's engine and running in paper forward test** (`FORWARD_TEST`, `LIVE`
+locked) — [V3_0_PRODUCTION_PORT.md](V3_0_PRODUCTION_PORT.md).
 
 All V2.1 – V2.8 strategies are **REJECTED** or **SUPERSEDED** — none is a live
 recommendation. V2.8 was the only V2 strategy to pass a pre-registered validation,

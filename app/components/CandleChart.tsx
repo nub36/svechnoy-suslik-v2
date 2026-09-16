@@ -96,6 +96,8 @@ export interface ChartSignal {
   entryPrice: number | null;
   levels: ChartSignalLevel[];
   waitingForEntry: boolean;
+  /** Backend-built marker label, e.g. "V3.0 SHORT" or "LONG 62". */
+  label?: string;
   /** Finished trade (TP3_HIT/STOPPED/EXPIRED) shown for reference only. */
   historical?: boolean;
 }
@@ -559,7 +561,7 @@ export default function CandleChart({
           position: signal.direction === 'LONG' ? 'belowBar' : 'aboveBar',
           shape: signal.direction === 'LONG' ? 'arrowUp' : 'arrowDown',
           color: signal.direction === 'LONG' ? '#22c55e' : '#ef4444',
-          text: `${signal.direction} ${signal.score.toFixed(0)}`,
+          text: signal.label ?? `${signal.direction} ${signal.score.toFixed(0)}`,
           size: 2,
         });
       }

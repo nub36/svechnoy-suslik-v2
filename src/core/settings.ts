@@ -16,7 +16,7 @@ import { assertAllowedMode } from './mode';
 export interface SettingDef {
   key: string;
   type: 'number' | 'boolean' | 'string' | 'json';
-  category: 'engine' | 'detectors' | 'risk' | 'market' | 'outcome' | 'system';
+  category: 'engine' | 'detectors' | 'risk' | 'market' | 'outcome' | 'system' | 'v30';
   label: string;
   description: string;
   default: unknown;
@@ -62,6 +62,164 @@ export const SETTINGS_REGISTRY: readonly SettingDef[] = [
     description: 'Master switch. When false the strategy worker evaluates nothing.',
     default: true,
     consumedBy: ['src/strategy/engine-runner.ts'],
+  },
+  {
+    key: 'strategy.active',
+    type: 'string',
+    category: 'engine',
+    label: 'Active strategy',
+    description:
+      'Which strategy the workers run. V3_0 = HTF Liquidation Trap (the validated lead candidate). V1_SMC = the original Smart Money engine. Only these two are implemented in this build; the V2.x candidates exist only as research harnesses.',
+    default: 'V3_0',
+    consumedBy: ['src/workers/strategy.worker.ts'],
+  },
+  {
+    key: 'v30.bodyRatioMin',
+    type: 'number',
+    category: 'v30',
+    label: 'Min body ratio of the reclaim candle',
+    description:
+      'Minimum |close-open| / (high-low) of the reclaim candle. Frozen at 0.35 for the validated candidate; raising it cuts the sample sharply.',
+    default: 0.35,
+    min: 0.1,
+    max: 0.8,
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.rvolMin',
+    type: 'number',
+    category: 'v30',
+    label: 'Min relative volume (RVOL)',
+    description:
+      'Minimum volume surge on the reclaim candle, strictly greater than. Frozen at 1.25 — deliberately different from the V2.x sniper value of 1.2.',
+    default: 1.25,
+    min: 1.0,
+    max: 3.0,
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.corridorATR',
+    type: 'number',
+    category: 'v30',
+    label: 'Entry corridor half-width (ATR)',
+    description:
+      'Half-width of the limit corridor centred on the reclaim close, in ATR(execution TF, risk.atr_period). Wider means more fills at a worse average price.',
+    default: 0.1,
+    min: 0.02,
+    max: 0.3,
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.slBufferATR',
+    type: 'number',
+    category: 'v30',
+    label: 'Stop buffer behind the sweep wick (ATR)',
+    description:
+      'Distance from the sweep wick extreme to the stop, in ATR. This defines R for every V3.0 trade: tighter ⇒ higher fee-in-R.',
+    default: 0.15,
+    min: 0.05,
+    max: 0.5,
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.tp1Equilibrium',
+    type: 'number',
+    category: 'v30',
+    label: 'TP1 share of the 4H range',
+    description:
+      'Where the first target sits inside the active range: 0.50 = the midpoint (4H equilibrium). Frozen at 0.50.',
+    default: 0.5,
+    min: 0.25,
+    max: 0.75,
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.breakevenTrigger',
+    type: 'string',
+    category: 'v30',
+    label: 'Breakeven trigger',
+    description:
+      'When the stop on the remaining position moves to the entry price. Only "tp1" is validated; "never" is an untested variant that removes the scratch-exit behaviour.',
+    default: 'tp1',
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.timeoutBars',
+    type: 'number',
+    category: 'v30',
+    label: 'Timeout (bars)',
+    description:
+      'Execution-timeframe bars a trade may stay open before it is closed at the bar close. The entry bar counts as bar 1.',
+    default: 50,
+    min: 10,
+    max: 100,
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.positionSplitTP1',
+    type: 'number',
+    category: 'v30',
+    label: 'Position closed at TP1',
+    description:
+      'Fraction of the position exited at TP1; the remainder runs to TP2 or the breakeven stop. Frozen at 0.50.',
+    default: 0.5,
+    min: 0.25,
+    max: 0.75,
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.htfTimeframe',
+    type: 'string',
+    category: 'v30',
+    label: 'Higher timeframe (levels)',
+    description:
+      'Timeframe whose confirmed swings supply the swept level, the equilibrium target and the opposing target. Frozen at 4h.',
+    default: '4h',
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.ltfTimeframe',
+    type: 'string',
+    category: 'v30',
+    label: 'Execution timeframe',
+    description:
+      'Timeframe that detects the sweep + reclaim and hosts the entry corridor. Frozen at 1h.',
+    default: '1h',
+    consumedBy: ['src/strategy/v30/params.ts'],
+  },
+  {
+    key: 'v30.symbols',
+    type: 'json',
+    category: 'v30',
+    label: 'Symbols the strategy trades',
+    description:
+      'Traded universe of the validated candidate: BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT, XRPUSDT, DOGEUSDT. The market worker must be ingesting the symbol for it to be tradeable.',
+    default: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'],
+    consumedBy: ['src/strategy/v30/params.ts', 'src/strategy/v30/runner.ts'],
+  },
+  {
+    key: 'v30.makerBps',
+    type: 'number',
+    category: 'v30',
+    label: 'Maker fee (bps, entry)',
+    description:
+      'Entry leg fee in basis points, charged on that leg\'s own notional. The validated run used 2 bps maker entry.',
+    default: 2,
+    min: 0,
+    max: 20,
+    consumedBy: ['src/strategy/v30/params.ts', 'src/strategy/v30/outcome.ts'],
+  },
+  {
+    key: 'v30.takerBps',
+    type: 'number',
+    category: 'v30',
+    label: 'Taker fee (bps, exits)',
+    description:
+      'Exit leg fee in basis points. Every exit is a market event, so it is charged as taker. The validated run used 5 bps taker exit — and paid it on TWO closing legs because TP1 exits half the position.',
+    default: 5,
+    min: 0,
+    max: 30,
+    consumedBy: ['src/strategy/v30/params.ts', 'src/strategy/v30/outcome.ts'],
   },
   {
     key: 'engine.score_threshold',
@@ -1045,6 +1203,30 @@ export function coerceSettingValue(def: SettingDef, input: unknown): unknown {
         // Throws for LIVE — the lock is enforced at the settings boundary too.
         return assertAllowedMode(input);
       }
+      if (def.key === 'strategy.active') {
+        const allowed = ['V3_0', 'V1_SMC'];
+        if (!allowed.includes(input)) {
+          throw new Error(`strategy.active: must be one of ${allowed.join(', ')}`);
+        }
+      }
+      if (def.key === 'v30.breakevenTrigger') {
+        const allowed = ['tp1', 'never'];
+        if (!allowed.includes(input)) {
+          throw new Error(`v30.breakevenTrigger: must be one of ${allowed.join(', ')}`);
+        }
+      }
+      if (def.key === 'v30.htfTimeframe') {
+        const allowed = ['1h', '4h', '1d'];
+        if (!allowed.includes(input)) {
+          throw new Error(`v30.htfTimeframe: must be one of ${allowed.join(', ')}`);
+        }
+      }
+      if (def.key === 'v30.ltfTimeframe') {
+        const allowed = ['15m', '30m', '1h'];
+        if (!allowed.includes(input)) {
+          throw new Error(`v30.ltfTimeframe: must be one of ${allowed.join(', ')}`);
+        }
+      }
       if (def.key === 'market.quote_asset' && input !== 'USDT') {
         throw new Error('market.quote_asset is locked to USDT (Binance Spot USDT only)');
       }
@@ -1082,7 +1264,19 @@ export function coerceSettingValue(def: SettingDef, input: unknown): unknown {
         const seen = new Set(v.map((t) => String(t)));
         v = (TIMEFRAMES as readonly string[]).filter((t) => seen.has(t));
       }
-      if (def.key === 'market.enabled_symbols' || def.key === 'market.exclude_symbols') {
+      if (
+        def.key === 'market.enabled_symbols' ||
+        def.key === 'market.exclude_symbols' ||
+        def.key === 'v30.symbols'
+      ) {
+        if (def.key === 'v30.symbols' && (!Array.isArray(v) || v.length === 0)) {
+          // The traded universe is what the VALIDATION covers. An empty list
+          // would silently stop the strategy, so it is refused rather than
+          // defaulted behind the operator's back.
+          throw new Error(
+            'v30.symbols: выберите хотя бы одну монету для стратегии V3.0',
+          );
+        }
         if (!Array.isArray(v)) {
           throw new Error(`${def.key}: expected an array of symbols`);
         }

@@ -1,16 +1,21 @@
 # V3.0 — HTF LIQUIDATION TRAP
 # V3.0 — ЛОВУШКА ЛИКВИДНОСТИ НА СТАРШЕМ ТАЙМФРЕЙМЕ
 
-**Status / Статус: `V3_0_VALIDATED_FOR_RESEARCH`** — lead candidate of the
-programme. TRAIN passed and, on 2026-09-16, the frozen candidate passed the
-single pre-registered VALIDATION run (**net +0.0600 R/trade @2/5 bps, n = 536**).
-Not production-ready.
-Full report: [V3_0_VALIDATION_RESULTS.md](../V3_0_VALIDATION_RESULTS.md).
+**Status / Статус: `V3_0_VALIDATED_FOR_RESEARCH` → `V3_0_IN_FORWARD_TEST`** —
+lead candidate of the programme. TRAIN passed and, on 2026-09-16, the frozen
+candidate passed the single pre-registered VALIDATION run (**net +0.0600
+R/trade @2/5 bps, n = 536**). It is now **ported into the site's engine and
+ready for paper forward testing** (`FORWARD_TEST`/`DRY_RUN`; `LIVE` locked).
+Not production-ready — `PRODUCTION_READY` is forbidden.
+Reports: [V3_0_VALIDATION_RESULTS.md](../V3_0_VALIDATION_RESULTS.md),
+[V3_0_PRODUCTION_PORT.md](../V3_0_PRODUCTION_PORT.md).
 
-**Статус: `V3_0_VALIDATED_FOR_RESEARCH`** — главный кандидат программы. TRAIN
-пройден, и 16.09.2026 замороженный кандидат прошёл единственный
-предрегистрированный прогон VALIDATION (**net +0.0600 R/сделку @2/5 bps,
-n = 536**). Не для продакшена.
+**Статус: `V3_0_VALIDATED_FOR_RESEARCH` → `V3_0_IN_FORWARD_TEST`** — главный
+кандидат программы. TRAIN пройден, и 16.09.2026 замороженный кандидат прошёл
+единственный предрегистрированный прогон VALIDATION (**net +0.0600 R/сделку
+@2/5 bps, n = 536**). Кандидат **перенесён в движок сайта и готов к бумажному
+форвард-тесту** (`FORWARD_TEST`/`DRY_RUN`, `LIVE` заблокирован). Не для
+продакшена — `PRODUCTION_READY` запрещено.
 
 | pinned / зафиксировано | value / значение |
 |---|---|
@@ -18,7 +23,8 @@ n = 536**). Не для продакшена.
 | pre-registration / предрегистрация | `6c2bf9e` (`6c2bf9e3302dff59eb226285f3fa7f419b5c1f64`) |
 | TRAIN results commit / коммит результатов TRAIN | `5674e65` |
 | dataset / датасет | `c3c1dce` (`c3c1dcecfe2784a147f591f2b5b4526cbf99df9f`) — Binance Spot klines, 2022-01 … 2025-12 |
-| implementation / реализация | `research/v30_htf_trap.ts` (sha256 `a821757ff0319a100a8a9087da1bdd137abb1df0785493d644ad4d87f05dc4cd`) |
+| implementation / реализация | `research/v30_htf_trap.ts` (sha256 `a821757ff0319a100a8a9087da1bdd137abb1df0785493d644ad4d87f05dc4cd`) — unmodified / не изменялся |
+| production port / прод-модуль | `src/strategy/v30/` — parity PASS (`artifacts/research/v30/v30-port-parity.json`, 1,585/1,585 trades identical on TRAIN) |
 | tests / тесты | `tests/v30-htf-trap.test.ts` |
 | metrics artifact / артефакт метрик | `artifacts/research/v30/v30-train-metrics.json` (sha256 `bc18ad9612b987678a40551be9ecfb064db5c15a72ebf3ff3d6e7357fca33fec`) |
 | TRAIN window / окно TRAIN | per series 1H: `2022-01-01T00:00:00Z` … `2024-05-26T13:00:00Z` (21,037 candles/symbol) |

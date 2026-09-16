@@ -51,6 +51,12 @@ interface Signal {
     score?: number;
     components?: Component[];
     duplicatesRemoved?: number;
+    /** Present only for V3.0 signals (HTF Liquidation Trap). */
+    v30?: {
+      strategy: string;
+      plan: { direction: string; level: number; zoneLow: number; zoneHigh: number; stop: number; tp1: number; tp2: number };
+      lastOutcome?: { exit: string; netR: number; grossR: number; feeR: number; barsHeld: number };
+    };
   } | null;
   setupCandleTime: number;
   setupClose: number;
@@ -271,13 +277,33 @@ export default function SignalsPage() {
                       )}
                     </td>
                     <td className="num">
-                      <b>{s.score.toFixed(1)}</b>
-                      <span className="cell-meta"> /{s.threshold}</span>
+                      {s.breakdown?.v30 ? (
+                        <>
+                          <b>V3.0</b>
+                          <span className="cell-meta">
+                            {' '}
+                            {s.breakdown.v30.plan.level.toFixed(2)} →{' '}
+                            {s.breakdown.v30.plan.tp1.toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <b>{s.score.toFixed(1)}</b>
+                          <span className="cell-meta"> /{s.threshold}</span>
+                        </>
+                      )}
                     </td>
                     {/* Prices use this symbol's Binance tickSize precision. */}
                     <td className="num cell-price mono">
                       {s.entryPrice === null ? (
-                        <span className="cell-meta">ожидание N+1</span>
+                        s.breakdown?.v30 ? (
+                          <span className="cell-meta" title="Лимитный коридор вокруг закрытия свечи возврата">
+                            {fmtPrice(s.breakdown.v30.plan.zoneLow, s.tickSize)}–
+                            {fmtPrice(s.breakdown.v30.plan.zoneHigh, s.tickSize)}
+                          </span>
+                        ) : (
+                          <span className="cell-meta">ожидание N+1</span>
+                        )
                       ) : (
                         fmtPrice(s.entryPrice, s.tickSize)
                       )}
@@ -328,7 +354,37 @@ export default function SignalsPage() {
                       <td colSpan={13} style={{ background: '#0b0e14' }}>
                         <div className="grid grid-2">
                           <div>
-                            <h3 className="panel-title">Расчёт оценки (прозрачный)</h3>
+                            <h3 className="panel-title">
+                              {s.breakdown?.v30 ? 'План V3.0 (HTF Liquidation Trap)' : 'Расчёт оценки (прозрачный)'}
+                            </h3>
+                            {s.breakdown?.v30 && (
+                              <div className="subpanel">
+                                <div className="muted" style={{ fontSize: 12, lineHeight: 1.8 }}>
+                                  Вынесенный уровень 4H: <b>{fmtPrice(s.breakdown.v30.plan.level, s.tickSize)}</b>
+                                  <br />
+                                  Коридор входа: <b>{fmtPrice(s.breakdown.v30.plan.zoneLow, s.tickSize)}</b> –{' '}
+                                  <b>{fmtPrice(s.breakdown.v30.plan.zoneHigh, s.tickSize)}</b>
+                                  <br />
+                                  Стоп: <b>{fmtPrice(s.breakdown.v30.plan.stop, s.tickSize)}</b> · TP1
+                                  (равновесие): <b>{fmtPrice(s.breakdown.v30.plan.tp1, s.tickSize)}</b> · TP2
+                                  (противоположный свинг):{' '}
+                                  <b>{fmtPrice(s.breakdown.v30.plan.tp2, s.tickSize)}</b>
+                                  {s.breakdown.v30.lastOutcome && (
+                                    <>
+                                      <br />
+                                      Выход: <b>{s.breakdown.v30.lastOutcome.exit}</b> · net{' '}
+                                      <b>{s.breakdown.v30.lastOutcome.netR.toFixed(3)} R</b> · gross{' '}
+                                      {s.breakdown.v30.lastOutcome.grossR.toFixed(3)} R · комиссии{' '}
+                                      {s.breakdown.v30.lastOutcome.feeR.toFixed(3)} R · свечей{' '}
+                                      {s.breakdown.v30.lastOutcome.barsHeld}
+                                    </>
+                                  )}
+                                  <br />
+                                  У V3.0 нет балльной оценки: сигнал выдаёт геометрия 4H-выноса, поэтому
+                                  в колонке оценки стоит «V3.0», а не выдуманное число.
+                                </div>
+                              </div>
+                            )}
                             {/* Every number is kept — name, strength, weight and
                                 contribution are simply easier to tell apart. */}
                             <div className="subpanel">

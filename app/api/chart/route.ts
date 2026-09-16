@@ -1,7 +1,13 @@
 import { getDb } from '@/db';
 import { getCandles } from '@/db/repo';
 import { loadSettings } from '@/core/settings';
-import { buildChartPayload, buildSignalLevels, type SignalOverlay } from '@/web/overlays';
+import {
+  buildChartPayload,
+  buildSignalLevels,
+  readV30Overlay,
+  signalLabel,
+  type SignalOverlay,
+} from '@/web/overlays';
 import { v2Enabled } from '@/strategy/v2';
 import { HTF_MAP } from '@/strategy/v2/htf';
 import type { Candle, Timeframe } from '@/core/types';
@@ -69,17 +75,28 @@ export async function GET(req: Request): Promise<Response> {
     const sigCols = [
       'id', 'direction', 'state', 'score', 'setup_candle_time',
       'entry_candle_time', 'entry_price', 'stop_loss', 'take_profits',
+      'breakdown',
     ] as const;
 
+    // A signal that already has an outcome row is CLOSED history, whatever its
+    // state string says. This matters for V3.0: its final target maps onto
+    // TP2_HIT, which the site-wide vocabulary keeps "live" because the V1
+    // ladder awaits TP3.
     const baseSigQuery = db
       .selectFrom('signals')
+      .leftJoin('outcomes', 'outcomes.signal_id', 'signals.id')
       .select([...sigCols])
+      .select('outcomes.id as closed_outcome_id')
+      // Unqualified names: `outcomes` has no symbol/timeframe column, so these
+      // are unambiguous under the join (and they are the same two the engine's
+      // chart-scoping test looks for).
       .where('symbol', '=', symbol)
       .where('timeframe', '=', timeframe)
-      .where('source', '=', 'LIVE_ENGINE');
+      .where('signals.source', '=', 'LIVE_ENGINE');
 
     let sigRow = await baseSigQuery
-      .where('state', 'in', [...LIVE_SIGNAL_STATES])
+      .where('signals.state', 'in', [...LIVE_SIGNAL_STATES])
+      .where('outcomes.id', 'is', null)
       .orderBy('setup_candle_time', 'desc')
       .orderBy('id', 'desc')
       .limit(1)
@@ -88,7 +105,13 @@ export async function GET(req: Request): Promise<Response> {
     let historical = false;
     if (!sigRow) {
       sigRow = await baseSigQuery
-        .where('state', 'in', [...TERMINAL_STATES])
+        .where((eb) =>
+          eb.or([
+            eb('state', 'in', [...TERMINAL_STATES]),
+            // V3.0 closes at TP2_HIT — terminal for this strategy.
+            eb('outcomes.id', 'is not', null),
+          ]),
+        )
         .orderBy('setup_candle_time', 'desc')
         .orderBy('id', 'desc')
         .limit(1)
@@ -99,6 +122,7 @@ export async function GET(req: Request): Promise<Response> {
     let signal: SignalOverlay | null = null;
     if (sigRow) {
       const waiting = sigRow.state === 'WAITING_ENTRY';
+      const v30 = readV30Overlay(sigRow.breakdown);
       signal = {
         id: Number(sigRow.id),
         direction: sigRow.direction as 'LONG' | 'SHORT',
@@ -113,6 +137,10 @@ export async function GET(req: Request): Promise<Response> {
         levels: waiting || historical ? [] : buildSignalLevels(sigRow),
         waitingForEntry: waiting,
         historical,
+        label: signalLabel(sigRow),
+        // V3.0 geometry comes from the persisted plan. A finished V3.0 trade
+        // keeps it, so the chart can show what the levels were.
+        ...(v30 ? { v30 } : {}),
       };
     }
 

@@ -258,6 +258,7 @@ export const CATEGORY_RU: Record<string, string> = {
   market: 'Рынок',
   outcome: 'Итоги',
   system: 'Система',
+  v30: 'V3.0 HTF Trap',
 };
 
 /**

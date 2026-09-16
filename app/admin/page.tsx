@@ -145,6 +145,59 @@ function TimeframePicker({
 /** Settings whose control is too wide for the narrow value column. */
 const WIDE_SETTINGS = new Set(['engine.timeframes']);
 
+interface StrategySubgroup {
+  label: string;
+  n: number;
+  grossExpectancyR: number;
+}
+
+interface StrategyWindowResult {
+  slice: string;
+  window: string;
+  n: number;
+  tp1HitRatePct: number;
+  tp2HitRatePct: number;
+  stopDistancePctMedian: number;
+  feeDragR: number;
+  grossRPerTrade: number;
+  netRPerTrade: number;
+  netRPerTradeStress: number;
+  profitFactor: number;
+  maxDrawdownR: number;
+  exTop1Pct: number;
+  edgeRetainedPct: number;
+  positiveRRatePct: number;
+  byDirection: StrategySubgroup[];
+  bySymbol: StrategySubgroup[];
+  exits: Record<string, number>;
+  verdict: string;
+}
+
+interface StrategyStatus {
+  activeStrategy: string;
+  engineEnabled: boolean;
+  tradingMode: string;
+  liveTradingEnabled: boolean;
+  selectable: string[];
+  researchOnlyStrategies: string[];
+  v30: {
+    frozen: boolean;
+    driftedKeys: string[];
+    params: { htfTimeframe: string; ltfTimeframe: string; symbols: string[] };
+    frozenConstants: Record<string, number | string>;
+    results: StrategyWindowResult[];
+    caveats: string[];
+    provenance: {
+      researchModule: string;
+      sha256: string;
+      parityArtifact: string;
+      parity: { status: string; window: string | null; generatedAt: string | null };
+    };
+    readiness: { symbol: string; executionBars: number; structureBars: number; tradeable: boolean; note: string }[];
+    liveCounts: Record<string, number>;
+  };
+}
+
 interface Setting {
   key: string;
   value: unknown;
@@ -166,6 +219,7 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const [settings, setSettings] = useState<Setting[]>([]);
+  const [strategy, setStrategy] = useState<StrategyStatus | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [tab, setTab] = useState('engine');
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
@@ -186,6 +240,13 @@ export default function AdminPage() {
     setAuthed(Boolean(json.ok && json.data.authenticated));
   }, []);
 
+  const loadStrategy = useCallback(async () => {
+    const res = await fetch('/api/admin/strategy');
+    if (!res.ok) return;
+    const json = await res.json();
+    if (json.ok) setStrategy(json.data as StrategyStatus);
+  }, []);
+
   const loadSettings = useCallback(async () => {
     const res = await fetch('/api/admin/settings');
     if (res.status === 401) {
@@ -204,8 +265,11 @@ export default function AdminPage() {
   }, [checkSession]);
 
   useEffect(() => {
-    if (authed) void loadSettings();
-  }, [authed, loadSettings]);
+    if (authed) {
+      void loadSettings();
+      void loadStrategy();
+    }
+  }, [authed, loadSettings, loadStrategy]);
 
   const login = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -262,6 +326,9 @@ export default function AdminPage() {
         });
       }
       await loadSettings();
+      // Re-read the strategy card too, so switching strategies or changing a
+      // V3.0 parameter updates the drift banner immediately.
+      await loadStrategy();
     } catch (e) {
       setMessage({ kind: 'error', text: e instanceof Error ? e.message : 'Не удалось сохранить' });
     } finally {
@@ -378,6 +445,8 @@ export default function AdminPage() {
           {message.text}
         </div>
       )}
+
+      {strategy && <StrategyCard status={strategy} />}
 
       {/* Settings are grouped: Движок / Smart Money / Риск / Рынок / Итоги /
           Система, plus the separate protected «Безопасность» panel below. */}
@@ -571,6 +640,258 @@ export default function AdminPage() {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Strategy card: what is running, whether the tested configuration is intact,
+ * and what forward testing may and may not claim.
+ *
+ * The validated numbers are compiled in from the committed artifacts — the UI
+ * never recomputes them and never lets them be edited. Subgroups with n < 100
+ * are greyed out, and `ex-top-1 %` always sits beside the gross figure, per
+ * docs/ADMIN_PANEL_SPEC.md §14.3–14.5.
+ */
+function StrategyCard({ status }: { status: StrategyStatus }): React.ReactElement {
+  const v = status.v30;
+  const isV30 = status.activeStrategy === 'V3_0';
+  const sliceRu: Record<string, string> = {
+    TRAIN: 'TRAIN / обучение',
+    VALIDATION: 'VALIDATION / валидация',
+  };
+  const exitRu: Record<string, string> = {
+    SL: 'Стоп',
+    TP2: 'TP2',
+    TP1_THEN_BE: 'TP1 → безубыток',
+    TP1_THEN_SL: 'TP1 → стоп',
+    TP1_THEN_TIMEOUT: 'TP1 → таймаут',
+    TIMEOUT: 'Таймаут',
+  };
+  const nCell = (n: number): React.ReactElement => (
+    <span style={{ color: n < 100 ? '#94a3b8' : undefined, fontWeight: n < 100 ? 400 : 600 }}>
+      {n.toLocaleString('ru-RU')}
+      {n < 100 ? ' · мало' : ''}
+    </span>
+  );
+  const subgroupTable = (title: string, rows: StrategySubgroup[]): React.ReactElement => (
+    <>
+      <h4 style={{ margin: '12px 0 4px', fontSize: 13 }}>{title}</h4>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Группа</th>
+            <th>n</th>
+            <th>Gross R/сделку</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.label} style={{ opacity: r.n < 100 ? 0.55 : 1 }}>
+              <td>{r.label}</td>
+              <td>{nCell(r.n)}</td>
+              <td style={{ color: r.grossExpectancyR >= 0 ? '#22c55e' : '#ef4444' }}>
+                {r.grossExpectancyR >= 0 ? '+' : ''}
+                {r.grossExpectancyR.toFixed(4)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+        Серые строки — меньше 100 сделок: статистического вывода по ним нет.
+      </p>
+    </>
+  );
+
+  return (
+    <div className="panel">
+      <h2 className="panel-title">
+        Стратегия: {isV30 ? 'V3.0 — HTF Liquidation Trap' : status.activeStrategy}
+        <span className="hint">
+          {status.tradingMode} · движок {status.engineEnabled ? 'включён' : 'выключен'} · LIVE{' '}
+          {status.liveTradingEnabled ? 'включён' : 'заблокирован'}
+        </span>
+      </h2>
+
+      <p className="muted" style={{ fontSize: 12 }}>
+        Выбираемые в этой сборке стратегии: <b>{status.selectable.join(' · ')}</b>. Кандидаты V2.x
+        ({status.researchOnlyStrategies.join(', ')}) в сайте не реализованы — их числа получены
+        отдельными исследовательскими скриптами, поэтому в селекторе их нет: выбрать стратегию,
+        которая ничего не считает, было бы обманом.
+      </p>
+
+      {!isV30 && (
+        <div className="alert alert-info">
+          Сейчас работает исходный движок <b>V1_SMC</b>. Параметры <code>v30.*</code> и карточка
+          V3.0 ниже остаются в силе, но ни на что не влияют, пока активная стратегия не V3_0.
+        </div>
+      )}
+
+      {isV30 && v.frozen && (
+        <div className="alert alert-ok">
+          <b>Конфигурация совпадает с исследованной.</b> Параметры <code>v30.*</code> равны
+          замороженным значениям, на которых получены числа ниже.{' '}
+          {v.provenance.parity.status === 'PASS'
+            ? 'Перенос в движок сайта проверен на реальных данных: каждая сделка совпала с исследовательским модулем (артефакт parity: PASS, только окно TRAIN).'
+            : `Проверка переноса: ${v.provenance.parity.status}.`}{' '}
+          Эта сборка годится для <b>форвард-теста на живом рынке (FORWARD_TEST)</b>. Она{' '}
+          <b>не</b> объявляется готовой к реальной торговле: PRODUCTION_READY запрещено.
+        </div>
+      )}
+      {isV30 && !v.frozen && (
+        <div className="alert alert-error">
+          <b>Конфигурация изменена после заморозки.</b> Отличия:{' '}
+          {v.driftedKeys.join(', ') || '(значения недоступны)'}. Числа TRAIN/VALIDATION больше не
+          описывают то, что исполняет движок: такой прогон нельзя выдавать за проверенный
+          результат.
+        </div>
+      )}
+
+      <h3 className="panel-title">Проверенные результаты</h3>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Окно</th>
+            <th>n</th>
+            <th>TP1</th>
+            <th>TP2</th>
+            <th>R&gt;0</th>
+            <th>Стоп, %</th>
+            <th>Комиссия, R</th>
+            <th>Gross R</th>
+            <th>Без топ-1%, R</th>
+            <th>Net R @2/5</th>
+            <th>Net R @5/5</th>
+            <th>PF</th>
+            <th>MaxDD, R</th>
+            <th>Вердикт</th>
+          </tr>
+        </thead>
+        <tbody>
+          {v.results.map((r) => (
+            <tr key={r.slice}>
+              <td>{sliceRu[r.slice] ?? r.slice}</td>
+              <td>{r.n.toLocaleString('ru-RU')}</td>
+              <td>{r.tp1HitRatePct.toFixed(2)}%</td>
+              <td>{r.tp2HitRatePct.toFixed(2)}%</td>
+              <td>{r.positiveRRatePct.toFixed(2)}%</td>
+              <td>{r.stopDistancePctMedian.toFixed(4)}</td>
+              <td>{r.feeDragR.toFixed(4)}</td>
+              <td>{r.grossRPerTrade.toFixed(4)}</td>
+              <td>
+                {r.exTop1Pct.toFixed(4)}{' '}
+                <span className="muted">({r.edgeRetainedPct.toFixed(1)}% осталось)</span>
+              </td>
+              <td>{r.netRPerTrade.toFixed(4)}</td>
+              <td>{r.netRPerTradeStress.toFixed(4)}</td>
+              <td>{r.profitFactor.toFixed(4)}</td>
+              <td>{r.maxDrawdownR.toFixed(2)}</td>
+              <td>{r.verdict}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="muted" style={{ fontSize: 11 }}>
+        Gross R — до комиссий. Net R @2/5 — заголовочная цифра валидации: мейкер 2 bps на входе,
+        тейкер 5 bps на КАЖДОМ выходе (их три плеча, потому что половина позиции закрывается на
+        TP1). Net R @5/5 — стресс на дорогих комиссиях. «Без топ-1%» — средний gross без 1%
+        лучших сделок: главный индикатор хрупкости.
+      </p>
+
+      {v.results.map((r) => (
+        <div key={`sub-${r.slice}`}>
+          {subgroupTable(
+            `${sliceRu[r.slice] ?? r.slice} — по направлению (gross)`,
+            r.byDirection,
+          )}
+          {subgroupTable(`${sliceRu[r.slice] ?? r.slice} — по монетам (gross)`, r.bySymbol)}
+          <p className="muted" style={{ fontSize: 11 }}>
+            Выходы: {Object.entries(r.exits)
+              .map(([k, n]) => `${exitRu[k] ?? k} ${n}`)
+              .join(' · ')}
+          </p>
+        </div>
+      ))}
+
+      <h3 className="panel-title" style={{ marginTop: 16 }}>
+        Замороженные константы (только чтение)
+      </h3>
+      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, lineHeight: 1.7 }}>
+        <li>
+          Коридор входа живёт <b>{String(v.frozenConstants.corridorExpiryBars)}</b> свечи — этот
+          параметр не вынесен в настройки.
+        </li>
+        <li>Комиссии: {String(v.frozenConstants.feeModel)}.</li>
+        <li>
+          Свинги {String(v.frozenConstants.swingLookbackSetting)} ={' '}
+          {String(v.frozenConstants.swingLookback)}, ATR {String(v.frozenConstants.atrPeriodSetting)}{' '}
+          = {String(v.frozenConstants.atrPeriod)}, объём {String(v.frozenConstants.volumePeriodSetting)}{' '}
+          = {String(v.frozenConstants.volumePeriod)}.
+        </li>
+        <li>Внутрибарные правила: {String(v.frozenConstants.intrabarRules)}.</li>
+      </ul>
+
+      <h3 className="panel-title" style={{ marginTop: 16 }}>
+        Допущения и оговорки
+      </h3>
+      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.7 }}>
+        {v.caveats.map((c) => (
+          <li key={c}>{c}</li>
+        ))}
+      </ul>
+
+      <h3 className="panel-title" style={{ marginTop: 16 }}>
+        Провенанс
+      </h3>
+      <p className="muted" style={{ fontSize: 11 }}>
+        Исследовательский модуль: <code>{v.provenance.researchModule}</code> · sha256{' '}
+        <code>{v.provenance.sha256.slice(0, 16)}…</code>
+        <br />
+        Проверка переноса (каждая сделка сверена с модулем):{' '}
+        <b>{v.provenance.parity.status}</b>
+        {v.provenance.parity.window ? ` · ${v.provenance.parity.window}` : ''}
+        {v.provenance.parity.generatedAt
+          ? ` · ${new Date(v.provenance.parity.generatedAt).toISOString().slice(0, 16).replace('T', ' ')}Z`
+          : ''}
+        {' · '}
+        <code>{v.provenance.parityArtifact}</code>
+      </p>
+
+      <h3 className="panel-title" style={{ marginTop: 16 }}>
+        Готовность данных
+      </h3>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Монета</th>
+            <th>Свечей {v.params.ltfTimeframe}</th>
+            <th>Свечей {v.params.htfTimeframe}</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {v.readiness.map((r) => (
+            <tr key={r.symbol}>
+              <td>{r.symbol}</td>
+              <td>{r.executionBars.toLocaleString('ru-RU')}</td>
+              <td>{r.structureBars.toLocaleString('ru-RU')}</td>
+              <td style={{ color: r.tradeable ? '#22c55e' : '#f59e0b' }}>{r.note}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h3 className="panel-title" style={{ marginTop: 16 }}>
+        Открытые сигналы V3.0
+      </h3>
+      <p className="muted" style={{ fontSize: 12 }}>
+        {Object.keys(v.liveCounts).length === 0
+          ? 'Нет открытых сигналов.'
+          : Object.entries(v.liveCounts)
+              .map(([k, n]) => `${k}: ${n}`)
+              .join(' · ')}
+      </p>
     </div>
   );
 }

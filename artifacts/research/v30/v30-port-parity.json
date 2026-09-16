@@ -1,0 +1,196 @@
+{
+  "parity": "PASS",
+  "window": "TRAIN only (2022-01-01 .. 2024-05-26 per splits.json)",
+  "execTimeframe": "1h",
+  "structuralTimeframe": "4h",
+  "dataset": {
+    "repo": "https://github.com/nub36/svechnoy-suslik-binance-data.git",
+    "commit": "c3c1dcecfe2784a147f591f2b5b4526cbf99df9f"
+  },
+  "totals": {
+    "research": {
+      "signals": 2015,
+      "filled": 1585,
+      "expired": 0,
+      "cancelled": 330,
+      "rejected": 100,
+      "unresolved": 0,
+      "grossRSum": 273.6275
+    },
+    "port": {
+      "signals": 2015,
+      "filled": 1585,
+      "expired": 0,
+      "cancelled": 330,
+      "rejected": 100,
+      "unresolved": 0,
+      "grossRSum": 273.6275
+    }
+  },
+  "globalProblems": [],
+  "aggregates": {
+    "research": {
+      "n": 1585,
+      "grossRPerTrade": 0.1726,
+      "feeRPerTrade": 0.0732,
+      "netRPerTrade": 0.0994
+    },
+    "port": {
+      "n": 1585,
+      "grossRPerTrade": 0.1726,
+      "feeRPerTrade": 0.0732,
+      "netRPerTrade": 0.0994
+    }
+  },
+  "artifactCrossCheck": {
+    "artifact": "artifacts/research/v30/v30-train-metrics.json",
+    "expected": {
+      "n": 1585,
+      "grossRPerTrade": 0.1726,
+      "feeRPerTrade": 0.0732,
+      "netRPerTrade": 0.0994
+    },
+    "problems": []
+  },
+  "perSymbol": [
+    {
+      "symbol": "BTCUSDT",
+      "trainFromUtc": "2022-01-01T00:00:00.000Z",
+      "trainToUtc": "2024-05-26T13:00:00.000Z",
+      "research": {
+        "signals": 333,
+        "filled": 259,
+        "expired": 0,
+        "cancelled": 52,
+        "rejected": 22,
+        "unresolved": 0
+      },
+      "port": {
+        "signals": 333,
+        "filled": 259,
+        "expired": 0,
+        "cancelled": 52,
+        "rejected": 22,
+        "unresolved": 0
+      },
+      "tradesMatch": true,
+      "problems": []
+    },
+    {
+      "symbol": "ETHUSDT",
+      "trainFromUtc": "2022-01-01T00:00:00.000Z",
+      "trainToUtc": "2024-05-26T13:00:00.000Z",
+      "research": {
+        "signals": 338,
+        "filled": 268,
+        "expired": 0,
+        "cancelled": 50,
+        "rejected": 20,
+        "unresolved": 0
+      },
+      "port": {
+        "signals": 338,
+        "filled": 268,
+        "expired": 0,
+        "cancelled": 50,
+        "rejected": 20,
+        "unresolved": 0
+      },
+      "tradesMatch": true,
+      "problems": []
+    },
+    {
+      "symbol": "BNBUSDT",
+      "trainFromUtc": "2022-01-01T00:00:00.000Z",
+      "trainToUtc": "2024-05-26T13:00:00.000Z",
+      "research": {
+        "signals": 365,
+        "filled": 295,
+        "expired": 0,
+        "cancelled": 50,
+        "rejected": 20,
+        "unresolved": 0
+      },
+      "port": {
+        "signals": 365,
+        "filled": 295,
+        "expired": 0,
+        "cancelled": 50,
+        "rejected": 20,
+        "unresolved": 0
+      },
+      "tradesMatch": true,
+      "problems": []
+    },
+    {
+      "symbol": "SOLUSDT",
+      "trainFromUtc": "2022-01-01T00:00:00.000Z",
+      "trainToUtc": "2024-05-26T13:00:00.000Z",
+      "research": {
+        "signals": 331,
+        "filled": 259,
+        "expired": 0,
+        "cancelled": 59,
+        "rejected": 13,
+        "unresolved": 0
+      },
+      "port": {
+        "signals": 331,
+        "filled": 259,
+        "expired": 0,
+        "cancelled": 59,
+        "rejected": 13,
+        "unresolved": 0
+      },
+      "tradesMatch": true,
+      "problems": []
+    },
+    {
+      "symbol": "XRPUSDT",
+      "trainFromUtc": "2022-01-01T00:00:00.000Z",
+      "trainToUtc": "2024-05-26T13:00:00.000Z",
+      "research": {
+        "signals": 304,
+        "filled": 238,
+        "expired": 0,
+        "cancelled": 54,
+        "rejected": 12,
+        "unresolved": 0
+      },
+      "port": {
+        "signals": 304,
+        "filled": 238,
+        "expired": 0,
+        "cancelled": 54,
+        "rejected": 12,
+        "unresolved": 0
+      },
+      "tradesMatch": true,
+      "problems": []
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "trainFromUtc": "2022-01-01T00:00:00.000Z",
+      "trainToUtc": "2024-05-26T13:00:00.000Z",
+      "research": {
+        "signals": 344,
+        "filled": 266,
+        "expired": 0,
+        "cancelled": 65,
+        "rejected": 13,
+        "unresolved": 0
+      },
+      "port": {
+        "signals": 344,
+        "filled": 266,
+        "expired": 0,
+        "cancelled": 65,
+        "rejected": 13,
+        "unresolved": 0
+      },
+      "tradesMatch": true,
+      "problems": []
+    }
+  ],
+  "generatedAt": "2026-09-16T15:54:25.854Z"
+}
