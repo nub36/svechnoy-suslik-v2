@@ -1,0 +1,243 @@
+{
+  "slice": "train",
+  "scope": [
+    "15m",
+    "30m",
+    "1h",
+    "4h"
+  ],
+  "feeEnvironments": [
+    {
+      "label": "GROSS",
+      "makerBps": 0,
+      "takerBps": 0
+    },
+    {
+      "label": "FUT_4",
+      "makerBps": 2,
+      "takerBps": 5
+    },
+    {
+      "label": "SPOT",
+      "makerBps": 5,
+      "takerBps": 5
+    }
+  ],
+  "headlineLabel": "FUT_4 = 2 bps maker entry + 5 bps taker exit",
+  "actionableSetups": 106994,
+  "sameEntryInvariant": {
+    "entriesA": 30888,
+    "entriesV": 30867,
+    "mismatch": 21,
+    "unresolvedV25AtBoundary": 21,
+    "ok": true
+  },
+  "criterion": {
+    "rule": "V2.5 net expectancy per trade > baseline A, headline 2/5 bps",
+    "baselineA": -0.1257,
+    "v25": -0.0786,
+    "passed": true
+  },
+  "arms": {
+    "A": {
+      "arm": "A",
+      "closed": 30888,
+      "grossExpectancyPerTrade": -0.0015,
+      "grossExpectancyPerActionableSetup": -0.0004,
+      "grossMedianR": -1,
+      "grossTotalR": -45.23,
+      "grossPF": 0.9978,
+      "winRate": 28.11,
+      "avgWin": 2.3634,
+      "avgLoss": -0.9261,
+      "payoffRatio": 2.5521,
+      "maxDrawdownR": -505.82,
+      "medianBarsHeld": 12,
+      "medianMfeR": 0.851,
+      "shareNeverReached1R": 54.47,
+      "exitReasons": {
+        "SL": 19913,
+        "TIMEOUT": 6629,
+        "TP": 4346
+      },
+      "netByFeeEnv": {
+        "GROSS": {
+          "perFilled": -0.0015,
+          "perSetup": -0.0004,
+          "meanFeeDragR": 0
+        },
+        "FUT_4": {
+          "perFilled": -0.1257,
+          "perSetup": -0.0363,
+          "meanFeeDragR": 0.1243
+        },
+        "SPOT": {
+          "perFilled": -0.179,
+          "perSetup": -0.0517,
+          "meanFeeDragR": 0.1775
+        }
+      },
+      "outlierDependence": {
+        "grossExpectancy": -0.0015,
+        "exTop1": -0.0023,
+        "exTop5": -0.0045,
+        "exTop1Pct": -0.0932,
+        "removedForTop1Pct": 309
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 10316,
+          "grossExpectancy": -0.0256
+        },
+        "SHORT": {
+          "n": 20572,
+          "grossExpectancy": 0.0106
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 17016,
+          "grossExpectancy": -0.0045
+        },
+        "30m": {
+          "n": 8503,
+          "grossExpectancy": -0.0084
+        },
+        "1h": {
+          "n": 4344,
+          "grossExpectancy": 0.0051
+        },
+        "4h": {
+          "n": 1025,
+          "grossExpectancy": 0.0782
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 5235,
+          "grossExpectancy": 0.0078
+        },
+        "ETHUSDT": {
+          "n": 5275,
+          "grossExpectancy": 0.0308
+        },
+        "BNBUSDT": {
+          "n": 5042,
+          "grossExpectancy": 0.003
+        },
+        "SOLUSDT": {
+          "n": 5074,
+          "grossExpectancy": 0.0076
+        },
+        "XRPUSDT": {
+          "n": 5125,
+          "grossExpectancy": -0.0654
+        },
+        "DOGEUSDT": {
+          "n": 5137,
+          "grossExpectancy": 0.0065
+        }
+      }
+    },
+    "V25": {
+      "arm": "V25",
+      "closed": 30867,
+      "grossExpectancyPerTrade": 0.0457,
+      "grossExpectancyPerActionableSetup": 0.0132,
+      "grossMedianR": -0.0486,
+      "grossTotalR": 1411.57,
+      "grossPF": 1.115,
+      "winRate": 47.88,
+      "avgWin": 0.9261,
+      "avgLoss": -0.763,
+      "payoffRatio": 1.2138,
+      "maxDrawdownR": -79.26,
+      "medianBarsHeld": 6,
+      "medianMfeR": 0.6472,
+      "shareNeverReached1R": 63.61,
+      "exitReasons": {
+        "TIMEOUT": 9277,
+        "SL": 10736,
+        "TRAIL": 10854
+      },
+      "netByFeeEnv": {
+        "GROSS": {
+          "perFilled": 0.0457,
+          "perSetup": 0.0132,
+          "meanFeeDragR": 0
+        },
+        "FUT_4": {
+          "perFilled": -0.0786,
+          "perSetup": -0.0227,
+          "meanFeeDragR": 0.1243
+        },
+        "SPOT": {
+          "perFilled": -0.1319,
+          "perSetup": -0.0381,
+          "meanFeeDragR": 0.1776
+        }
+      },
+      "outlierDependence": {
+        "grossExpectancy": 0.0457,
+        "exTop1": 0.0449,
+        "exTop5": 0.0425,
+        "exTop1Pct": -0.0189,
+        "removedForTop1Pct": 309
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 10299,
+          "grossExpectancy": 0.02
+        },
+        "SHORT": {
+          "n": 20568,
+          "grossExpectancy": 0.0586
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 17007,
+          "grossExpectancy": 0.0438
+        },
+        "30m": {
+          "n": 8493,
+          "grossExpectancy": 0.0401
+        },
+        "1h": {
+          "n": 4343,
+          "grossExpectancy": 0.053
+        },
+        "4h": {
+          "n": 1024,
+          "grossExpectancy": 0.0932
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 5232,
+          "grossExpectancy": 0.0566
+        },
+        "ETHUSDT": {
+          "n": 5269,
+          "grossExpectancy": 0.0768
+        },
+        "BNBUSDT": {
+          "n": 5035,
+          "grossExpectancy": 0.0323
+        },
+        "SOLUSDT": {
+          "n": 5071,
+          "grossExpectancy": 0.0454
+        },
+        "XRPUSDT": {
+          "n": 5124,
+          "grossExpectancy": 0.0249
+        },
+        "DOGEUSDT": {
+          "n": 5136,
+          "grossExpectancy": 0.037
+        }
+      }
+    }
+  }
+}
