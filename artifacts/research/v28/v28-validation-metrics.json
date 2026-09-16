@@ -1,0 +1,194 @@
+{
+  "slice": "validation",
+  "scope": [
+    "15m",
+    "30m",
+    "1h",
+    "4h"
+  ],
+  "candidate": "Trail (sniper entry + V2.5 trailing, zero fees)",
+  "freezeCommit": "852167c",
+  "feesDisabled": true,
+  "feeNote": "ALL fees set to ZERO. Every figure is gross R. The SMC arm recovers gross by adding back the frozen 0.1% lump fee that trackOutcome subtracts.",
+  "entryFilter": "V2.6/V2.7 sniper (bodyRatio >= 0.35, rvol > 1.2), reversals only",
+  "rrMaxBars": 50,
+  "actionableSetups": 36229,
+  "sniperEntries": 98,
+  "sameEntryInvariant": {
+    "perArmEntryCounts": {
+      "SMC": 98,
+      "Trail": 98
+    },
+    "identicalAcrossArms": true
+  },
+  "best": {
+    "byGross": "Trail",
+    "grossRPerTrade": 0.0488
+  },
+  "bestAfterOutlierRemoval": {
+    "arm": "Trail",
+    "exTop1Pct": -0.0143
+  },
+  "arms": [
+    {
+      "arm": "SMC",
+      "n": 98,
+      "winRateTargetPct": 15.31,
+      "positiveRRatePct": 23.47,
+      "grossRPerTrade": -0.1821,
+      "grossTotalR": -17.85,
+      "profitFactor": 0.759,
+      "maxDrawdownR": -25.26,
+      "grossMedianR": -1,
+      "avgWinR": 2.4443,
+      "avgLossR": -0.9876,
+      "medianBarsHeld": 11,
+      "exits": {
+        "SL": 74,
+        "TP": 15,
+        "TIMEOUT": 9
+      },
+      "outlierDependence": {
+        "grossExpectancy": -0.1821,
+        "exTop1": -0.2377,
+        "exTop5": -0.4227,
+        "exTop1Pct": -0.2377,
+        "removedForTop1Pct": 1
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 47,
+          "grossExpectancy": 0.089
+        },
+        "SHORT": {
+          "n": 51,
+          "grossExpectancy": -0.432
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 46,
+          "grossExpectancy": 0.2437
+        },
+        "30m": {
+          "n": 34,
+          "grossExpectancy": -0.6669
+        },
+        "1h": {
+          "n": 14,
+          "grossExpectancy": -0.4582
+        },
+        "4h": {
+          "n": 4,
+          "grossExpectancy": 0.0065
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 14,
+          "grossExpectancy": -0.6728
+        },
+        "ETHUSDT": {
+          "n": 23,
+          "grossExpectancy": 0.2563
+        },
+        "BNBUSDT": {
+          "n": 12,
+          "grossExpectancy": -0.2103
+        },
+        "SOLUSDT": {
+          "n": 7,
+          "grossExpectancy": -0.3759
+        },
+        "XRPUSDT": {
+          "n": 24,
+          "grossExpectancy": -0.1515
+        },
+        "DOGEUSDT": {
+          "n": 18,
+          "grossExpectancy": -0.3073
+        }
+      }
+    },
+    {
+      "arm": "Trail",
+      "n": 98,
+      "winRateTargetPct": 44.9,
+      "positiveRRatePct": 44.9,
+      "grossRPerTrade": 0.0488,
+      "grossTotalR": 4.79,
+      "profitFactor": 1.1087,
+      "maxDrawdownR": -8.11,
+      "grossMedianR": -0.127,
+      "avgWinR": 1.11,
+      "avgLossR": -0.8158,
+      "medianBarsHeld": 7,
+      "exits": {
+        "TRAIL": 38,
+        "TIMEOUT": 22,
+        "SL": 38
+      },
+      "outlierDependence": {
+        "grossExpectancy": 0.0488,
+        "exTop1": -0.0143,
+        "exTop5": -0.1654,
+        "exTop1Pct": -0.0143,
+        "removedForTop1Pct": 1
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 47,
+          "grossExpectancy": 0.2673
+        },
+        "SHORT": {
+          "n": 51,
+          "grossExpectancy": -0.1525
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 46,
+          "grossExpectancy": 0.503
+        },
+        "30m": {
+          "n": 34,
+          "grossExpectancy": -0.4795
+        },
+        "1h": {
+          "n": 14,
+          "grossExpectancy": -0.2937
+        },
+        "4h": {
+          "n": 4,
+          "grossExpectancy": 0.5166
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 14,
+          "grossExpectancy": -0.4005
+        },
+        "ETHUSDT": {
+          "n": 23,
+          "grossExpectancy": 0.264
+        },
+        "BNBUSDT": {
+          "n": 12,
+          "grossExpectancy": 0.5572
+        },
+        "SOLUSDT": {
+          "n": 7,
+          "grossExpectancy": -0.3524
+        },
+        "XRPUSDT": {
+          "n": 24,
+          "grossExpectancy": 0.2126
+        },
+        "DOGEUSDT": {
+          "n": 18,
+          "grossExpectancy": -0.2777
+        }
+      }
+    }
+  ]
+}
