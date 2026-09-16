@@ -1,4 +1,33 @@
-# FINAL STATUS — SMC V2 RESEARCH PROGRAMME
+# FINAL STATUS — SMC V2 / V3 RESEARCH PROGRAMME
+
+> **CURRENT PORTFOLIO ARCHITECTURE (2026-09-16).** The programme now has **two
+> leaders**, and they are **not** equally evidenced — the distinction is the whole
+> point of this section:
+>
+> | role | strategy | status | engine |
+> |---|---|---|---|
+> | **Reversal sniper** — fade a swept 4H level | **V3.0 HTF Liquidation Trap** ⭐ | **`V3_0_VALIDATED_FOR_RESEARCH`**: TRAIN +0.0994 (n=1,585) **and** pre-registered VALIDATION **+0.0600** @2/5 bps (n=536) | **running** — default strategy, paper forward test (`FORWARD_TEST`; `LIVE` locked, `PRODUCTION_READY` forbidden) |
+> | **High-frequency mitigation** — fade into a fresh displacement-created 4H zone on a 1H exhaustion bar | **V3.3 HTF Zone Mitigation & LTF Squeeze** ⚠️ | **`V3_3_TRAIN_ONLY`**: TRAIN **+0.0267** @2/5 bps (n=6,957), TP1 65.24 %, fee drag 0.0511 R, PF 1.2341 — **never validated** | **not ported** — research harness only; `v33.*` is a proposal in the admin spec, not settings |
+>
+> **Only V3.0 has passed out-of-sample validation.** V3.3 is the first hypothesis
+> since V3.0 to pass its pre-registered **TRAIN** criteria, and it is documented
+> and frozen — but TRAIN is burned data (V3.0, V3.1, V3.2 all used it), its edge
+> lives in the top 1 % of trades (ex-top-1 % gross **+0.0264** vs a **0.0511 R**
+> fee, i.e. net-negative without the tail), the strictest reading of the same
+> entry rule (`window=first`) fails the primary criterion (−0.0253), and **no
+> unspent validation window remains** — VALIDATION was read once on 2026-09-16 and
+> the 2026-H1 TEST window must stay unread. V3.3 is therefore a **queue item for an
+> operator decision**, not a second verified winner.
+>
+> Specs: [strategies/V3_0_HTF_LIQUIDATION_TRAP.md](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) ·
+> [strategies/V3_3_HTF_ZONE_MITIGATION.md](strategies/V3_3_HTF_ZONE_MITIGATION.md) ·
+> [V3_0_PRODUCTION_PORT.md](V3_0_PRODUCTION_PORT.md) ·
+> [V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md](V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md) ·
+> [STRATEGY_ARCHIVE.md](STRATEGY_ARCHIVE.md) ·
+> [ADMIN_PANEL_SPEC.md](ADMIN_PANEL_SPEC.md).
+>
+> **`PRODUCTION_READY` is forbidden for every strategy in this repository,
+> V3.0 and V3.3 included. Neither is approved for live capital.**
 
 > **Historical document — the V2 research phase as it closed.** The programme was
 > subsequently reopened: **V3.0 HTF Liquidation Trap** is the current lead
@@ -190,3 +219,65 @@ That is a genuine result worth preserving — and it is **not** a deployable
 trading system. `PRODUCTION_READY` was forbidden throughout and remains so. The
 responsible next step is more data (the untouched 2026-H1 window, once
 reachable), not live capital.
+
+---
+
+## PORTFOLIO ARCHITECTURE (added 2026-09-16) / АРХИТЕКТУРА ПОРТФЕЛЯ
+
+**EN.** The programme's outcome is a **two-candidate portfolio with one validated
+member**, and this section is the canonical statement of it.
+
+| | **V3.0 — Reversal Sniper** ⭐ | **V3.3 — High-Frequency Mitigation** ⚠️ |
+|---|---|---|
+| Signal | a confirmed 4H swing is **swept** and the 1H candle closes back behind it (liquidation trap) | price **mitigates a fresh 4H zone** (order block or imbalance, both displacement-created) and the 1H bar prints an exhaustion signature |
+| Entry | maker corridor `close ± 0.10 ATR`, fill from N+1 at the worse edge | same corridor mechanics |
+| Risk | stop behind the sweep wick + 0.15 ATR | stop behind the **further** of the exhaustion wick and the zone's invalidation edge + 0.15 ATR |
+| Targets | TP1 = 4H equilibrium → BE → TP2 = opposing 4H swing | TP1 = equilibrium of the leg that **created** the zone → BE → TP2 = opposing confirmed 4H swing |
+| Trade rate | 1,585 over TRAIN (~5.4/month per symbol-scale) | 6,957 over TRAIN (~4.4× more) |
+| Status | `V3_0_VALIDATED_FOR_RESEARCH` | `V3_3_TRAIN_ONLY` |
+| Engine | **ported, default, paper forward test** | **not ported** |
+| Blocker to promotion | none for forward testing; validation windows spent | tail dependence, `first` window fails F1, no validation window, no `v33.*` settings/wiring |
+| Next action | keep the forward test running; monitor drift and the caveats below | operator decision; if a forward test is wanted it needs its own pre-registration (primary reading `while` + `protective` + `displacement`, drift monitoring, stopping rule) |
+
+**Why they are complements, not substitutes.** V3.0 fades a **level** and trades
+rarely with a large per-trade edge (+0.1726 gross). V3.3 fades a **zone** and
+trades often with a small per-trade edge (+0.0778 gross, +0.0267 net). They fire
+on different market structures, so the two curves are not the same bet — but
+neither is a live recommendation, and V3.3's small net edge sits inside its own
+fee drag once the tail is removed.
+
+**What must not happen next.** Do not re-read the VALIDATION window. Do not read
+the 2026-H1 TEST window (no data, and it is the last unspent slice). Do not port
+V3.3 on the strength of a TRAIN pass. Do not label anything `PRODUCTION_READY`.
+Do not present V3.3 as validated, verified or live — the correct phrasing is
+*"TRAIN pass, not validated, not implemented in the engine"*.
+
+**RU.** Итог программы — **портфель из двух кандидатов, из которых валидирован
+один**, и этот раздел является его канонической формулировкой.
+
+| | **V3.0 — Разворотный снайпер** ⭐ | **V3.3 — Высокочастотная митигация** ⚠️ |
+|---|---|---|
+| Сигнал | подтверждённый 4H-свинг **снят**, и 1H-свеча закрывается обратно за уровнем (ловушка ликвидности) | цена **митигирует свежую 4H-зону** (ордер-блок или имбаланс, созданные смещением), и 1H-бар печатает сигнатуру истощения |
+| Вход | мейкер-коридор `close ± 0.10 ATR`, исполнение с N+1 по худшему краю | та же механика коридора |
+| Риск | стоп за тенью выноса + 0.15 ATR | стоп за **дальней** из {тень истощения, край инвалидации зоны} + 0.15 ATR |
+| Цели | TP1 = равновесие 4H → безубыток → TP2 = противоположный 4H-свинг | TP1 = равновесие ноги, **создавшей** зону → безубыток → TP2 = противоположный подтверждённый 4H-свинг |
+| Частота | 1 585 сделок на TRAIN | 6 957 на TRAIN (в 4.4 раза больше) |
+| Статус | `V3_0_VALIDATED_FOR_RESEARCH` | `V3_3_TRAIN_ONLY` |
+| Движок | **перенесён, по умолчанию, бумажный форвард-тест** | **не перенесён** |
+| Что мешает повышению | для форварда — ничего; окна валидации израсходованы | зависимость от хвоста, `first` проваливает F1, нет окна валидации, нет настроек и проводки `v33.*` |
+| Следующее действие | продолжать форвард-тест, следить за дрейфом и оговорками ниже | решение оператора; для форварда нужна своя предрегистрация (основное чтение `while` + `protective` + `displacement`, контроль дрейфа, правило остановки) |
+
+**Почему они дополняют, а не заменяют друг друга.** V3.0 торгует против
+**уровня** — редко и с большим преимуществом на сделку (+0.1726 валового). V3.3
+торгует против **зоны** — часто и с малым преимуществом (+0.0778 валового,
++0.0267 чистого). Они срабатывают на разных структурах рынка, поэтому их кривые
+— не одна и та же ставка; но ни одна из них не является живой рекомендацией, а
+малое чистое преимущество V3.3 при удалении хвоста оказывается внутри его же
+комиссии.
+
+**Чего нельзя делать дальше.** Не перечитывать окно VALIDATION. Не читать окно
+TEST-2026 (данных нет, и это последний неизрасходованный срез). Не переносить
+V3.3 в движок на основании прохождения TRAIN. Не помечать ничего как
+`PRODUCTION_READY`. Не представлять V3.3 как валидированный, проверенный или
+живой — правильная формулировка: «пройден TRAIN, не валидирован, в движке не
+реализован».

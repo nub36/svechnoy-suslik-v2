@@ -1,35 +1,52 @@
-# STRATEGY ARCHIVE — V2.1 … V3.3
+# STRATEGY ARCHIVE — V2.1 … V3.3 (complete portfolio index)
 
 Master index of every strategy developed in this research programme. Each entry
 links to a full specification with exact parameter values, verified against
 source code and result artifacts (not from memory).
 
-**Lead candidate: [V3.0 HTF Liquidation Trap](strategies/V3_0_HTF_LIQUIDATION_TRAP.md)** ⭐
-— **`V3_0_VALIDATED_FOR_RESEARCH`**. The first strategy in the programme to be
-net-positive at realistic Binance futures fees on **both** TRAIN (+0.0994 R/trade
-@2/5 bps, n = 1,585) **and** the unseen VALIDATION window (**+0.0600 R/trade**
-@2/5 bps, n = 536). Frozen before validation:
+**THE PORTFOLIO HAS TWO LEADERS — one validated, one TRAIN-only. Do not confuse
+them.** Reviewed on 2026-09-16. Complete history: **13 strategy rows across two
+programme generations** — V2.1a, V2.1b and V2.2 – V2.8 (nine V2 entries, each
+counted once even where a row bundles sub-variants such as V2.1's B/C/D arms),
+plus V3.0, V3.1, V3.2 and V3.3. (Briefings that say "11 strategies" are counting
+the nine V2 rows plus the two leaders and dropping the two falsified V3
+intermediates; the table below is the authoritative list.)
+
+| leader | status | evidence | in the engine? |
+|---|---|---|---|
+| ⭐ **V3.0 HTF Liquidation Trap** — reversal sniper | **`V3_0_VALIDATED_FOR_RESEARCH`** | TRAIN +0.0994 (n=1,585) **and** the single pre-registered VALIDATION **+0.0600** (n=536) | **yes** — default strategy, paper forward test |
+| ⚠️ **V3.3 HTF Zone Mitigation & LTF Squeeze** — high-frequency mitigation | **`V3_3_TRAIN_ONLY`** (TRAIN pass, **not validated**) | TRAIN **+0.0267** (n=6,957); tail-fragile; `first` window fails F1 | **no** — research harness only |
+
+**Crucially: only V3.0 has passed out-of-sample validation.** V3.3 passed its
+pre-registered TRAIN criteria — which is real progress (the first hypothesis to do
+so since V3.0) — but TRAIN is burned data, its edge sits in the top 1 % of trades,
+and no unspent validation window remains. Calling V3.3 "verified" would overstate
+the evidence; what it has earned is `V3_3_TRAIN_ONLY` and a place in the queue for
+an operator decision.
+
+**V3.0 in one line:** the first strategy in the programme to be net-positive at
+realistic Binance futures fees on **both** TRAIN (+0.0994 R/trade @2/5 bps,
+n = 1,585) **and** the unseen VALIDATION window (**+0.0600 R/trade** @2/5 bps,
+n = 536). Frozen before validation:
 [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md); results:
-[V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md). **Ported into the
-site's engine and running in paper forward test** (`FORWARD_TEST`, `LIVE`
-locked) — [V3_0_PRODUCTION_PORT.md](V3_0_PRODUCTION_PORT.md).
+[V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md); **ported into the site's
+engine and running in paper forward test** (`FORWARD_TEST`, `LIVE` locked) —
+[V3_0_PRODUCTION_PORT.md](V3_0_PRODUCTION_PORT.md).
 
-**[V3.1 HTF Trend Pullback & Mitigation](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md)**
-— the trend-following counterpart — was pre-registered, implemented and run on
-TRAIN: **`V3_1_FALSIFIED_ON_TRAIN`** (net −0.1097 R/trade @2/5 bps, n = 158,
-gross already negative at −0.0838). Its wide-stop mechanism worked (fee drag
-0.0258 R, the lowest recorded) but the payoff geometry does not pay for it.
+**The two falsified intermediates, for the record:**
 
-**[V3.2 Volume Climax & Absorption](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md)** — the
-flow-fade hypothesis — was pre-registered, implemented and run on TRAIN:
-**`V3_2_FALSIFIED_ON_TRAIN`**. Its pre-registered primary variant has the
-**highest TP1 hit rate in the programme (60.59 %) and the lowest fee drag of any
-trend-independent fade (0.0538 R)**, yet loses **−0.0620 R/trade** because its
-expectancy **before fees is zero** (−0.0082): TP1 sits a median 0.71 R away while
-the stop is 1 R. Two pre-registered EMA50-TP1 sensitivity variants clear F1
-(+0.0530 / +0.0108) but falsify the premise criterion F3 and are **not promoted**
-(`V3_2_EMA50_VARIANT_UNPROMOTED`; a new pre-registration would be required, and
-no unspent validation window remains).
+- **[V3.1 HTF Trend Pullback & Mitigation](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md)**
+  — the trend-following counterpart — `V3_1_FALSIFIED_ON_TRAIN` (net −0.1097
+  R/trade @2/5 bps, n = 158; gross already negative at −0.0838). Its wide-stop
+  mechanism worked (fee drag 0.0258 R, the lowest recorded) but the payoff
+  geometry — median TP1 0.64 R against a 1 R stop — does not pay for it.
+- **[V3.2 Volume Climax & Absorption](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md)** — the
+  1H flow-fade hypothesis — `V3_2_FALSIFIED_ON_TRAIN`: the **highest TP1 hit rate
+  in the programme (60.59 %)** and one of the lowest fee drags (0.0538 R), yet
+  **−0.0620 R/trade**, because its expectancy **before fees is zero** (−0.0082).
+  Two pre-registered EMA50-TP1 sensitivity variants clear F1 (+0.0530 / +0.0108)
+  but falsify the premise criterion F3 and are **not promoted**
+  (`V3_2_EMA50_VARIANT_UNPROMOTED`).
 
 **[V3.3 HTF Zone Mitigation & LTF Squeeze](V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md)**
 — the confluence hypothesis — was pre-registered, implemented and run on TRAIN and
@@ -77,10 +94,10 @@ included** — validation means one unseen split survived, not deployability.
 
 | # | Strategy | Entry | Exit | Status | Doc |
 |---|---|---|---|---|---|
-| **V3.0** | **HTF Liquidation Trap** | **4H sweep + 1H reclaim, limit corridor** | **4H equilibrium (TP1) → BE → opposing 4H swing (TP2), 50-bar timeout** | ✅ **VALIDATED FOR RESEARCH** (lead candidate) | [**→**](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) |
+| **V3.0** ⭐ | **HTF Liquidation Trap** | **4H sweep + 1H reclaim, limit corridor** | **4H equilibrium (TP1) → BE → opposing 4H swing (TP2), 50-bar timeout** | ✅ **VALIDATED FOR RESEARCH** (lead candidate) | [**→**](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) |
 | V3.1 | HTF Trend Pullback & Mitigation | 4H trend + 1H pullback to value, displaced resumption | TP1 leg extreme → BE → 1.5 Fib extension, 60-bar timeout | ❌ **REJECTED — F1 falsified (loses before fees)** | [→](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md) |
 | V3.2 | Volume Climax & Absorption | ≥2 ATR expansion + RVOL ≥ 2.2 + rejection wick/engulfing, maker corridor | TP1 50 % of the cascade → BE → cascade origin, 48-bar timeout | ❌ **REJECTED — F1 falsified (pre-cost edge is zero)** | [→](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md) |
-| V3.3 | HTF Zone Mitigation & LTF Squeeze | fresh 4H OB/FVG mitigated on 1H + 1H exhaustion (RVOL ≥ 1.25, wick ≥ 35 % / reclaim) | TP1 leg equilibrium → BE → opposing 4H swing, 48-bar timeout | ⚠️ **TRAIN PASS — `V3_3_TRAIN_ONLY`** (tail-fragile, not validated) | [→](V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md) |
+| **V3.3** ⚠️ | **HTF Zone Mitigation & LTF Squeeze** | fresh 4H OB/FVG mitigated on 1H + 1H exhaustion (RVOL ≥ 1.25, wick ≥ 35 % / reclaim) | TP1 leg equilibrium → BE → opposing 4H swing, 48-bar timeout | ⚠️ **TRAIN PASS — `V3_3_TRAIN_ONLY`** (tail-fragile, not validated, not ported) | [→](strategies/V3_3_HTF_ZONE_MITIGATION.md) |
 | V2.1a | Limit Entry (B/C/D) | Retest / FVG / OB∩FVG limit | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.1b | Corridor Entry | `close(N) ± 0.10 ATR` | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.2 | HTF Spot Engine | Body reclaim + RVOL | Structural only | ❌ REJECTED (superseded) | [→](strategies/V2_2_HTF_SPOT_ENGINE.md) |
@@ -91,10 +108,35 @@ included** — validation means one unseen split survived, not deployability.
 | V2.7 | RR Optimization | Sniper filter | Fixed 1.5–4.0R | ❌ REJECTED (superseded) | [→](strategies/V2_7_RR_OPTIMIZATION.md) |
 | V2.8 | Zero-Fee Sniper + Trailing | Sniper filter | Breakeven + trail | ⤴ **SUPERSEDED** by V3.0 (validated for research, zero-fee only) | [→](strategies/V2_8_ZERO_FEE_SNIPER_TRAILING.md) |
 
-**Status legend / легенда:** ✅ VALIDATED FOR RESEARCH — passed a pre-registered
+**Status legend / легенда:** ⚠️ TRAIN_ONLY — passed its pre-registered TRAIN
+criteria, **not** validated on unseen data, not ported · ✅ VALIDATED FOR RESEARCH — passed a pre-registered
 validation on unseen data (NOT production-ready) · ⤴ SUPERSEDED — previously held
 the lead, no longer the recommendation · ❌ REJECTED / FAILED VALIDATION —
 disproven, research only.
+
+## The two leaders side by side
+
+| | **V3.0** HTF Liquidation Trap ⭐ | **V3.3** HTF Zone Mitigation & LTF Squeeze |
+|---|---|---|
+| Idea | fade a **swept 4H level** (liquidation trap, 1H reclaim) | fade **into a fresh displacement-created 4H zone** (OB/FVG) on a 1H exhaustion bar |
+| Full spec | [strategies/V3_0_HTF_LIQUIDATION_TRAP.md](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) | [strategies/V3_3_HTF_ZONE_MITIGATION.md](strategies/V3_3_HTF_ZONE_MITIGATION.md) |
+| Status | **`V3_0_VALIDATED_FOR_RESEARCH`** | **`V3_3_TRAIN_ONLY`** |
+| TRAIN | n 1,585 · net **+0.0994** · PF 1.3538 | n 6,957 · net **+0.0267** · PF 1.2341 |
+| Out of sample | VALIDATION n 536 · net **+0.0600** · PF 1.2484 | **none — and none is possible** |
+| Stop (median) | 1.252 % of price | 1.695 % of price |
+| Fee drag @2/5 | 0.0732 R | **0.0511 R** |
+| TP1 hit | 48.26 % / 47.39 % (TRAIN / VAL) | **65.24 %** (TRAIN) |
+| Known fragility | 3 of 6 symbols negative on VALIDATION; ex-top-1 % gross 0.0384 vs 0.0673 fee | ex-top-1 % gross **0.0264 vs 0.0511 fee** — negative without the tail; `first` window fails F1 |
+| Engine | ported, default, **paper forward test** (`FORWARD_TEST`) | not ported (`v33.*` is a proposal only) |
+| Next step | continue the forward test | operator decision; a forward test needs its own pre-registration |
+
+**Recommended architecture:** V3.0 is the **reversal sniper** that is running and
+being forward-tested; V3.3 is the **high-frequency mitigation** candidate, kept
+documented and frozen at its artifact hashes, and **not promoted** until someone
+decides to take it to a forward test on its own terms. The two are complements in
+research terms (one fades a level, one fades a zone) but they are **not** equally
+evidenced, and the gap must stay visible in every surface that shows them
+together.
 
 ## Headline results
 

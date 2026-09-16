@@ -428,6 +428,66 @@ describe('TRAIN artifacts', () => {
     }
   });
 
+  it('the specification document quotes the artifact, not a memory of it', () => {
+    // The docs use the typographic minus U+2212; normalise it before comparing.
+    const spec = readFileSync('docs/strategies/V3_3_HTF_ZONE_MITIGATION.md', 'utf8')
+      .replace(/\u2212/g, '-');
+    // every headline figure in the doc must be the one the artifact carries
+    expect(spec, 'n must appear with the thousands separator the docs use')
+      .toContain(primary.n.toLocaleString('en-US'));       // 6,957
+    expect(spec).toContain(primary.tp1HitRatePct.toFixed(2));      // 65.24
+    expect(spec).toContain(primary.tp2HitRatePct.toFixed(2));      // 12.43
+    expect(spec).toContain(primary.feeDragR.FUT_4.toFixed(4));     // 0.0511
+    expect(spec).toContain(primary.grossRPerTrade.toFixed(4));     // 0.0778
+    expect(spec).toContain(primary.netRPerTrade.FUT_4.toFixed(4)); // 0.0267
+    expect(spec).toContain(primary.profitFactor.toFixed(4));       // 1.2341
+    expect(spec).toContain(primary.outlierDependence.exTop1Pct.toFixed(4)); // 0.0264
+    // and the strict-window failure that decides the status
+    const first = all.find(([n]) => n === 'first-protective-displacement')![1];
+    expect(spec).toContain(first.netRPerTrade.FUT_4.toFixed(4));   // -0.0253
+  });
+
+  it('the specification exposes the parameter surface the admin spec names', () => {
+    const spec = readFileSync('docs/strategies/V3_3_HTF_ZONE_MITIGATION.md', 'utf8');
+    const admin = readFileSync('docs/ADMIN_PANEL_SPEC.md', 'utf8');
+    for (const key of ['v33.bodyRatioMin', 'v33.rvolMin', 'v33.wickRatioMin',
+      'v33.zoneType', 'v33.corridorATR', 'v33.slBufferATR', 'v33.tp1Equilibrium',
+      'v33.timeoutBars', 'v33.triggerWindow', 'v33.stopAnchor', 'v33.tp1Leg',
+      'v33.fvgFillMin', 'v33.positionSplitTP1']) {
+      expect(spec, `spec missing ${key}`).toContain(key);
+      expect(admin, `admin spec missing ${key}`).toContain(key);
+    }
+    // the defaults in the docs are the constants in the module
+    expect(spec).toContain(String(RECLAIM_BODY_MIN));   // 0.40
+    expect(spec).toContain(String(WICK_FRAC_MIN));      // 0.35
+    expect(spec).toContain(String(FVG_FILL_MIN));       // 0.50
+    expect(spec).toContain(String(TIMEOUT_BARS));       // 48
+  });
+
+  it('no surface claims V3.3 is validated, implemented or production-ready', () => {
+    const spec = readFileSync('docs/strategies/V3_3_HTF_ZONE_MITIGATION.md', 'utf8');
+    const admin = readFileSync('docs/ADMIN_PANEL_SPEC.md', 'utf8');
+    const archive = readFileSync('docs/STRATEGY_ARCHIVE.md', 'utf8');
+    const status = readFileSync('docs/FINAL_STATUS.md', 'utf8');
+
+    for (const [name, doc] of [['spec', spec], ['admin', admin],
+      ['archive', archive], ['status', status]] as const) {
+      expect(doc, name).toContain('V3_3_TRAIN_ONLY');
+      expect(doc, name).toContain('PRODUCTION_READY');
+      // the prohibitive phrasing, not a claim
+      expect(doc, name).not.toMatch(/PRODUCTION_READY[^.]{0,40}\b(is|has been)\b[^.]{0,20}\b(achieved|reached|approved)\b/i);
+    }
+    // the admin spec says it is NOT implemented, and the selector marks it research-only
+    expect(admin).toContain('PROPOSED, NOT IMPLEMENTED');
+    expect(admin).toMatch(/`v33\.\*` category in `src\/core\/settings\.ts`/);
+    expect(admin).toMatch(/research only/);
+    // the archive is explicit that only V3.0 cleared out-of-sample validation
+    expect(archive).toContain('only V3.0 has passed out-of-sample validation');
+    expect(archive).toContain('V3_3_TRAIN_ONLY');
+    // ...and V3.3 is never sold as a continuation strategy (it fades a zone)
+    expect(spec).toContain('reversal trade, not a continuation trade');
+  });
+
   it('was produced by this exact module version', () => {
     const sha = createHash('sha256')
       .update(readFileSync('research/v33_zone_mitigation.ts'))

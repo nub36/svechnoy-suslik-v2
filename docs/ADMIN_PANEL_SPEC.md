@@ -29,7 +29,8 @@ Dropdown. Default: **V3.0**.
 
 | Value | Label | Status | Selectable |
 |---|---|---|---|
-| `V3_0` | **V3.0 HTF Liquidation Trap** ⭐ | **VALIDATED FOR RESEARCH** | ✅ **default** |
+| `V3_0` | **V3.0 HTF Liquidation Trap** ⭐ | **VALIDATED FOR RESEARCH** (TRAIN + VALIDATION) | ✅ **default** |
+| `V3_3` | V3.3 HTF Zone Mitigation & LTF Squeeze | `V3_3_TRAIN_ONLY` — **not validated, not ported** | ⚠️ **research only** (see the note below) |
 | `V2_8` | V2.8 Zero-Fee Sniper + Trailing | SUPERSEDED (validated for research, zero-fee only) | ✅ |
 | `V2_5` | V2.5 Trailing Stop (exit module) | Superseded | ✅ |
 | `V2_6` | V2.6 Sniper + Trailing (real fees) | Rejected | ⚠️ research only |
@@ -41,13 +42,23 @@ Dropdown. Default: **V3.0**.
 
 **Implementation note (deviation, deliberate).** The site can only run what is
 implemented in `src/` — currently `V3_0` and the original `V1_SMC` engine. The
-V2.x rows above were produced by standalone research harnesses
+V2.x rows and **V3.3** were produced by standalone research harnesses
 (`scripts/real-data/`, `research/`) and were never ported into the production
 pipeline. Offering them in a live dropdown would let an operator select a
 strategy that emits nothing, so the admin panel lists them as **research-only**
 (`researchOnlyStrategies` in `/api/admin/strategy`) instead of selectable. All
 of their warnings are kept verbatim below for the record / for the day one of
 them is ported.
+
+**V3.3 specifically.** It is the second-best hypothesis this programme has
+produced and the only one besides V3.0 to pass its pre-registered primary — but
+it is **TRAIN-only** (TRAIN is burned data), its edge lives in the top 1 % of
+trades, and it has **no `v33.*` settings, no route and no engine wiring**. It must
+be shown in the selector as *"V3.3 — TRAIN pass, not validated, not implemented in
+the engine"*, with the §2b parameter table presented as a **proposal for a future
+port**, never as live inputs. Porting it is a separate decision that requires its
+own forward-test pre-registration; a live dropdown entry before that would be
+exactly the overstatement the programme forbids.
 
 **UI requirement:**
 
@@ -142,6 +153,85 @@ Sources: `artifacts/research/v30/v30-train-metrics.json`,
 
 > ⚠️ **Never run V3.0 on the VALIDATION window again.** That budget is spent
 > (exactly one run, 2026-09-16). A second look after any change would be fitting.
+
+---
+
+## 2b. V3.3 HTF Zone Mitigation & LTF Squeeze — parameters (PROPOSED, NOT IMPLEMENTED)
+
+**Status `V3_3_TRAIN_ONLY`** — TRAIN pass only (net **+0.0267 R/trade** @2/5 bps,
+n = 6,957, TP1 hit 65.24 %, fee drag 0.0511 R, PF 1.2341); **tail-fragile** and
+**not validated**. Full specification:
+[strategies/V3_3_HTF_ZONE_MITIGATION.md](strategies/V3_3_HTF_ZONE_MITIGATION.md).
+Results: [V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md](V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md).
+
+> ⚠️ **These parameters DO NOT EXIST in the settings registry.** There is no
+> `v33.*` category in `src/core/settings.ts`, no admin route reading it, and no
+> engine dispatch to a V3.3 strategy — the strategy lives only in
+> `research/v33_zone_mitigation.ts` as compile-time constants. The table is the
+> surface a **future port** would have to expose, and the admin panel may show it
+> only under a *"not implemented — proposal"* heading. Rendering any of these as
+> an editable input today would be a lie to the operator.
+
+> ⚠️ **NOTHING HERE WAS SWEPT.** Every default is the pre-registered constant that
+> produced the TRAIN artifact. The min/max columns are guard rails for a future
+> UI, not a tested range: any other value produces a strategy that has never been
+> measured, and the TRAIN figures above would no longer describe it.
+
+| Parameter | Type | Default | Min | Max | Description |
+|----------|-----|--------|-----|------|----------|
+| `v33.bodyRatioMin` | number | **0.40** | 0.10 | 0.80 | Мин. тело свечи-возврата / Min. body/range of the reclaim branch |
+| `v33.wickRatioMin` | number | **0.35** | 0.10 | 0.80 | Мин. доля тени-отказа / Min. rejection wick share of range |
+| `v33.rvolMin` | number | **1.25** | 1.00 | 3.00 | Мин. всплеск объёма (включительно) / Min. volume surge, inclusive `>=` |
+| `v33.closeTopFrac` | number | **0.70** | 0.55 | 0.95 | Закрытие в крайних 30 % диапазона / Close in the outer 30 % (mirror 0.30) |
+| `v33.fvgFillMin` | number | **0.50** | 0.25 | 1.00 | Доля заполнения 4H FVG для митигации / FVG fill share required to mitigate |
+| `v33.zoneType` | enum | **`"both"`** | `"both"` · `"ob"` · `"fvg"` | — | Какие 4H-зоны принимать / Which 4H zones are eligible |
+| `v33.triggerWindow` | enum | **`"while"`** | `"while"` · `"first"` | — | Окно триггера / Trigger window — **`"first"` fails F1** (−0.0253) |
+| `v33.stopAnchor` | enum | **`"zoneEdge"`** | `"zoneEdge"` · `"climax"` | — | Стоп за дальней структурой или только за тенью / Stop behind the further structure, or the wick only |
+| `v33.tp1Leg` | enum | **`"displacement"`** | `"displacement"` · `"swing"` | — | Как измеряется нога для TP1 / Which leg defines TP1 |
+| `v33.corridorATR` | number | **0.10** | 0.02 | 0.30 | Ширина коридора входа в ATR / Entry corridor half-width, in ATR |
+| `v33.slBufferATR` | number | **0.15** | 0.05 | 0.50 | Буфер стопа за структурой / Stop buffer beyond the structure, in ATR |
+| `v33.tp1Equilibrium` | number | **0.50** | 0.25 | 0.75 | Доля ноги для TP1 (0.50 = равновесие) / Share of the leg used for TP1 |
+| `v33.timeoutBars` | number | **48** | 10 | 100 | Таймаут в свечах 1H / Timeout in 1H bars |
+| `v33.positionSplitTP1` | number | **0.50** | 0.25 | 0.75 | Доля позиции, закрываемая на TP1 / Fraction closed at TP1 |
+| `v33.htfTimeframe` | enum | **`"4h"`** | `"4h"` · `"1d"` | — | Старший ТФ для зон / Zone timeframe (1D was never read) |
+| `v33.ltfTimeframe` | enum | **`"1h"`** | `"15m"` · `"30m"` · `"1h"` | — | Рабочий ТФ входа / Working timeframe for entry |
+
+**Read-only result fields to display for V3.3** (always with the caveats, never
+bare):
+
+| field | value |
+|---|---|
+| n | **6,957** |
+| TP1 hit | **65.24 %** |
+| TP2 hit | 12.43 % |
+| median stop | 1.6953 % of price |
+| gross R/trade | **+0.0778** |
+| fee drag @2/5 | 0.0511 R |
+| **net R/trade @2/5** | **+0.0267** |
+| net @5/5 | +0.0047 |
+| profit factor / max drawdown | 1.2341 / −43.67 R |
+| **ex-top-1 % gross** | **+0.0264 — BELOW the 0.0511 R fee** |
+| directions | LONG 3,537 (+0.0382) · SHORT 3,420 (+0.1188) |
+| symbols | all six positive gross (+0.038 … +0.107) |
+| triggers rejected by geometry | 8,140 of 15,957 |
+
+Source: `artifacts/research/v33/v33-train-metrics-while-protective-displacement.json`.
+
+**UI warnings specific to V3.3 (all mandatory):**
+
+- *"TRAIN ONLY — this strategy has never been validated. Removing the best 1 % of
+  its trades leaves −0.0013 R/trade after fees: without its tail it loses money."*
+- *"The trigger window is load-bearing: the strictest reading of the same rule
+  (`first`) fails the primary criterion (−0.0253 R/trade)."*
+- *"Not implemented in the engine — selecting it here would do nothing. Porting
+  requires a separate decision and its own forward-test pre-registration."*
+- *"Both research windows are spent. No validation on existing data is possible."*
+
+**Additional constants of the tested configuration** (read-only, must not be
+presented as inputs): `v2.displacement_min_body_atr = 0.6`,
+`v2.fvg_min_size_atr = 0.15`, corridor expiry **3** bars, fee model **2/5 bps**,
+`engine.swing_lookback = 3`, `risk.atr_period = 14`, `v2.volume_period = 20`,
+warm-up **60** bars, intrabar rules **R1–R5** (non-configurable).
 
 ---
 
@@ -349,3 +439,8 @@ run, which is expected to produce roughly one third of the TRAIN sample.
     exits); the gross R, the fee R and the leg count are stored beside it in
     `signals.breakdown.v30.lastOutcome`. A net figure must never be silently
     replaced by a gross one.
+11. **Never present V3.3 as validated, live or selectable.** It has no settings
+    category, no route and no engine wiring. The selector must label it research-
+    only, §2b must be shown as a proposal, and any port must first fix its own
+    forward-test pre-registration — because the pre-registered verdict it earned
+    is `V3_3_TRAIN_ONLY`, and TRAIN is burned data.
