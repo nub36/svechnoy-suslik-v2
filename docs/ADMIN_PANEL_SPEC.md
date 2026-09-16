@@ -4,6 +4,10 @@ Specification for a strategy-switching admin panel. Every parameter below was
 read from source (`scripts/real-data/*.ts`, `research/*.ts`, `src/core/settings.ts`),
 not from memory.
 
+**Lead candidate:** `V3_0` HTF Liquidation Trap (§2), frozen and awaiting
+VALIDATION. The V2.x surface below is retained because all of it is still
+selectable for research comparison — none of it is a recommendation.
+
 > ⚠️ **Safety defaults that must ship disabled:** `v2.enabled = false` and
 > `LIVE_TRADING_ENABLED = false`. No strategy here is approved for live capital.
 
@@ -11,12 +15,13 @@ not from memory.
 
 ## 1. Strategy selector
 
-Dropdown. Default: **V2.8**.
+Dropdown. Default: **V3.0**.
 
 | Value | Label | Status | Selectable |
 |---|---|---|---|
-| `V2_8` | V2.8 Zero-Fee Sniper + Trailing ⭐ | VALIDATED | ✅ default |
-| `V2_5` | V2.5 Trailing Stop (exit module) | Promising | ✅ |
+| `V3_0` | **V3.0 HTF Liquidation Trap** ⭐ | **VALIDATION PENDING** | ✅ **default** |
+| `V2_8` | V2.8 Zero-Fee Sniper + Trailing | SUPERSEDED (validated for research, zero-fee only) | ✅ |
+| `V2_5` | V2.5 Trailing Stop (exit module) | Superseded | ✅ |
 | `V2_6` | V2.6 Sniper + Trailing (real fees) | Rejected | ⚠️ research only |
 | `V2_7` | V2.7 RR Optimization | Rejected | ⚠️ research only |
 | `V2_3` | V2.3 Sniper Reversal | Rejected | ⚠️ research only |
@@ -24,14 +29,75 @@ Dropdown. Default: **V2.8**.
 | `V2_2` | V2.2 HTF Spot Engine | Rejected | ⚠️ research only |
 | `V2_1` | V2.1 Corridor / Limit Entry | Rejected | ⚠️ research only |
 
-**UI requirement:** selecting anything other than `V2_8` or `V2_5` must show a
-banner: *"This strategy was rejected in research. Historical results are negative.
-Research use only."* For `V2_4` add: *"Failed out-of-sample validation — results
-inverted. Known overfit."*
+**UI requirement:**
+
+- Selecting `V3_0` must show a banner: *"Candidate frozen. VALIDATION not
+  completed — TRAIN results only. Research use only."*
+- Selecting `V2_8` or `V2_5` must show: *"Superseded by V3.0 HTF Liquidation
+  Trap."*
+- Selecting anything other than `V3_0`, `V2_8` or `V2_5` must show a banner:
+  *"This strategy was rejected in research. Historical results are negative.
+  Research use only."* For `V2_4` add: *"Failed out-of-sample validation —
+  results inverted. Known overfit."*
 
 ---
 
-## 2. Shared entry parameters — sniper filter
+## 2. V3.0 HTF Liquidation Trap — parameters
+
+**Lead candidate. Status `V3_0_PROMISING_PENDING_VALIDATION`.**
+
+Full specification: [strategies/V3_0_HTF_LIQUIDATION_TRAP.md](strategies/V3_0_HTF_LIQUIDATION_TRAP.md).
+Freeze record: [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md).
+
+> ⚠️ **FROZEN — do not change these values before VALIDATION completes.** In the
+> research implementation (`research/v30_htf_trap.ts`) they are compile-time
+> constants, not settings. Exposing them in the UI is a wiring task that is
+> **not authorised yet**; when it is implemented, a run must record the parameter
+> snapshot (hash + values) exactly as this repository does via `settings.sha256`.
+
+| Parameter | Type | Default | Min | Max | Description |
+|----------|-----|--------|-----|------|----------|
+| `v30.bodyRatioMin` | number | **0.35** | 0.10 | 0.80 | Мин. размер тела свечи возврата / Min. body/range of the reclaim candle |
+| `v30.rvolMin` | number | **1.25** | 1.00 | 3.00 | Мин. всплеск объёма (strict `>`) / Min. volume surge |
+| `v30.corridorATR` | number | **0.10** | 0.02 | 0.30 | Ширина коридора входа в ATR / Entry corridor half-width, in ATR |
+| `v30.slBufferATR` | number | **0.15** | 0.05 | 0.50 | Буфер стоп-лосса за тенью выноса / Stop buffer beyond the sweep wick, in ATR |
+| `v30.tp1Equilibrium` | number | **0.50** | 0.25 | 0.75 | Доля 4H ренджа для TP1 (0.50 = равновесие) / Share of the 4H range used for TP1 |
+| `v30.breakevenTrigger` | string | **"tp1"** | — | — | Когда переносить стоп в безубыток / When to move the stop to breakeven |
+| `v30.timeoutBars` | number | **50** | 10 | 100 | Таймаут в свечах 1H / Timeout in 1H bars |
+| `v30.positionSplitTP1` | number | **0.50** | 0.25 | 0.75 | Доля позиции, закрываемая на TP1 / Fraction closed at TP1 |
+| `v30.htfTimeframe` | enum | **"4h"** | `"1h"` · `"4h"` · `"1d"` | — | Старший ТФ для уровней / Higher timeframe for levels |
+| `v30.ltfTimeframe` | enum | **"1h"** | `"15m"` · `"30m"` · `"1h"` | — | Рабочий ТФ для входа / Working timeframe for entry |
+
+**Additional constants of the frozen candidate** (part of the tested
+configuration, must be shown read-only rather than as free inputs):
+
+| Constant | Value | Role |
+|---|---|---|
+| `corridor.expiryBars` (V3.0) | **3** | Corridor lifetime before `EXPIRED`. |
+| fee model | **`FUT_MAKER_TAKER` 2/5 bps** | Maker entry, taker exit, charged per leg. |
+| `engine.swing_lookback` | **3** | 4H pivot strength; a pivot is usable from `confirmedIndex = i + 3`. |
+| `risk.atr_period` | **14** | ATR for the corridor half-width and the stop buffer. |
+| `v2.volume_period` | **20** | RVOL averaging window. |
+| intrabar rules R1–R5 | **as registered** | **Non-configurable. Do not expose** — relaxing them inflates backtests without changing live results. |
+
+**Read-only result fields to display for V3.0** (from
+`artifacts/research/v30/v30-train-metrics.json`): n = 1,585 · TP1 hit 48.26 % ·
+TP2 hit 17.35 % · median stop 1.2520 % of price · gross R/trade +0.1726 · fee drag
+0.0732 R · **net R/trade @2/5 bps +0.0994** · net @5/5 bps +0.0680 · PF 1.3538 ·
+max drawdown −37.18 R · **ex-top-1 % +0.0983 (57.0 % of edge retained)** ·
+all six symbols positive, LONG 796 (+0.1736) ≈ SHORT 789 (+0.1717).
+
+**UI warnings specific to V3.0:**
+
+- *"LONG ≈ SHORT and all six symbol cells are positive, but this is a TRAIN
+  result. Three of four prior TRAIN-derived candidates failed out of sample."*
+- *"The pre-registered mechanism (wider 4H stop → lower fee-in-R) was falsified:
+  the stop did not widen and fee drag worsened because the partial exit pays
+  three legs."*
+
+---
+
+## 3. Shared entry parameters — sniper filter
 
 Used by **V2.3, V2.4, V2.6, V2.7, V2.8**.
 
@@ -47,7 +113,7 @@ Used by **V2.3, V2.4, V2.6, V2.7, V2.8**.
 
 ---
 
-## 3. Exit parameters — trailing stop
+## 4. Exit parameters — trailing stop
 
 Used by **V2.5, V2.6, V2.8**.
 
@@ -63,7 +129,7 @@ Relaxing them inflates backtests without changing live results.
 
 ---
 
-## 4. Exit parameters — fixed R targets
+## 5. Exit parameters — fixed R targets
 
 Used by **V2.3, V2.7**.
 
@@ -75,7 +141,7 @@ Used by **V2.3, V2.7**.
 
 ---
 
-## 5. Exit parameters — structural SMC targets
+## 6. Exit parameters — structural SMC targets
 
 Used by **V2.1, V2.2, V2.4**.
 
@@ -86,7 +152,7 @@ Used by **V2.1, V2.2, V2.4**.
 
 ---
 
-## 6. Corridor / limit entry
+## 7. Corridor / limit entry
 
 Used by **V2.1, V2.4**.
 
@@ -99,7 +165,7 @@ Used by **V2.1, V2.4**.
 
 ---
 
-## 7. Fee Drag Guard
+## 8. Fee Drag Guard
 
 Used by **V2.1 corridor, V2.4**. Measured **inert** at 15m–4h (zero rejections in V2.6).
 
@@ -114,7 +180,7 @@ are skipped. Widening would manufacture a better R by fiat.
 
 ---
 
-## 8. Confluence filter
+## 9. Confluence filter
 
 Used by **V2.1 corridor, V2.2**. **Not** used by V2.8.
 
@@ -128,7 +194,7 @@ Used by **V2.1 corridor, V2.2**. **Not** used by V2.8.
 
 ---
 
-## 9. Risk & structure (frozen engine settings)
+## 10. Risk & structure (frozen engine settings)
 
 | Parameter | Type | Default | Min | Max | Description | Impact warning |
 |---|---|---|---|---|---|---|
@@ -143,7 +209,7 @@ Used by **V2.1 corridor, V2.2**. **Not** used by V2.8.
 
 ---
 
-## 10. Fee model selector
+## 11. Fee model selector
 
 | Value | Label | Maker bps | Taker bps | Round trip | Notes |
 |---|---|---|---|---|---|
@@ -162,7 +228,7 @@ Raising take-profit does not reduce commission."*
 
 ---
 
-## 11. Timeframe selector
+## 12. Timeframe selector
 
 Multi-select. Default: **15m, 30m, 1h, 4h**.
 
@@ -173,20 +239,28 @@ Multi-select. Default: **15m, 30m, 1h, 4h**.
 | 30m, 1h, 4h | ✅ | Default set |
 | 1d | ⚠️ warn | Sample too thin (n = 8–45) |
 
+**V3.0 overrides this selector:** the frozen candidate runs a fixed
+`1h` execution / `4h` structure pair (`v30.ltfTimeframe` / `v30.htfTimeframe`).
+Changing either is a different strategy and invalidates the freeze.
+
 ---
 
-## 12. Symbol selector
+## 13. Symbol selector
 
 Multi-select. Default: **all six**.
 
 BTCUSDT · ETHUSDT · BNBUSDT · SOLUSDT · XRPUSDT · DOGEUSDT
 
-**Warning to display:** *"No per-symbol conclusion is statistically supported —
-every validation symbol cell had n < 100."*
+**Warning to display (V2.x):** *"No per-symbol conclusion is statistically
+supported — every validation symbol cell had n < 100."*
+
+**V3.0 note:** on TRAIN every symbol cell cleared the `n < 100` rule for the first
+time (n = 238–295, all six positive). That rule still applies to the VALIDATION
+run, which is expected to produce roughly one third of the TRAIN sample.
 
 ---
 
-## 13. Implementation requirements
+## 14. Implementation requirements
 
 1. **Never write to `src/`.** The frozen engine must stay byte-identical to
    `4839074`; verify with `git diff 4839074 -- src/`.
@@ -197,3 +271,10 @@ every validation symbol cell had n < 100."*
 4. **Always show `ex-top-1 %` beside gross.** Several strategies here looked
    profitable until trimmed; this field is the single best fragility indicator.
 5. **Show `n` on every table row** and grey out any subgroup with n < 100.
+6. **Pin the V3.0 candidate by hash.** Any run claiming to be V3.0 must load
+   `research/v30_htf_trap.ts` unchanged — sha256
+   `a821757ff0319a100a8a9087da1bdd137abb1df0785493d644ad4d87f05dc4cd` — and a
+   mismatch must abort the run and clear the strategy label.
+7. **Never run V3.0 on the TEST window.** Before loading a candle the driver must
+   assert `validToMs < testFromMs`; the 2026-H1 window is unspent and must not be
+   downloaded.
