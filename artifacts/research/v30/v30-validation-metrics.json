@@ -1,0 +1,190 @@
+{
+  "slice": "validation",
+  "execTimeframe": "1h",
+  "structuralTimeframe": "4h",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "frozenModuleSha256": "a821757ff0319a100a8a9087da1bdd137abb1df0785493d644ad4d87f05dc4cd",
+  "constants": {
+    "MIN_BODY_RATIO": 0.35,
+    "MIN_RVOL": 1.25,
+    "CORRIDOR_ATR_FRAC": 0.1,
+    "CORRIDOR_EXPIRY_BARS": 3,
+    "STOP_BUFFER_ATR": 0.15,
+    "TIMEOUT_BARS": 50,
+    "MAKER_BPS": 2,
+    "TAKER_BPS": 5
+  },
+  "funnel": {
+    "signals": 691,
+    "pendingCreated": 691,
+    "filled": 536,
+    "expired": 0,
+    "cancelled": 130,
+    "rejected": 24,
+    "unresolved": 1
+  },
+  "n": 536,
+  "tp1HitRatePct": 47.39,
+  "tp2HitRatePct": 14.18,
+  "positiveRRatePct": 48.69,
+  "stopDistancePct": {
+    "p25": 0.833,
+    "median": 1.2799,
+    "p75": 1.9565
+  },
+  "feeDragR": {
+    "FUT_4": 0.0673,
+    "SPOT": 0.0962
+  },
+  "grossRPerTrade": 0.1274,
+  "netRPerTrade": {
+    "FUT_4": 0.06,
+    "SPOT": 0.0312
+  },
+  "profitFactor": 1.2484,
+  "maxDrawdownR": -25.94,
+  "grossMedianR": -1,
+  "avgWinR": 1.3146,
+  "avgLossR": -0.9994,
+  "medianBarsHeld": 7,
+  "exits": {
+    "TP2": 76,
+    "TP1_THEN_BE": 157,
+    "SL": 274,
+    "TP1_THEN_TIMEOUT": 21,
+    "TIMEOUT": 8
+  },
+  "outlierDependence": {
+    "grossExpectancy": 0.1274,
+    "exTop1": 0.0995,
+    "exTop5": 0.0482,
+    "exTop1Pct": 0.0384,
+    "removedForTop1Pct": 6,
+    "edgeRetainedPct": 30.1
+  },
+  "byDirection": {
+    "SHORT": {
+      "n": 306,
+      "grossExpectancy": 0.1602
+    },
+    "LONG": {
+      "n": 230,
+      "grossExpectancy": 0.0837
+    }
+  },
+  "bySymbol": {
+    "BTCUSDT": {
+      "n": 107,
+      "grossExpectancy": -0.0129
+    },
+    "ETHUSDT": {
+      "n": 101,
+      "grossExpectancy": 0.4684
+    },
+    "BNBUSDT": {
+      "n": 77,
+      "grossExpectancy": 0.4272
+    },
+    "SOLUSDT": {
+      "n": 90,
+      "grossExpectancy": -0.0685
+    },
+    "XRPUSDT": {
+      "n": 87,
+      "grossExpectancy": -0.0966
+    },
+    "DOGEUSDT": {
+      "n": 74,
+      "grossExpectancy": 0.0542
+    }
+  },
+  "criteria": {
+    "a_net_gt_0_at_2_5": {
+      "rule": "net R/trade > 0 at 2/5 bps",
+      "value": 0.06,
+      "passed": true
+    },
+    "b_gross_gt_0": {
+      "rule": "gross R/trade > 0",
+      "value": 0.1274,
+      "passed": true
+    },
+    "verdict": "PASS"
+  },
+  "guards": {
+    "maxCandleOpenTimeRead": 1741975200000,
+    "testCandlesRead": 0,
+    "candles2026Read": 0,
+    "barsClippedAtTestBoundary": 42078,
+    "maxCandleOpenTimeUtc": "2025-03-14T18:00:00.000Z",
+    "window2026Ms": 1767225600000,
+    "perSymbolBoundaries": [
+      {
+        "symbol": "BTCUSDT",
+        "fromMs": 1716732000000,
+        "toMs": 1741975200000,
+        "validToUtc": "2025-03-14T18:00:00.000Z",
+        "testFromUtc": "2025-03-14T19:00:00.000Z",
+        "testToUtc": "2025-12-31T23:00:00.000Z",
+        "guard": "toMs < testFromMs and testFromMs < 2026-01-01"
+      },
+      {
+        "symbol": "ETHUSDT",
+        "fromMs": 1716732000000,
+        "toMs": 1741975200000,
+        "validToUtc": "2025-03-14T18:00:00.000Z",
+        "testFromUtc": "2025-03-14T19:00:00.000Z",
+        "testToUtc": "2025-12-31T23:00:00.000Z",
+        "guard": "toMs < testFromMs and testFromMs < 2026-01-01"
+      },
+      {
+        "symbol": "BNBUSDT",
+        "fromMs": 1716732000000,
+        "toMs": 1741975200000,
+        "validToUtc": "2025-03-14T18:00:00.000Z",
+        "testFromUtc": "2025-03-14T19:00:00.000Z",
+        "testToUtc": "2025-12-31T23:00:00.000Z",
+        "guard": "toMs < testFromMs and testFromMs < 2026-01-01"
+      },
+      {
+        "symbol": "SOLUSDT",
+        "fromMs": 1716732000000,
+        "toMs": 1741975200000,
+        "validToUtc": "2025-03-14T18:00:00.000Z",
+        "testFromUtc": "2025-03-14T19:00:00.000Z",
+        "testToUtc": "2025-12-31T23:00:00.000Z",
+        "guard": "toMs < testFromMs and testFromMs < 2026-01-01"
+      },
+      {
+        "symbol": "XRPUSDT",
+        "fromMs": 1716732000000,
+        "toMs": 1741975200000,
+        "validToUtc": "2025-03-14T18:00:00.000Z",
+        "testFromUtc": "2025-03-14T19:00:00.000Z",
+        "testToUtc": "2025-12-31T23:00:00.000Z",
+        "guard": "toMs < testFromMs and testFromMs < 2026-01-01"
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "fromMs": 1716732000000,
+        "toMs": 1741975200000,
+        "validToUtc": "2025-03-14T18:00:00.000Z",
+        "testFromUtc": "2025-03-14T19:00:00.000Z",
+        "testToUtc": "2025-12-31T23:00:00.000Z",
+        "guard": "toMs < testFromMs and testFromMs < 2026-01-01"
+      }
+    ],
+    "rules": [
+      "no candle with openTime >= testFromMs is read",
+      "no candle with openTime >= 2026-01-01 is read",
+      "outcome bars are clipped at testFromMs; unresolved trades are excluded"
+    ]
+  }
+}

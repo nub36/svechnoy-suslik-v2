@@ -5,14 +5,18 @@ links to a full specification with exact parameter values, verified against
 source code and result artifacts (not from memory).
 
 **Lead candidate: [V3.0 HTF Liquidation Trap](strategies/V3_0_HTF_LIQUIDATION_TRAP.md)** ⭐
-— `V3_0_PROMISING_PENDING_VALIDATION`. The first strategy in the programme to be
-net-positive at realistic Binance futures fees (+0.0994 R/trade @2/5 bps, n = 1,585).
-Frozen before validation: [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md).
+— **`V3_0_VALIDATED_FOR_RESEARCH`**. The first strategy in the programme to be
+net-positive at realistic Binance futures fees on **both** TRAIN (+0.0994 R/trade
+@2/5 bps, n = 1,585) **and** the unseen VALIDATION window (**+0.0600 R/trade**
+@2/5 bps, n = 536). Frozen before validation:
+[V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md); results:
+[V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md).
 
 All V2.1 – V2.8 strategies are **REJECTED** or **SUPERSEDED** — none is a live
-recommendation. V2.8 remains the only V2 strategy that passed a pre-registered
-validation, but it only works at **zero fees** and is therefore superseded by
-V3.0 as the lead candidate.
+recommendation. V2.8 was the only V2 strategy to pass a pre-registered validation,
+but it only works at **zero fees** and is therefore superseded by V3.0 as the lead
+candidate. **`PRODUCTION_READY` is forbidden for every strategy here, V3.0
+included** — validation means one unseen split survived, not deployability.
 
 | pinned | value |
 |---|---|
@@ -21,8 +25,9 @@ V3.0 as the lead candidate.
 | V2.8 validation result | `1d4d575` (`V2_8_VALIDATED_FOR_RESEARCH`) |
 | V3.0 pre-registration | `6c2bf9e` |
 | V3.0 TRAIN result | `5674e65` (`V3_0_PROMISING_PENDING_VALIDATION`) |
-| V3.0 candidate freeze | this commit — [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md) |
-| V3.0 VALIDATION | **PENDING — not yet run** |
+| V3.0 candidate freeze | [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md) |
+| V3.0 VALIDATION result | [V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md) — **PASS** (`V3_0_VALIDATED_FOR_RESEARCH`) |
+| V3.0 validation artifact | `artifacts/research/v30/v30-validation-metrics.json` |
 | dataset | `c3c1dce` (Binance Spot klines, 2022-01 … 2025-12) |
 | TRAIN | 2022-01-01 … 2024-05-26 (60 %) |
 | VALIDATION | 2024-05-26 … 2025-03-14 (20 %) |
@@ -35,7 +40,7 @@ V3.0 as the lead candidate.
 
 | # | Strategy | Entry | Exit | Status | Doc |
 |---|---|---|---|---|---|
-| **V3.0** | **HTF Liquidation Trap** | **4H sweep + 1H reclaim, limit corridor** | **4H equilibrium (TP1) → BE → opposing 4H swing (TP2), 50-bar timeout** | ⏳ **VALIDATION PENDING** (lead candidate) | [**→**](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) |
+| **V3.0** | **HTF Liquidation Trap** | **4H sweep + 1H reclaim, limit corridor** | **4H equilibrium (TP1) → BE → opposing 4H swing (TP2), 50-bar timeout** | ✅ **VALIDATED FOR RESEARCH** (lead candidate) | [**→**](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) |
 | V2.1a | Limit Entry (B/C/D) | Retest / FVG / OB∩FVG limit | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.1b | Corridor Entry | `close(N) ± 0.10 ATR` | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.2 | HTF Spot Engine | Body reclaim + RVOL | Structural only | ❌ REJECTED (superseded) | [→](strategies/V2_2_HTF_SPOT_ENGINE.md) |
@@ -46,16 +51,17 @@ V3.0 as the lead candidate.
 | V2.7 | RR Optimization | Sniper filter | Fixed 1.5–4.0R | ❌ REJECTED (superseded) | [→](strategies/V2_7_RR_OPTIMIZATION.md) |
 | V2.8 | Zero-Fee Sniper + Trailing | Sniper filter | Breakeven + trail | ⤴ **SUPERSEDED** by V3.0 (validated for research, zero-fee only) | [→](strategies/V2_8_ZERO_FEE_SNIPER_TRAILING.md) |
 
-**Status legend / легенда:** ⏳ VALIDATION PENDING — frozen, one validation run
-authorised · ⤴ SUPERSEDED — previously held the lead, no longer the recommendation ·
-❌ REJECTED / FAILED VALIDATION — disproven, research only.
+**Status legend / легенда:** ✅ VALIDATED FOR RESEARCH — passed a pre-registered
+validation on unseen data (NOT production-ready) · ⤴ SUPERSEDED — previously held
+the lead, no longer the recommendation · ❌ REJECTED / FAILED VALIDATION —
+disproven, research only.
 
 ## Headline results
 
 | Strategy | Sample | Gross R/trade | Net R/trade @2/5 bps | Verdict |
 |---|---|---|---|---|
-| **V3.0 HTF Trap (TRAIN)** | **1,585** | **+0.1726** | **+0.0994** | ⏳ **VALIDATION PENDING — first net-positive at real fees** |
-| **V3.0 VALIDATION** | — | — | — | **not run yet** |
+| **V3.0 HTF Trap (TRAIN)** | **1,585** | **+0.1726** | **+0.0994** | first net-positive at real fees |
+| **V3.0 HTF Trap (VALIDATION)** | **536** | **+0.1274** | **+0.0600** | ✅ **PASS — `V3_0_VALIDATED_FOR_RESEARCH`** |
 | Baseline (frozen V2) | 30,888 | −0.0015 | −0.1257 | no edge |
 | V2.1 limit (best, D) | — | +0.4325 | −0.9386 | fill rate 21 %, cost explosion |
 | V2.1 corridor FULL | 56,492 | +0.0076 | — | 24.09 % fill, guard killed edge |
@@ -99,10 +105,16 @@ authorised · ⤴ SUPERSEDED — previously held the lead, no longer the recomme
 7. **Robustness is the best in the programme.** Removing the top 1 % (16 of 1,585
    trades) retains **57 %** of the edge (+0.0983), versus 37 % for V2.8 TRAIN,
    23 % for V2.3, and negative for V2.8 VALIDATION.
-8. **This is still an unvalidated TRAIN result.** Three of four prior
-   TRAIN-derived candidates failed to reproduce. V3.0 is frozen at
-   [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md) pending exactly one
-   VALIDATION run.
+8. **V3.0 reproduced out of sample — the programme's second ever PASS.**
+   VALIDATION (2024-05 … 2025-03, unseen) gave **n = 536, gross +0.1274, net
+   +0.0600 @2/5 bps, PF 1.2484** — both pre-registered criteria met on one frozen
+   run. Decay from TRAIN: gross −26 %, net −40 %, inside the predicted range.
+9. **The PASS is real but narrow, and it must be read with its caveats**
+   ([V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md) §3, §5):
+   3 of 6 symbols negative; only two symbol cells clear `n < 100` and they
+   disagree in sign; removing the best 5 trades flips the net negative
+   (ex-top-1 % gross +0.0384 vs 0.0673 R of fees). It is the best result the
+   programme has produced and it is **not** a licence to deploy.
 
 ## Repository layout
 
@@ -112,6 +124,7 @@ authorised · ⤴ SUPERSEDED — previously held the lead, no longer the recomme
 | `scripts/real-data/` | V2.1–V2.6 research harnesses |
 | `research/` | V2.7–V3.0 research harnesses (`v30_htf_trap.ts` = the lead candidate) |
 | `tests/` | 1,116 passing tests incl. causality and no-look-ahead invariants |
+| `research/v30_validate.ts` | V3.0 VALIDATION driver — window selection + TEST guard only |
 | `artifacts/research/` | Machine-readable metrics for every run |
 | `docs/strategies/` | Per-strategy specifications (this archive) |
 
@@ -119,9 +132,10 @@ authorised · ⤴ SUPERSEDED — previously held the lead, no longer the recomme
 
 Read in this order:
 
-1. **[strategies/V3_0_HTF_LIQUIDATION_TRAP.md](strategies/V3_0_HTF_LIQUIDATION_TRAP.md)** — the lead candidate (VALIDATION PENDING).
-2. **[V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md)** — what is frozen and why nothing may move.
-3. **[ADMIN_PANEL_SPEC.md](ADMIN_PANEL_SPEC.md)** — parameter surface for the UI.
-4. **[strategies/V2_8_ZERO_FEE_SNIPER_TRAILING.md](strategies/V2_8_ZERO_FEE_SNIPER_TRAILING.md)** — superseded; validated for research at zero fees only.
-5. **[FINAL_STATUS.md](FINAL_STATUS.md)** — the closed V2 programme (historical).
-6. The rejected V2.1–V2.7 strategies — to avoid repeating disproven approaches.
+1. **[strategies/V3_0_HTF_LIQUIDATION_TRAP.md](strategies/V3_0_HTF_LIQUIDATION_TRAP.md)** — the lead candidate.
+2. **[V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md)** — the PASS, the decay, and the four caveats that qualify it.
+3. **[V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md)** — what was frozen and why nothing moved.
+4. **[ADMIN_PANEL_SPEC.md](ADMIN_PANEL_SPEC.md)** — parameter surface for the UI.
+5. **[strategies/V2_8_ZERO_FEE_SNIPER_TRAILING.md](strategies/V2_8_ZERO_FEE_SNIPER_TRAILING.md)** — superseded; validated for research at zero fees only.
+6. **[FINAL_STATUS.md](FINAL_STATUS.md)** — the closed V2 programme (historical).
+7. The rejected V2.1–V2.7 strategies — to avoid repeating disproven approaches.

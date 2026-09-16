@@ -1,11 +1,16 @@
 # V3.0 — HTF LIQUIDATION TRAP
 # V3.0 — ЛОВУШКА ЛИКВИДНОСТИ НА СТАРШЕМ ТАЙМФРЕЙМЕ
 
-**Status / Статус: `V3_0_PROMISING_PENDING_VALIDATION`** — lead candidate of the
-programme. TRAIN passed; VALIDATION not yet run.
+**Status / Статус: `V3_0_VALIDATED_FOR_RESEARCH`** — lead candidate of the
+programme. TRAIN passed and, on 2026-09-16, the frozen candidate passed the
+single pre-registered VALIDATION run (**net +0.0600 R/trade @2/5 bps, n = 536**).
+Not production-ready.
+Full report: [V3_0_VALIDATION_RESULTS.md](../V3_0_VALIDATION_RESULTS.md).
 
-**Статус: `V3_0_PROMISING_PENDING_VALIDATION`** — главный кандидат программы.
-TRAIN пройден; VALIDATION ещё не запускался.
+**Статус: `V3_0_VALIDATED_FOR_RESEARCH`** — главный кандидат программы. TRAIN
+пройден, и 16.09.2026 замороженный кандидат прошёл единственный
+предрегистрированный прогон VALIDATION (**net +0.0600 R/сделку @2/5 bps,
+n = 536**). Не для продакшена.
 
 | pinned / зафиксировано | value / значение |
 |---|---|
@@ -17,7 +22,8 @@ TRAIN пройден; VALIDATION ещё не запускался.
 | tests / тесты | `tests/v30-htf-trap.test.ts` |
 | metrics artifact / артефакт метрик | `artifacts/research/v30/v30-train-metrics.json` (sha256 `bc18ad9612b987678a40551be9ecfb064db5c15a72ebf3ff3d6e7357fca33fec`) |
 | TRAIN window / окно TRAIN | per series 1H: `2022-01-01T00:00:00Z` … `2024-05-26T13:00:00Z` (21,037 candles/symbol) |
-| VALIDATION window / окно VALIDATION | per series 1H: `2024-05-26T14:00:00Z` … `2025-03-14T18:00:00Z` — **UNTOUCHED / НЕ ТРОГАЛИ** |
+| VALIDATION window / окно VALIDATION | per series 1H: `2024-05-26T14:00:00Z` … `2025-03-14T18:00:00Z` — read once, 2026-09-16 |
+| VALIDATION artifact | `artifacts/research/v30/v30-validation-metrics.json` |
 | TEST (2022–25) | **spent / израсходован** |
 | TEST (2026-H1) | **unspent, no data / не тронут, данных нет** |
 
@@ -476,10 +482,28 @@ npx tsx research/v30_htf_trap.ts \
 
 ---
 
+## VALIDATION result / Результат VALIDATION
+
+**PASS.** Both pre-registered criteria met on one run with the candidate frozen
+as tested: net **+0.0600** R/trade @2/5 bps (> 0) and gross **+0.1274** (> 0),
+n = 536, PF 1.2484, max drawdown −25.94 R. Decay from TRAIN: gross −26 %,
+net −40 %.
+
+**Пройдено.** Оба предрегистрированных критерия выполнены на одном прогоне с
+замороженным кандидатом.
+
+Read the qualifications before using this result —
+[V3_0_VALIDATION_RESULTS.md](../V3_0_VALIDATION_RESULTS.md) §3 and §5:
+3 of 6 symbols negative on validation; only two symbol cells clear `n < 100` and
+they disagree in sign; removing the best 5 of 536 trades flips the net negative
+(ex-top-1 % gross +0.0384 against 0.0673 R of fees). The PASS is on aggregate,
+not per symbol, and `PRODUCTION_READY` remains forbidden.
+
 ## Next step / Следующий шаг
 
-One VALIDATION run over the untouched window `2024-05-26T14:00Z … 2025-03-14T18:00Z`,
-with the candidate frozen exactly as tested. Success criteria and risks:
-[V3_0_CANDIDATE_FREEZE.md](../V3_0_CANDIDATE_FREEZE.md).
-Один прогон VALIDATION на нетронутом окне, с кандидатом, замороженным ровно
-таким, каким он был протестирован. Критерии успеха и риски — там же.
+The VALIDATION budget is spent. Further work requires a **new** pre-registration
+on a freshly frozen design — not a re-run and not a tweak of this one.
+
+Бюджет VALIDATION израсходован. Дальнейшая работа требует **новой**
+предрегистрации на заново замороженном дизайне — не повторного прогона и не
+подкрутки этого.

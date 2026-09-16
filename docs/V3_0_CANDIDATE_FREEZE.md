@@ -1,6 +1,12 @@
 # V3.0 CANDIDATE FREEZE — HTF LIQUIDATION TRAP
 
-**Status: `VALIDATION PENDING` (ОЖИДАЕТ ВАЛИДАЦИИ).**
+**Status: FROZEN CANDIDATE — VALIDATION COMPLETE, `V3_0_VALIDATED_FOR_RESEARCH`.**
+The freeze held: the candidate ran exactly as specified, one run, no parameter
+changed. Result: [V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md).
+
+**Статус: замороженный кандидат — VALIDATION завершён, `V3_0_VALIDATED_FOR_RESEARCH`.**
+Заморозка выдержана: кандидат прогнан ровно как зафиксирован, один прогон, ни один
+параметр не изменён.
 
 **Committed BEFORE the VALIDATION replay is run.** No VALIDATION number exists at
 the time of this commit. Nothing in this document, and no parameter of the
@@ -20,10 +26,11 @@ VALIDATION не существует. Ничто в этом документе 
 | implementation / реализация | `research/v30_htf_trap.ts` — sha256 `a821757ff0319a100a8a9087da1bdd137abb1df0785493d644ad4d87f05dc4cd` |
 | metrics artifact / артефакт TRAIN | `artifacts/research/v30/v30-train-metrics.json` — sha256 `bc18ad9612b987678a40551be9ecfb064db5c15a72ebf3ff3d6e7357fca33fec` |
 | TRAIN window / окно TRAIN | 2022-01-01T00:00Z … 2024-05-26T13:00Z (1H, per series) |
-| **VALIDATION window / окно VALIDATION** | **2024-05-26T14:00Z … 2025-03-14T18:00Z (1H, per series)** — not yet read |
+| **VALIDATION window / окно VALIDATION** | **2024-05-26T14:00Z … 2025-03-14T18:00Z (1H, per series)** — read **once**, 2026-09-16 |
+| VALIDATION result / результат | **PASS** — n = 536 · gross +0.1274 · net +0.0600 @2/5 bps · PF 1.2484 |
 | TEST (2022–25) | **spent / израсходован — must not be run or inspected** |
 | TEST (2026-H1) | **unspent / не тронут, data unavailable** |
-| VALIDATION runs allowed / число прогонов VALIDATION | **exactly one / ровно один** |
+| VALIDATION runs allowed / число прогонов VALIDATION | **exactly one / ровно один** — used / израсходован |
 
 ---
 
@@ -156,10 +163,16 @@ only that the design survived one unseen split — **not** that it is deployable
 
 ## 5. Status
 
-# `VALIDATION PENDING` — ОЖИДАЕТ ВАЛИДАЦИИ
+# FREEZE DISCHARGED — `V3_0_VALIDATED_FOR_RESEARCH`
 
-Candidate frozen. One run authorised. No parameter may move until the result of
-that run is published.
+The single authorised run happened on 2026-09-16 and **both criteria passed**
+(net +0.0600 @2/5 bps, gross +0.1274, n = 536). Every parameter above is still
+frozen **as tested**: the values that produced the PASS are the values recorded
+here, and they may not be retro-fitted to either window. The validation budget is
+spent — re-reading this window after any change would be fitting and is
+forbidden. `PRODUCTION_READY` remains forbidden.
 
-Кандидат заморожен. Разрешён ровно один прогон. До публикации его результата ни
-один параметр не может быть изменён.
+Единственный разрешённый прогон состоялся 2026-09-16, и **оба критерия
+выполнены**. Все параметры выше остаются замороженными **ровно как
+протестированы**: менять их по итогам любого из окон запрещено. Бюджет
+VALIDATION израсходован.

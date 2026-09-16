@@ -2,11 +2,13 @@
 
 > **Historical document — the V2 research phase as it closed.** The programme was
 > subsequently reopened: **V3.0 HTF Liquidation Trap** is the current lead
-> candidate (`V3_0_PROMISING_PENDING_VALIDATION`, net +0.0994 R/trade @2/5 bps on
-> n = 1,585) and everything below is superseded as a recommendation. See
+> candidate and is now **`V3_0_VALIDATED_FOR_RESEARCH`** (TRAIN net +0.0994,
+> VALIDATION net +0.0600 R/trade @2/5 bps, n = 536); everything below is
+> superseded as a recommendation. See
 > [strategies/V3_0_HTF_LIQUIDATION_TRAP.md](strategies/V3_0_HTF_LIQUIDATION_TRAP.md),
 > [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md) and
-> [STRATEGY_ARCHIVE.md](STRATEGY_ARCHIVE.md). V2.8 remains the only V2 strategy
+> [V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md),
+[STRATEGY_ARCHIVE.md](STRATEGY_ARCHIVE.md). V2.8 remains the only V2 strategy
 > that passed a pre-registered validation — at **zero fees only**.
 
 **Research phase closed.** Final strategy: **V2.8 Zero-Fee Sniper + Trailing**.

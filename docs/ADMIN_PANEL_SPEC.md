@@ -4,8 +4,9 @@ Specification for a strategy-switching admin panel. Every parameter below was
 read from source (`scripts/real-data/*.ts`, `research/*.ts`, `src/core/settings.ts`),
 not from memory.
 
-**Lead candidate:** `V3_0` HTF Liquidation Trap (§2), frozen and awaiting
-VALIDATION. The V2.x surface below is retained because all of it is still
+**Lead candidate:** `V3_0` HTF Liquidation Trap (§2) — `V3_0_VALIDATED_FOR_RESEARCH`
+([validation report](V3_0_VALIDATION_RESULTS.md): net +0.0600 R/trade @2/5 bps,
+n = 536). The V2.x surface below is retained because all of it is still
 selectable for research comparison — none of it is a recommendation.
 
 > ⚠️ **Safety defaults that must ship disabled:** `v2.enabled = false` and
@@ -19,7 +20,7 @@ Dropdown. Default: **V3.0**.
 
 | Value | Label | Status | Selectable |
 |---|---|---|---|
-| `V3_0` | **V3.0 HTF Liquidation Trap** ⭐ | **VALIDATION PENDING** | ✅ **default** |
+| `V3_0` | **V3.0 HTF Liquidation Trap** ⭐ | **VALIDATED FOR RESEARCH** | ✅ **default** |
 | `V2_8` | V2.8 Zero-Fee Sniper + Trailing | SUPERSEDED (validated for research, zero-fee only) | ✅ |
 | `V2_5` | V2.5 Trailing Stop (exit module) | Superseded | ✅ |
 | `V2_6` | V2.6 Sniper + Trailing (real fees) | Rejected | ⚠️ research only |
@@ -44,12 +45,15 @@ Dropdown. Default: **V3.0**.
 
 ## 2. V3.0 HTF Liquidation Trap — parameters
 
-**Lead candidate. Status `V3_0_PROMISING_PENDING_VALIDATION`.**
+**Lead candidate. Status `V3_0_VALIDATED_FOR_RESEARCH`** (validation PASS on
+n = 536; results: [V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md)).
 
 Full specification: [strategies/V3_0_HTF_LIQUIDATION_TRAP.md](strategies/V3_0_HTF_LIQUIDATION_TRAP.md).
 Freeze record: [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md).
 
-> ⚠️ **FROZEN — do not change these values before VALIDATION completes.** In the
+> ⚠️ **FROZEN AS TESTED — these are the values that produced both the TRAIN and
+> the VALIDATION result. Changing any of them produces a different, untested
+> strategy.** In the
 > research implementation (`research/v30_htf_trap.ts`) they are compile-time
 > constants, not settings. Exposing them in the UI is a wiring task that is
 > **not authorised yet**; when it is implemented, a run must record the parameter
@@ -80,20 +84,41 @@ configuration, must be shown read-only rather than as free inputs):
 | `v2.volume_period` | **20** | RVOL averaging window. |
 | intrabar rules R1–R5 | **as registered** | **Non-configurable. Do not expose** — relaxing them inflates backtests without changing live results. |
 
-**Read-only result fields to display for V3.0** (from
-`artifacts/research/v30/v30-train-metrics.json`): n = 1,585 · TP1 hit 48.26 % ·
-TP2 hit 17.35 % · median stop 1.2520 % of price · gross R/trade +0.1726 · fee drag
-0.0732 R · **net R/trade @2/5 bps +0.0994** · net @5/5 bps +0.0680 · PF 1.3538 ·
-max drawdown −37.18 R · **ex-top-1 % +0.0983 (57.0 % of edge retained)** ·
-all six symbols positive, LONG 796 (+0.1736) ≈ SHORT 789 (+0.1717).
+**Read-only result fields to display for V3.0** — show **both** windows side by
+side, never TRAIN alone:
+
+| field | TRAIN | VALIDATION |
+|---|---|---|
+| n | 1,585 | **536** |
+| TP1 hit | 48.26 % | 47.39 % |
+| TP2 hit | 17.35 % | 14.18 % |
+| median stop | 1.2520 % | 1.2799 % |
+| gross R/trade | +0.1726 | **+0.1274** |
+| fee drag @2/5 | 0.0732 R | 0.0673 R |
+| **net R/trade @2/5** | +0.0994 | **+0.0600** |
+| net @5/5 | +0.0680 | +0.0312 |
+| profit factor | 1.3538 | 1.2484 |
+| max drawdown | −37.18 R | −25.94 R |
+| **ex-top-1 % gross** | +0.0983 (57.0 % retained) | **+0.0384 (30.1 % retained)** |
+| direction | LONG 796 (+0.1736) ≈ SHORT 789 (+0.1717) | LONG 230 (+0.0837) · SHORT 306 (+0.1602) |
+| symbols | all six positive | ETH 101 (+0.4684) · BNB 77 (+0.4272) · DOGE 74 (+0.0542) · **BTC 107 (−0.0129)** · **SOL 90 (−0.0685)** · **XRP 87 (−0.0966)** |
+
+Sources: `artifacts/research/v30/v30-train-metrics.json`,
+`artifacts/research/v30/v30-validation-metrics.json`.
 
 **UI warnings specific to V3.0:**
 
-- *"LONG ≈ SHORT and all six symbol cells are positive, but this is a TRAIN
-  result. Three of four prior TRAIN-derived candidates failed out of sample."*
+- *"VALIDATION PASSED on aggregate (+0.0600 R/trade @2/5 bps, n = 536), but
+  3 of 6 symbols are negative and only two symbol cells clear n ≥ 100 — and they
+  disagree in sign. Do not read this as per-symbol reliability."*
+- *"Outlier fragility: removing the best 5 of 536 trades turns the net negative.
+  Always display ex-top-1 % beside gross."*
 - *"The pre-registered mechanism (wider 4H stop → lower fee-in-R) was falsified:
-  the stop did not widen and fee drag worsened because the partial exit pays
-  three legs."*
+  the stop did not widen (1.28 % vs V2.8's ~1.30 %) and fee drag worsened because
+  the partial exit pays three legs. The edge's true driver is still unmodelled."*
+
+> ⚠️ **Never run V3.0 on the VALIDATION window again.** That budget is spent
+> (exactly one run, 2026-09-16). A second look after any change would be fitting.
 
 ---
 
