@@ -1,0 +1,1149 @@
+{
+  "slice": "train",
+  "scope": [
+    "15m",
+    "30m",
+    "1h",
+    "4h"
+  ],
+  "feeEnvironments": [
+    {
+      "label": "GROSS",
+      "makerBps": 0,
+      "takerBps": 0
+    },
+    {
+      "label": "SPOT",
+      "makerBps": 5,
+      "takerBps": 5
+    },
+    {
+      "label": "FUT_7",
+      "makerBps": 2,
+      "takerBps": 5
+    },
+    {
+      "label": "FUT_4",
+      "makerBps": 2,
+      "takerBps": 2
+    }
+  ],
+  "arms": {
+    "A": {
+      "gates": {
+        "sniper": false,
+        "ladder": false,
+        "corridor": false,
+        "feeGuard": false
+      },
+      "actionableSetups": 106994,
+      "pendingCreated": 30902,
+      "terminal": {
+        "FILLED": 30902,
+        "REJECTED_RR1": 76092
+      },
+      "topReasons": {
+        "rr1_below_min_rr": 76092,
+        "open_n1": 30902
+      },
+      "closed": 30888,
+      "open": 14,
+      "tp": 4346,
+      "sl": 19913,
+      "timeout": 6629,
+      "fillRateOfPending": 100,
+      "grossExpectancyPerFilled": -0.0015,
+      "grossExpectancyPerActionableSetup": -0.0004,
+      "grossMedianR": -1,
+      "grossTotalR": -45.23,
+      "grossPF": 0.9978,
+      "maxDrawdownR": -505.82,
+      "positiveRRate": 28.11,
+      "tpRate": 14.07,
+      "slRate": 64.47,
+      "timeoutRate": 21.46,
+      "riskPct": {
+        "p25": 0.4554,
+        "median": 0.8389,
+        "p75": 1.686
+      },
+      "riskAtrMedian": 1.4274,
+      "fillLatencyBars": {
+        "median": 0,
+        "p90": 0
+      },
+      "netByFeeEnv": {
+        "GROSS": {
+          "perFilled": -0.0015,
+          "perSetup": -0.0004,
+          "meanFeeDragR": 0
+        },
+        "SPOT": {
+          "perFilled": -0.179,
+          "perSetup": -0.0517,
+          "meanFeeDragR": 0.1775
+        },
+        "FUT_7": {
+          "perFilled": -0.1257,
+          "perSetup": -0.0363,
+          "meanFeeDragR": 0.1243
+        },
+        "FUT_4": {
+          "perFilled": -0.0725,
+          "perSetup": -0.0209,
+          "meanFeeDragR": 0.071
+        }
+      },
+      "criterionFut4PerFilledPositive": false,
+      "criterionFut4PerSetupPositive": false,
+      "criterionFut7PerFilledPositive": false,
+      "criterionFut7PerSetupPositive": false,
+      "criterionAllPassed": false,
+      "outlierDependence": {
+        "grossExpectancy": -0.0015,
+        "exTop1": -0.0023,
+        "exTop5": -0.0045,
+        "exTop1Pct": -0.0932,
+        "removedForTop1Pct": 309
+      },
+      "antiBias": {
+        "baselineGrossOfFilled": {
+          "n": 30888,
+          "mean": -0.0015
+        },
+        "baselineGrossOfDeclined": {
+          "n": 0,
+          "mean": null
+        },
+        "baselineGrossOfFeeGuardRejected": {
+          "n": 0,
+          "mean": null
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 17016,
+          "grossExpectancy": -0.0045
+        },
+        "30m": {
+          "n": 8503,
+          "grossExpectancy": -0.0084
+        },
+        "1h": {
+          "n": 4344,
+          "grossExpectancy": 0.0051
+        },
+        "4h": {
+          "n": 1025,
+          "grossExpectancy": 0.0782
+        }
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 10316,
+          "grossExpectancy": -0.0256
+        },
+        "SHORT": {
+          "n": 20572,
+          "grossExpectancy": 0.0106
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 5235,
+          "grossExpectancy": 0.0078
+        },
+        "ETHUSDT": {
+          "n": 5275,
+          "grossExpectancy": 0.0308
+        },
+        "BNBUSDT": {
+          "n": 5042,
+          "grossExpectancy": 0.003
+        },
+        "SOLUSDT": {
+          "n": 5074,
+          "grossExpectancy": 0.0076
+        },
+        "XRPUSDT": {
+          "n": 5125,
+          "grossExpectancy": -0.0654
+        },
+        "DOGEUSDT": {
+          "n": 5137,
+          "grossExpectancy": 0.0065
+        }
+      },
+      "byHtfAlignment": {
+        "NEUTRAL": {
+          "n": 10150,
+          "grossExpectancy": -0.0015
+        },
+        "COUNTER_TREND": {
+          "n": 7366,
+          "grossExpectancy": -0.0204
+        },
+        "ALIGNED": {
+          "n": 13369,
+          "grossExpectancy": 0.0092
+        },
+        "UNKNOWN": {
+          "n": 3,
+          "grossExpectancy": -1
+        }
+      },
+      "byPoolKind": {
+        "NONE": {
+          "n": 30888,
+          "grossExpectancy": -0.0015
+        }
+      },
+      "byTp2Source": {
+        "FROZEN": {
+          "n": 30888,
+          "grossExpectancy": -0.0015
+        }
+      }
+    },
+    "S-base": {
+      "gates": {
+        "sniper": true,
+        "ladder": false,
+        "corridor": false,
+        "feeGuard": false
+      },
+      "actionableSetups": 337810,
+      "pendingCreated": 836,
+      "terminal": {
+        "REJECTED_SNIPER": 336111,
+        "REJECTED_RR1": 863,
+        "FILLED": 836
+      },
+      "topReasons": {
+        "continuation_disabled": 300690,
+        "weak_body_reclaim": 27362,
+        "low_rvol": 8059,
+        "rr1_below_min_rr": 863,
+        "open_n1": 836
+      },
+      "closed": 836,
+      "open": 0,
+      "tp": 135,
+      "sl": 593,
+      "timeout": 108,
+      "fillRateOfPending": 100,
+      "grossExpectancyPerFilled": 0.0585,
+      "grossExpectancyPerActionableSetup": 0.0001,
+      "grossMedianR": -1,
+      "grossTotalR": 48.94,
+      "grossPF": 1.082,
+      "maxDrawdownR": -33.63,
+      "positiveRRate": 27.39,
+      "tpRate": 16.15,
+      "slRate": 70.93,
+      "timeoutRate": 12.92,
+      "riskPct": {
+        "p25": 0.3831,
+        "median": 0.667,
+        "p75": 1.1672
+      },
+      "riskAtrMedian": 1.3356,
+      "fillLatencyBars": {
+        "median": 0,
+        "p90": 0
+      },
+      "netByFeeEnv": {
+        "GROSS": {
+          "perFilled": 0.0585,
+          "perSetup": 0.0001,
+          "meanFeeDragR": 0
+        },
+        "SPOT": {
+          "perFilled": -0.1651,
+          "perSetup": -0.0004,
+          "meanFeeDragR": 0.2236
+        },
+        "FUT_7": {
+          "perFilled": -0.098,
+          "perSetup": -0.0002,
+          "meanFeeDragR": 0.1565
+        },
+        "FUT_4": {
+          "perFilled": -0.0309,
+          "perSetup": -0.0001,
+          "meanFeeDragR": 0.0894
+        }
+      },
+      "criterionFut4PerFilledPositive": false,
+      "criterionFut4PerSetupPositive": false,
+      "criterionFut7PerFilledPositive": false,
+      "criterionFut7PerSetupPositive": false,
+      "criterionAllPassed": false,
+      "outlierDependence": {
+        "grossExpectancy": 0.0585,
+        "exTop1": 0.0417,
+        "exTop5": -0.0041,
+        "exTop1Pct": -0.0397,
+        "removedForTop1Pct": 9
+      },
+      "antiBias": {
+        "baselineGrossOfFilled": {
+          "n": 313,
+          "mean": 0.1477
+        },
+        "baselineGrossOfDeclined": {
+          "n": 30420,
+          "mean": -0.004
+        },
+        "baselineGrossOfFeeGuardRejected": {
+          "n": 0,
+          "mean": null
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 472,
+          "grossExpectancy": 0.0012
+        },
+        "30m": {
+          "n": 210,
+          "grossExpectancy": 0.1783
+        },
+        "1h": {
+          "n": 119,
+          "grossExpectancy": -0.0644
+        },
+        "4h": {
+          "n": 35,
+          "grossExpectancy": 0.5307
+        }
+      },
+      "byDirection": {
+        "SHORT": {
+          "n": 401,
+          "grossExpectancy": 0.2322
+        },
+        "LONG": {
+          "n": 435,
+          "grossExpectancy": -0.1016
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 127,
+          "grossExpectancy": 0.1773
+        },
+        "ETHUSDT": {
+          "n": 124,
+          "grossExpectancy": -0.0059
+        },
+        "BNBUSDT": {
+          "n": 137,
+          "grossExpectancy": 0.1001
+        },
+        "SOLUSDT": {
+          "n": 166,
+          "grossExpectancy": -0.0025
+        },
+        "XRPUSDT": {
+          "n": 131,
+          "grossExpectancy": -0.0251
+        },
+        "DOGEUSDT": {
+          "n": 151,
+          "grossExpectancy": 0.1136
+        }
+      },
+      "byHtfAlignment": {
+        "NEUTRAL": {
+          "n": 291,
+          "grossExpectancy": -0.0112
+        },
+        "ALIGNED": {
+          "n": 346,
+          "grossExpectancy": 0.185
+        },
+        "COUNTER_TREND": {
+          "n": 199,
+          "grossExpectancy": -0.0593
+        }
+      },
+      "byPoolKind": {
+        "SWING": {
+          "n": 447,
+          "grossExpectancy": 0.0773
+        },
+        "CLUSTER": {
+          "n": 134,
+          "grossExpectancy": -0.0462
+        },
+        "EQUAL": {
+          "n": 255,
+          "grossExpectancy": 0.0806
+        }
+      },
+      "byTp2Source": {
+        "FROZEN": {
+          "n": 836,
+          "grossExpectancy": 0.0585
+        }
+      }
+    },
+    "S-tgt": {
+      "gates": {
+        "sniper": true,
+        "ladder": true,
+        "corridor": false,
+        "feeGuard": false
+      },
+      "actionableSetups": 333296,
+      "pendingCreated": 1589,
+      "terminal": {
+        "REJECTED_SNIPER": 331707,
+        "FILLED": 1589
+      },
+      "topReasons": {
+        "continuation_disabled": 297093,
+        "weak_body_reclaim": 26833,
+        "low_rvol": 7781,
+        "open_n1": 1589
+      },
+      "closed": 1589,
+      "open": 0,
+      "tp": 329,
+      "sl": 1059,
+      "timeout": 201,
+      "fillRateOfPending": 100,
+      "grossExpectancyPerFilled": 0.0112,
+      "grossExpectancyPerActionableSetup": 0.0001,
+      "grossMedianR": -1,
+      "grossTotalR": 17.75,
+      "grossPF": 1.0166,
+      "maxDrawdownR": -63.12,
+      "positiveRRate": 31.21,
+      "tpRate": 20.7,
+      "slRate": 66.65,
+      "timeoutRate": 12.65,
+      "riskPct": {
+        "p25": 0.4506,
+        "median": 0.8014,
+        "p75": 1.451
+      },
+      "riskAtrMedian": 1.5611,
+      "fillLatencyBars": {
+        "median": 0,
+        "p90": 0
+      },
+      "netByFeeEnv": {
+        "GROSS": {
+          "perFilled": 0.0112,
+          "perSetup": 0.0001,
+          "meanFeeDragR": 0
+        },
+        "SPOT": {
+          "perFilled": -0.1724,
+          "perSetup": -0.0008,
+          "meanFeeDragR": 0.1836
+        },
+        "FUT_7": {
+          "perFilled": -0.1173,
+          "perSetup": -0.0006,
+          "meanFeeDragR": 0.1285
+        },
+        "FUT_4": {
+          "perFilled": -0.0623,
+          "perSetup": -0.0003,
+          "meanFeeDragR": 0.0734
+        }
+      },
+      "criterionFut4PerFilledPositive": false,
+      "criterionFut4PerSetupPositive": false,
+      "criterionFut7PerFilledPositive": false,
+      "criterionFut7PerSetupPositive": false,
+      "criterionAllPassed": false,
+      "outlierDependence": {
+        "grossExpectancy": 0.0112,
+        "exTop1": 0.0059,
+        "exTop5": -0.0124,
+        "exTop1Pct": -0.0526,
+        "removedForTop1Pct": 16
+      },
+      "antiBias": {
+        "baselineGrossOfFilled": {
+          "n": 298,
+          "mean": 0.16
+        },
+        "baselineGrossOfDeclined": {
+          "n": 29960,
+          "mean": -0.0026
+        },
+        "baselineGrossOfFeeGuardRejected": {
+          "n": 0,
+          "mean": null
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 881,
+          "grossExpectancy": -0.0078
+        },
+        "30m": {
+          "n": 428,
+          "grossExpectancy": 0.0306
+        },
+        "1h": {
+          "n": 216,
+          "grossExpectancy": -0.0753
+        },
+        "4h": {
+          "n": 64,
+          "grossExpectancy": 0.4343
+        }
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 823,
+          "grossExpectancy": -0.0499
+        },
+        "SHORT": {
+          "n": 766,
+          "grossExpectancy": 0.0768
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 262,
+          "grossExpectancy": 0.0949
+        },
+        "ETHUSDT": {
+          "n": 246,
+          "grossExpectancy": 0.0387
+        },
+        "BNBUSDT": {
+          "n": 281,
+          "grossExpectancy": -0.0815
+        },
+        "SOLUSDT": {
+          "n": 303,
+          "grossExpectancy": -0.0131
+        },
+        "XRPUSDT": {
+          "n": 224,
+          "grossExpectancy": -0.0533
+        },
+        "DOGEUSDT": {
+          "n": 273,
+          "grossExpectancy": 0.0813
+        }
+      },
+      "byHtfAlignment": {
+        "NEUTRAL": {
+          "n": 567,
+          "grossExpectancy": 0.0067
+        },
+        "COUNTER_TREND": {
+          "n": 488,
+          "grossExpectancy": -0.0614
+        },
+        "ALIGNED": {
+          "n": 534,
+          "grossExpectancy": 0.0823
+        }
+      },
+      "byPoolKind": {
+        "SWING": {
+          "n": 840,
+          "grossExpectancy": 0.015
+        },
+        "EQUAL": {
+          "n": 484,
+          "grossExpectancy": 0.0164
+        },
+        "CLUSTER": {
+          "n": 265,
+          "grossExpectancy": -0.0105
+        }
+      },
+      "byTp2Source": {
+        "R_MULTIPLE": {
+          "n": 620,
+          "grossExpectancy": -0.0204
+        },
+        "STRUCTURE": {
+          "n": 969,
+          "grossExpectancy": 0.0314
+        }
+      }
+    },
+    "S-cor": {
+      "gates": {
+        "sniper": true,
+        "ladder": true,
+        "corridor": true,
+        "feeGuard": false
+      },
+      "actionableSetups": 333283,
+      "pendingCreated": 1588,
+      "terminal": {
+        "REJECTED_SNIPER": 331695,
+        "FILLED": 1497,
+        "CANCELLED": 90,
+        "REJECTED_RR1": 1
+      },
+      "topReasons": {
+        "continuation_disabled": 297084,
+        "weak_body_reclaim": 26832,
+        "low_rvol": 7779,
+        "corridor_touched": 1497,
+        "ambiguous_same_bar_fill_and_sl": 90,
+        "rr1_below_min_rr": 1
+      },
+      "closed": 1497,
+      "open": 0,
+      "tp": 331,
+      "sl": 964,
+      "timeout": 202,
+      "fillRateOfPending": 94.27,
+      "grossExpectancyPerFilled": 0.0844,
+      "grossExpectancyPerActionableSetup": 0.0004,
+      "grossMedianR": -1,
+      "grossTotalR": 126.34,
+      "grossPF": 1.1294,
+      "maxDrawdownR": -32.72,
+      "positiveRRate": 33.33,
+      "tpRate": 22.11,
+      "slRate": 64.4,
+      "timeoutRate": 13.49,
+      "riskPct": {
+        "p25": 0.4713,
+        "median": 0.8435,
+        "p75": 1.4953
+      },
+      "riskAtrMedian": 1.5953,
+      "fillLatencyBars": {
+        "median": 1,
+        "p90": 1
+      },
+      "netByFeeEnv": {
+        "GROSS": {
+          "perFilled": 0.0844,
+          "perSetup": 0.0004,
+          "meanFeeDragR": 0
+        },
+        "SPOT": {
+          "perFilled": -0.0855,
+          "perSetup": -0.0004,
+          "meanFeeDragR": 0.1699
+        },
+        "FUT_7": {
+          "perFilled": -0.0345,
+          "perSetup": -0.0002,
+          "meanFeeDragR": 0.1189
+        },
+        "FUT_4": {
+          "perFilled": 0.0164,
+          "perSetup": 0.0001,
+          "meanFeeDragR": 0.068
+        }
+      },
+      "criterionFut4PerFilledPositive": true,
+      "criterionFut4PerSetupPositive": true,
+      "criterionFut7PerFilledPositive": false,
+      "criterionFut7PerSetupPositive": false,
+      "criterionAllPassed": false,
+      "outlierDependence": {
+        "grossExpectancy": 0.0844,
+        "exTop1": 0.0786,
+        "exTop5": 0.0592,
+        "exTop1Pct": 0.0196,
+        "removedForTop1Pct": 15
+      },
+      "antiBias": {
+        "baselineGrossOfFilled": {
+          "n": 273,
+          "mean": 0.2663
+        },
+        "baselineGrossOfDeclined": {
+          "n": 29980,
+          "mean": -0.0036
+        },
+        "baselineGrossOfFeeGuardRejected": {
+          "n": 0,
+          "mean": null
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 824,
+          "grossExpectancy": 0.0668
+        },
+        "30m": {
+          "n": 411,
+          "grossExpectancy": 0.0689
+        },
+        "1h": {
+          "n": 200,
+          "grossExpectancy": 0.0663
+        },
+        "4h": {
+          "n": 62,
+          "grossExpectancy": 0.4796
+        }
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 769,
+          "grossExpectancy": 0.0325
+        },
+        "SHORT": {
+          "n": 728,
+          "grossExpectancy": 0.1392
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 244,
+          "grossExpectancy": 0.1753
+        },
+        "ETHUSDT": {
+          "n": 231,
+          "grossExpectancy": 0.1061
+        },
+        "BNBUSDT": {
+          "n": 269,
+          "grossExpectancy": 0.0177
+        },
+        "SOLUSDT": {
+          "n": 289,
+          "grossExpectancy": 0.0341
+        },
+        "XRPUSDT": {
+          "n": 209,
+          "grossExpectancy": 0.0134
+        },
+        "DOGEUSDT": {
+          "n": 255,
+          "grossExpectancy": 0.1634
+        }
+      },
+      "byHtfAlignment": {
+        "NEUTRAL": {
+          "n": 538,
+          "grossExpectancy": 0.0826
+        },
+        "COUNTER_TREND": {
+          "n": 470,
+          "grossExpectancy": -0.0182
+        },
+        "ALIGNED": {
+          "n": 489,
+          "grossExpectancy": 0.1849
+        }
+      },
+      "byPoolKind": {
+        "SWING": {
+          "n": 785,
+          "grossExpectancy": 0.0944
+        },
+        "EQUAL": {
+          "n": 461,
+          "grossExpectancy": 0.0876
+        },
+        "CLUSTER": {
+          "n": 251,
+          "grossExpectancy": 0.0473
+        }
+      },
+      "byTp2Source": {
+        "R_MULTIPLE": {
+          "n": 563,
+          "grossExpectancy": 0.0791
+        },
+        "STRUCTURE": {
+          "n": 934,
+          "grossExpectancy": 0.0876
+        }
+      }
+    },
+    "S-full": {
+      "gates": {
+        "sniper": true,
+        "ladder": true,
+        "corridor": true,
+        "feeGuard": true
+      },
+      "actionableSetups": 333984,
+      "pendingCreated": 1327,
+      "terminal": {
+        "REJECTED_SNIPER": 332367,
+        "FILLED": 1276,
+        "REJECTED_FEE_GUARD": 290,
+        "CANCELLED": 51
+      },
+      "topReasons": {
+        "continuation_disabled": 297606,
+        "weak_body_reclaim": 26919,
+        "low_rvol": 7842,
+        "corridor_touched": 1276,
+        "stop_below_floor": 290,
+        "ambiguous_same_bar_fill_and_sl": 51
+      },
+      "closed": 1276,
+      "open": 0,
+      "tp": 274,
+      "sl": 806,
+      "timeout": 196,
+      "fillRateOfPending": 96.16,
+      "grossExpectancyPerFilled": 0.0577,
+      "grossExpectancyPerActionableSetup": 0.0002,
+      "grossMedianR": -1,
+      "grossTotalR": 73.66,
+      "grossPF": 1.0901,
+      "maxDrawdownR": -32.37,
+      "positiveRRate": 34.33,
+      "tpRate": 21.47,
+      "slRate": 63.17,
+      "timeoutRate": 15.36,
+      "riskPct": {
+        "p25": 0.627,
+        "median": 0.9661,
+        "p75": 1.6378
+      },
+      "riskAtrMedian": 1.695,
+      "fillLatencyBars": {
+        "median": 1,
+        "p90": 1
+      },
+      "netByFeeEnv": {
+        "GROSS": {
+          "perFilled": 0.0577,
+          "perSetup": 0.0002,
+          "meanFeeDragR": 0
+        },
+        "SPOT": {
+          "perFilled": -0.0583,
+          "perSetup": -0.0002,
+          "meanFeeDragR": 0.1161
+        },
+        "FUT_7": {
+          "perFilled": -0.0235,
+          "perSetup": -0.0001,
+          "meanFeeDragR": 0.0812
+        },
+        "FUT_4": {
+          "perFilled": 0.0113,
+          "perSetup": 0,
+          "meanFeeDragR": 0.0464
+        }
+      },
+      "criterionFut4PerFilledPositive": true,
+      "criterionFut4PerSetupPositive": false,
+      "criterionFut7PerFilledPositive": false,
+      "criterionFut7PerSetupPositive": false,
+      "criterionAllPassed": false,
+      "outlierDependence": {
+        "grossExpectancy": 0.0577,
+        "exTop1": 0.0509,
+        "exTop5": 0.0307,
+        "exTop1Pct": -0.003,
+        "removedForTop1Pct": 13
+      },
+      "antiBias": {
+        "baselineGrossOfFilled": {
+          "n": 214,
+          "mean": 0.2843
+        },
+        "baselineGrossOfDeclined": {
+          "n": 30076,
+          "mean": -0.0038
+        },
+        "baselineGrossOfFeeGuardRejected": {
+          "n": 72,
+          "mean": -0.016
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 654,
+          "grossExpectancy": 0.0167
+        },
+        "30m": {
+          "n": 370,
+          "grossExpectancy": 0.0829
+        },
+        "1h": {
+          "n": 191,
+          "grossExpectancy": 0.0327
+        },
+        "4h": {
+          "n": 61,
+          "grossExpectancy": 0.4238
+        }
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 651,
+          "grossExpectancy": -0.0018
+        },
+        "SHORT": {
+          "n": 625,
+          "grossExpectancy": 0.1197
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 179,
+          "grossExpectancy": 0.1076
+        },
+        "ETHUSDT": {
+          "n": 185,
+          "grossExpectancy": 0.0893
+        },
+        "BNBUSDT": {
+          "n": 221,
+          "grossExpectancy": -0.0679
+        },
+        "SOLUSDT": {
+          "n": 284,
+          "grossExpectancy": 0.0523
+        },
+        "XRPUSDT": {
+          "n": 191,
+          "grossExpectancy": 0.0361
+        },
+        "DOGEUSDT": {
+          "n": 216,
+          "grossExpectancy": 0.1442
+        }
+      },
+      "byHtfAlignment": {
+        "NEUTRAL": {
+          "n": 457,
+          "grossExpectancy": 0.0191
+        },
+        "COUNTER_TREND": {
+          "n": 438,
+          "grossExpectancy": -0.0319
+        },
+        "ALIGNED": {
+          "n": 381,
+          "grossExpectancy": 0.2072
+        }
+      },
+      "byPoolKind": {
+        "SWING": {
+          "n": 657,
+          "grossExpectancy": 0.0625
+        },
+        "EQUAL": {
+          "n": 407,
+          "grossExpectancy": 0.07
+        },
+        "CLUSTER": {
+          "n": 212,
+          "grossExpectancy": 0.0194
+        }
+      },
+      "byTp2Source": {
+        "R_MULTIPLE": {
+          "n": 447,
+          "grossExpectancy": 0.0199
+        },
+        "STRUCTURE": {
+          "n": 829,
+          "grossExpectancy": 0.0781
+        }
+      }
+    },
+    "S-noguard": {
+      "gates": {
+        "sniper": true,
+        "ladder": true,
+        "corridor": true,
+        "feeGuard": false
+      },
+      "actionableSetups": 333283,
+      "pendingCreated": 1588,
+      "terminal": {
+        "REJECTED_SNIPER": 331695,
+        "FILLED": 1497,
+        "CANCELLED": 90,
+        "REJECTED_RR1": 1
+      },
+      "topReasons": {
+        "continuation_disabled": 297084,
+        "weak_body_reclaim": 26832,
+        "low_rvol": 7779,
+        "corridor_touched": 1497,
+        "ambiguous_same_bar_fill_and_sl": 90,
+        "rr1_below_min_rr": 1
+      },
+      "closed": 1497,
+      "open": 0,
+      "tp": 331,
+      "sl": 964,
+      "timeout": 202,
+      "fillRateOfPending": 94.27,
+      "grossExpectancyPerFilled": 0.0844,
+      "grossExpectancyPerActionableSetup": 0.0004,
+      "grossMedianR": -1,
+      "grossTotalR": 126.34,
+      "grossPF": 1.1294,
+      "maxDrawdownR": -32.72,
+      "positiveRRate": 33.33,
+      "tpRate": 22.11,
+      "slRate": 64.4,
+      "timeoutRate": 13.49,
+      "riskPct": {
+        "p25": 0.4713,
+        "median": 0.8435,
+        "p75": 1.4953
+      },
+      "riskAtrMedian": 1.5953,
+      "fillLatencyBars": {
+        "median": 1,
+        "p90": 1
+      },
+      "netByFeeEnv": {
+        "GROSS": {
+          "perFilled": 0.0844,
+          "perSetup": 0.0004,
+          "meanFeeDragR": 0
+        },
+        "SPOT": {
+          "perFilled": -0.0855,
+          "perSetup": -0.0004,
+          "meanFeeDragR": 0.1699
+        },
+        "FUT_7": {
+          "perFilled": -0.0345,
+          "perSetup": -0.0002,
+          "meanFeeDragR": 0.1189
+        },
+        "FUT_4": {
+          "perFilled": 0.0164,
+          "perSetup": 0.0001,
+          "meanFeeDragR": 0.068
+        }
+      },
+      "criterionFut4PerFilledPositive": true,
+      "criterionFut4PerSetupPositive": true,
+      "criterionFut7PerFilledPositive": false,
+      "criterionFut7PerSetupPositive": false,
+      "criterionAllPassed": false,
+      "outlierDependence": {
+        "grossExpectancy": 0.0844,
+        "exTop1": 0.0786,
+        "exTop5": 0.0592,
+        "exTop1Pct": 0.0196,
+        "removedForTop1Pct": 15
+      },
+      "antiBias": {
+        "baselineGrossOfFilled": {
+          "n": 273,
+          "mean": 0.2663
+        },
+        "baselineGrossOfDeclined": {
+          "n": 29980,
+          "mean": -0.0036
+        },
+        "baselineGrossOfFeeGuardRejected": {
+          "n": 0,
+          "mean": null
+        }
+      },
+      "byTimeframe": {
+        "15m": {
+          "n": 824,
+          "grossExpectancy": 0.0668
+        },
+        "30m": {
+          "n": 411,
+          "grossExpectancy": 0.0689
+        },
+        "1h": {
+          "n": 200,
+          "grossExpectancy": 0.0663
+        },
+        "4h": {
+          "n": 62,
+          "grossExpectancy": 0.4796
+        }
+      },
+      "byDirection": {
+        "LONG": {
+          "n": 769,
+          "grossExpectancy": 0.0325
+        },
+        "SHORT": {
+          "n": 728,
+          "grossExpectancy": 0.1392
+        }
+      },
+      "bySymbol": {
+        "BTCUSDT": {
+          "n": 244,
+          "grossExpectancy": 0.1753
+        },
+        "ETHUSDT": {
+          "n": 231,
+          "grossExpectancy": 0.1061
+        },
+        "BNBUSDT": {
+          "n": 269,
+          "grossExpectancy": 0.0177
+        },
+        "SOLUSDT": {
+          "n": 289,
+          "grossExpectancy": 0.0341
+        },
+        "XRPUSDT": {
+          "n": 209,
+          "grossExpectancy": 0.0134
+        },
+        "DOGEUSDT": {
+          "n": 255,
+          "grossExpectancy": 0.1634
+        }
+      },
+      "byHtfAlignment": {
+        "NEUTRAL": {
+          "n": 538,
+          "grossExpectancy": 0.0826
+        },
+        "COUNTER_TREND": {
+          "n": 470,
+          "grossExpectancy": -0.0182
+        },
+        "ALIGNED": {
+          "n": 489,
+          "grossExpectancy": 0.1849
+        }
+      },
+      "byPoolKind": {
+        "SWING": {
+          "n": 785,
+          "grossExpectancy": 0.0944
+        },
+        "EQUAL": {
+          "n": 461,
+          "grossExpectancy": 0.0876
+        },
+        "CLUSTER": {
+          "n": 251,
+          "grossExpectancy": 0.0473
+        }
+      },
+      "byTp2Source": {
+        "R_MULTIPLE": {
+          "n": 563,
+          "grossExpectancy": 0.0791
+        },
+        "STRUCTURE": {
+          "n": 934,
+          "grossExpectancy": 0.0876
+        }
+      }
+    }
+  }
+}
