@@ -33,3 +33,4 @@ artifacts/research/**/zip-checksums.json
 artifacts/research/**/v2-run-diagnostics.json
 # V2.1 limit-entry per-trade dumps (hundreds of MB; aggregates are committed).
 artifacts/research/**/limit-*-train.jsonl
+artifacts/research/**/corridor-*-train.jsonl
