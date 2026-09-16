@@ -1,4 +1,4 @@
-# STRATEGY ARCHIVE — V2.1 … V3.0
+# STRATEGY ARCHIVE — V2.1 … V3.1
 
 Master index of every strategy developed in this research programme. Each entry
 links to a full specification with exact parameter values, verified against
@@ -13,6 +13,12 @@ net-positive at realistic Binance futures fees on **both** TRAIN (+0.0994 R/trad
 [V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md). **Ported into the
 site's engine and running in paper forward test** (`FORWARD_TEST`, `LIVE`
 locked) — [V3_0_PRODUCTION_PORT.md](V3_0_PRODUCTION_PORT.md).
+
+**[V3.1 HTF Trend Pullback & Mitigation](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md)**
+— the trend-following counterpart — was pre-registered, implemented and run on
+TRAIN: **`V3_1_FALSIFIED_ON_TRAIN`** (net −0.1097 R/trade @2/5 bps, n = 158,
+gross already negative at −0.0838). Its wide-stop mechanism worked (fee drag
+0.0258 R, the lowest recorded) but the payoff geometry does not pay for it.
 
 All V2.1 – V2.8 strategies are **REJECTED** or **SUPERSEDED** — none is a live
 recommendation. V2.8 was the only V2 strategy to pass a pre-registered validation,
@@ -30,6 +36,9 @@ included** — validation means one unseen split survived, not deployability.
 | V3.0 candidate freeze | [V3_0_CANDIDATE_FREEZE.md](V3_0_CANDIDATE_FREEZE.md) |
 | V3.0 VALIDATION result | [V3_0_VALIDATION_RESULTS.md](V3_0_VALIDATION_RESULTS.md) — **PASS** (`V3_0_VALIDATED_FOR_RESEARCH`) |
 | V3.0 validation artifact | `artifacts/research/v30/v30-validation-metrics.json` |
+| V3.1 pre-registration | `760b15f` + [amendment 1](V3_1_HTF_TREND_PULLBACK_PREREGISTRATION_AMENDMENT_1.md) |
+| V3.1 TRAIN result | [V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md) — **F1 FALSIFIED** (`V3_1_FALSIFIED_ON_TRAIN`) |
+| V3.1 TRAIN artifacts | `artifacts/research/v31/v31-train-metrics{,-samebar}.json` |
 | dataset | `c3c1dce` (Binance Spot klines, 2022-01 … 2025-12) |
 | TRAIN | 2022-01-01 … 2024-05-26 (60 %) |
 | VALIDATION | 2024-05-26 … 2025-03-14 (20 %) |
@@ -43,6 +52,7 @@ included** — validation means one unseen split survived, not deployability.
 | # | Strategy | Entry | Exit | Status | Doc |
 |---|---|---|---|---|---|
 | **V3.0** | **HTF Liquidation Trap** | **4H sweep + 1H reclaim, limit corridor** | **4H equilibrium (TP1) → BE → opposing 4H swing (TP2), 50-bar timeout** | ✅ **VALIDATED FOR RESEARCH** (lead candidate) | [**→**](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) |
+| V3.1 | HTF Trend Pullback & Mitigation | 4H trend + 1H pullback to value, displaced resumption | TP1 leg extreme → BE → 1.5 Fib extension, 60-bar timeout | ❌ **REJECTED — F1 falsified (loses before fees)** | [→](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md) |
 | V2.1a | Limit Entry (B/C/D) | Retest / FVG / OB∩FVG limit | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.1b | Corridor Entry | `close(N) ± 0.10 ATR` | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.2 | HTF Spot Engine | Body reclaim + RVOL | Structural only | ❌ REJECTED (superseded) | [→](strategies/V2_2_HTF_SPOT_ENGINE.md) |
@@ -64,6 +74,8 @@ disproven, research only.
 |---|---|---|---|---|
 | **V3.0 HTF Trap (TRAIN)** | **1,585** | **+0.1726** | **+0.0994** | first net-positive at real fees |
 | **V3.0 HTF Trap (VALIDATION)** | **536** | **+0.1274** | **+0.0600** | ✅ **PASS — `V3_0_VALIDATED_FOR_RESEARCH`** |
+| V3.1 Trend Pullback (TRAIN, primary) | 158 | −0.0838 | −0.1097 | ❌ **F1 falsified — loses before fees** |
+| V3.1 Trend Pullback (TRAIN, same-bar) | 82 | −0.2540 | −0.2819 | ❌ F1 + F3 falsified (underpowered) |
 | Baseline (frozen V2) | 30,888 | −0.0015 | −0.1257 | no edge |
 | V2.1 limit (best, D) | — | +0.4325 | −0.9386 | fill rate 21 %, cost explosion |
 | V2.1 corridor FULL | 56,492 | +0.0076 | — | 24.09 % fill, guard killed edge |
