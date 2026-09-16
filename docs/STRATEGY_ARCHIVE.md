@@ -1,4 +1,4 @@
-# STRATEGY ARCHIVE — V2.1 … V3.1
+# STRATEGY ARCHIVE — V2.1 … V3.2
 
 Master index of every strategy developed in this research programme. Each entry
 links to a full specification with exact parameter values, verified against
@@ -20,6 +20,17 @@ TRAIN: **`V3_1_FALSIFIED_ON_TRAIN`** (net −0.1097 R/trade @2/5 bps, n = 158,
 gross already negative at −0.0838). Its wide-stop mechanism worked (fee drag
 0.0258 R, the lowest recorded) but the payoff geometry does not pay for it.
 
+**[V3.2 Volume Climax & Absorption](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md)** — the
+flow-fade hypothesis — was pre-registered, implemented and run on TRAIN:
+**`V3_2_FALSIFIED_ON_TRAIN`**. Its pre-registered primary variant has the
+**highest TP1 hit rate in the programme (60.59 %) and the lowest fee drag of any
+trend-independent fade (0.0538 R)**, yet loses **−0.0620 R/trade** because its
+expectancy **before fees is zero** (−0.0082): TP1 sits a median 0.71 R away while
+the stop is 1 R. Two pre-registered EMA50-TP1 sensitivity variants clear F1
+(+0.0530 / +0.0108) but falsify the premise criterion F3 and are **not promoted**
+(`V3_2_EMA50_VARIANT_UNPROMOTED`; a new pre-registration would be required, and
+no unspent validation window remains).
+
 All V2.1 – V2.8 strategies are **REJECTED** or **SUPERSEDED** — none is a live
 recommendation. V2.8 was the only V2 strategy to pass a pre-registered validation,
 but it only works at **zero fees** and is therefore superseded by V3.0 as the lead
@@ -39,6 +50,9 @@ included** — validation means one unseen split survived, not deployability.
 | V3.1 pre-registration | `760b15f` + [amendment 1](V3_1_HTF_TREND_PULLBACK_PREREGISTRATION_AMENDMENT_1.md) |
 | V3.1 TRAIN result | [V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md) — **F1 FALSIFIED** (`V3_1_FALSIFIED_ON_TRAIN`) |
 | V3.1 TRAIN artifacts | `artifacts/research/v31/v31-train-metrics{,-samebar}.json` |
+| V3.2 pre-registration | `b631fba` — [V3_2_VOLUME_CLIMAX_PREREGISTRATION.md](V3_2_VOLUME_CLIMAX_PREREGISTRATION.md) |
+| V3.2 TRAIN result | [V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md) — **F1 FALSIFIED** (`V3_2_FALSIFIED_ON_TRAIN`) |
+| V3.2 TRAIN artifacts | `artifacts/research/v32/v32-train-metrics*.json` (4 variants) |
 | dataset | `c3c1dce` (Binance Spot klines, 2022-01 … 2025-12) |
 | TRAIN | 2022-01-01 … 2024-05-26 (60 %) |
 | VALIDATION | 2024-05-26 … 2025-03-14 (20 %) |
@@ -53,6 +67,7 @@ included** — validation means one unseen split survived, not deployability.
 |---|---|---|---|---|---|
 | **V3.0** | **HTF Liquidation Trap** | **4H sweep + 1H reclaim, limit corridor** | **4H equilibrium (TP1) → BE → opposing 4H swing (TP2), 50-bar timeout** | ✅ **VALIDATED FOR RESEARCH** (lead candidate) | [**→**](strategies/V3_0_HTF_LIQUIDATION_TRAP.md) |
 | V3.1 | HTF Trend Pullback & Mitigation | 4H trend + 1H pullback to value, displaced resumption | TP1 leg extreme → BE → 1.5 Fib extension, 60-bar timeout | ❌ **REJECTED — F1 falsified (loses before fees)** | [→](V3_1_HTF_TREND_PULLBACK_TRAIN_RESULTS.md) |
+| V3.2 | Volume Climax & Absorption | ≥2 ATR expansion + RVOL ≥ 2.2 + rejection wick/engulfing, maker corridor | TP1 50 % of the cascade → BE → cascade origin, 48-bar timeout | ❌ **REJECTED — F1 falsified (pre-cost edge is zero)** | [→](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md) |
 | V2.1a | Limit Entry (B/C/D) | Retest / FVG / OB∩FVG limit | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.1b | Corridor Entry | `close(N) ± 0.10 ATR` | Frozen SMC ladder | ❌ REJECTED (superseded) | [→](strategies/V2_1_CORRIDOR_ENTRY.md) |
 | V2.2 | HTF Spot Engine | Body reclaim + RVOL | Structural only | ❌ REJECTED (superseded) | [→](strategies/V2_2_HTF_SPOT_ENGINE.md) |
@@ -76,6 +91,9 @@ disproven, research only.
 | **V3.0 HTF Trap (VALIDATION)** | **536** | **+0.1274** | **+0.0600** | ✅ **PASS — `V3_0_VALIDATED_FOR_RESEARCH`** |
 | V3.1 Trend Pullback (TRAIN, primary) | 158 | −0.0838 | −0.1097 | ❌ **F1 falsified — loses before fees** |
 | V3.1 Trend Pullback (TRAIN, same-bar) | 82 | −0.2540 | −0.2819 | ❌ F1 + F3 falsified (underpowered) |
+| V3.2 Volume Climax (TRAIN, primary) | 307 | −0.0082 | −0.0620 | ❌ **F1 falsified — zero edge before fees** |
+| V3.2 Volume Climax (TRAIN, TP1=EMA50) | 213 | +0.1104 | +0.0530 | ⚠️ passes F1, falsifies F3 — **unpromoted** |
+| V3.2 Volume Climax (TRAIN, fast3+EMA50) | 97 | +0.0679 | +0.0108 | ⚠️ underpowered (n<100), fragile |
 | Baseline (frozen V2) | 30,888 | −0.0015 | −0.1257 | no edge |
 | V2.1 limit (best, D) | — | +0.4325 | −0.9386 | fill rate 21 %, cost explosion |
 | V2.1 corridor FULL | 56,492 | +0.0076 | — | 24.09 % fill, guard killed edge |

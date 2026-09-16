@@ -1,0 +1,205 @@
+{
+  "strategy": "V3.2 HTF VOLUME CLIMAX & ABSORPTION",
+  "preregistration": "docs/V3_2_VOLUME_CLIMAX_PREREGISTRATION.md",
+  "cascadeMode": "union",
+  "tp1Mode": "ema50",
+  "isPrimary": false,
+  "slice": "train",
+  "execTimeframe": "1h",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "constants": {
+    "EXPANSION_ATR_MULT": 2,
+    "CASCADE_K_MIN": 3,
+    "CASCADE_K_MAX": 6,
+    "MIN_RVOL": 2.2,
+    "WICK_FRAC_MIN": 0.4,
+    "ENGULF_BODY_MIN": 0.4,
+    "CLOSE_TOP_FRAC": 0.7,
+    "CLOSE_BOTTOM_FRAC": 0.3,
+    "EMA_TP1_PERIOD": 50,
+    "CORRIDOR_ATR_FRAC": 0.1,
+    "CORRIDOR_EXPIRY_BARS": 3,
+    "STOP_BUFFER_ATR": 0.15,
+    "TIMEOUT_BARS": 48,
+    "MAKER_BPS": 2,
+    "TAKER_BPS": 5
+  },
+  "frozenSurface": {
+    "atrPeriod": 14,
+    "volumePeriod": 20,
+    "srcModified": false
+  },
+  "guards": {
+    "trainFromUtc": "2022-01-01T00:00:00.000Z",
+    "trainToUtc": "2024-05-26T13:00:00.000Z",
+    "validFromUtc": "2024-05-26T14:00:00.000Z",
+    "hardTruncation": "the 1H series is truncated at trainToMs immediately after load",
+    "candlesIgnoredBeyondTrain": 84156,
+    "candlesBeyondTrainRead": 0,
+    "candles2026Read": 0,
+    "warmupBarsSkipped": 60,
+    "htfSeriesLoaded": [],
+    "note": "no VALIDATION and no TEST candle reaches any computation"
+  },
+  "funnel": {
+    "cascadesWithVolume": 354,
+    "cascadesFailingAbsorption": 5357,
+    "pendingCreated": 354,
+    "filled": 213,
+    "expired": 0,
+    "cancelled": 39,
+    "rejected": 102,
+    "unresolved": 0
+  },
+  "absorption": {
+    "WICK": 340,
+    "ENGULF": 11,
+    "WICK+ENGULF": 3
+  },
+  "cascadeWindowUsed": {
+    "3": 3,
+    "4": 14,
+    "5": 20,
+    "6": 317
+  },
+  "rvolOfEnteredTrades": {
+    "p25": 2.46,
+    "median": 2.86,
+    "p75": 3.44
+  },
+  "cascadeSizeAtr": {
+    "p25": 2.33,
+    "median": 2.78,
+    "p75": 3.46
+  },
+  "n": 213,
+  "underpowered": false,
+  "tp1HitRatePct": 42.72,
+  "tp2HitRatePct": 29.11,
+  "positiveRRatePct": 46.01,
+  "stopDistancePct": {
+    "p25": 0.9388,
+    "median": 1.4399,
+    "p75": 2.2063
+  },
+  "targetRMultiple": {
+    "tp1": {
+      "p25": 0.9994,
+      "median": 1.7272,
+      "p75": 2.4089
+    },
+    "tp2": {
+      "p25": 1.8335,
+      "median": 2.5233,
+      "p75": 3.1468
+    }
+  },
+  "feeDragR": {
+    "FUT_4": 0.0573,
+    "SPOT": 0.0819
+  },
+  "grossRPerTrade": 0.1104,
+  "netRPerTrade": {
+    "FUT_4": 0.053,
+    "SPOT": 0.0284
+  },
+  "profitFactor": 1.2061,
+  "maxDrawdownR": -18.1,
+  "grossMedianR": -1,
+  "avgWinR": 1.4039,
+  "avgLossR": -0.9919,
+  "medianBarsHeld": 7,
+  "exits": {
+    "TP1_THEN_BE": 26,
+    "SL": 114,
+    "TP2": 62,
+    "TIMEOUT": 8,
+    "TP1_THEN_TIMEOUT": 3
+  },
+  "outlierDependence": {
+    "grossExpectancy": 0.1104,
+    "exTop1": 0.0903,
+    "exTop5": 0.0286,
+    "exTop1Pct": 0.0591,
+    "removedForTop1Pct": 3
+  },
+  "byDirection": {
+    "LONG": {
+      "n": 103,
+      "grossExpectancy": 0.0609
+    },
+    "SHORT": {
+      "n": 110,
+      "grossExpectancy": 0.1567
+    }
+  },
+  "bySymbol": {
+    "BTCUSDT": {
+      "n": 36,
+      "grossExpectancy": 0.4967
+    },
+    "ETHUSDT": {
+      "n": 35,
+      "grossExpectancy": 0.0905
+    },
+    "BNBUSDT": {
+      "n": 39,
+      "grossExpectancy": 0.1127
+    },
+    "SOLUSDT": {
+      "n": 34,
+      "grossExpectancy": -0.3341
+    },
+    "XRPUSDT": {
+      "n": 29,
+      "grossExpectancy": 0.3836
+    },
+    "DOGEUSDT": {
+      "n": 40,
+      "grossExpectancy": -0.0425
+    }
+  },
+  "criterion": {
+    "F1_netPositive": {
+      "rule": "net R/trade > 0 at 2/5 bps",
+      "value": 0.053,
+      "passed": true
+    },
+    "F2_feeDrag": {
+      "rule": "fee drag < 0.10 R at 2/5 bps",
+      "value": 0.0573,
+      "passed": true
+    },
+    "F3_tp1Rate": {
+      "rule": "TP1 hit rate >= 50 %",
+      "value": 42.72,
+      "passed": false
+    }
+  },
+  "vsV30Train": {
+    "source": "artifacts/research/v30/v30-train-metrics.json",
+    "n": 1585,
+    "feeDragR": 0.0732,
+    "grossRPerTrade": 0.1726,
+    "netRPerTrade": 0.0994,
+    "profitFactor": 1.3538,
+    "maxDrawdownR": -37.18,
+    "stopDistancePctMedian": 1.252,
+    "tp1HitRatePct": 48.26,
+    "tp2HitRatePct": 17.35
+  },
+  "vsV31Train": {
+    "source": "artifacts/research/v31/v31-train-metrics.json",
+    "n": 158,
+    "feeDragR": 0.0258,
+    "grossRPerTrade": -0.0838,
+    "netRPerTrade": -0.1097
+  }
+}
