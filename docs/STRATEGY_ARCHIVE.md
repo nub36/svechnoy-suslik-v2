@@ -79,6 +79,7 @@ included** — validation means one unseen split survived, not deployability.
 | V3.2 pre-registration | `b631fba` — [V3_2_VOLUME_CLIMAX_PREREGISTRATION.md](V3_2_VOLUME_CLIMAX_PREREGISTRATION.md) |
 | V3.2 TRAIN result | [V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md](V3_2_VOLUME_CLIMAX_TRAIN_RESULTS.md) — **F1 FALSIFIED** (`V3_2_FALSIFIED_ON_TRAIN`) |
 | V3.2 TRAIN artifacts | `artifacts/research/v32/v32-train-metrics*.json` (4 variants) |
+| **How to run everything** | [HOW_TO_RUN_STRATEGIES.md](HOW_TO_RUN_STRATEGIES.md) — one command (`scripts/run-strategies.ts`), all caches, all caveats |
 | V3.3 pre-registration | `16728ef` + [amendment 1](V3_3_HTF_ZONE_MITIGATION_PREREGISTRATION_AMENDMENT_1.md) (`01cbc28`) |
 | V3.3 TRAIN result | [V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md](V3_3_HTF_ZONE_MITIGATION_TRAIN_RESULTS.md) — **F1 PASS, tail-fragile** (`V3_3_TRAIN_ONLY`) |
 | V3.3 TRAIN artifacts | `artifacts/research/v33/v33-train-metrics-<window>-<stop>-<leg>.json` (8 runs) |

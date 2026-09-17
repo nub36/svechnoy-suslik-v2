@@ -12,10 +12,15 @@
  *
  * Usage:
  *   npx tsx scripts/real-data/v30-parity-ingest.ts --dataset=<path> --cache=<dir>
+ *
+ * `--timeframes=15m,30m,1h,4h` widens the subset (used by the V2.8 harness, which
+ * reads four timeframes). The default stays 1h/4h so existing caches — and the
+ * published V3.0/V3.3 artifacts built on them — are unchanged.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { Timeframe } from '../../src/core/types';
 import { ingestSeries, type SeriesReport, type ZipRecord } from './ingest';
 
 export const V30_SYMBOLS = [
@@ -36,13 +41,17 @@ function arg(name: string, def?: string): string {
 function main(): void {
   const datasetRoot = arg('dataset');
   const cacheDir = arg('cache');
+  // Default is the V3.0 parity set; other timeframes are ingested on request only
+  // (e.g. --timeframes=15m,30m,1h,4h for the V2.8 harness). The default keeps the
+  // V3.0/V3.3 caches byte-identical to what the published artifacts were built on.
+  const timeframes = arg('timeframes', '1h,4h').split(',') as Timeframe[];
   mkdirSync(cacheDir, { recursive: true });
 
   const reports: SeriesReport[] = [];
   const zips: ZipRecord[] = [];
 
   for (const symbol of V30_SYMBOLS) {
-    for (const timeframe of ['1h', '4h'] as const) {
+    for (const timeframe of timeframes) {
       const t0 = Date.now();
       const { rec, zips: z } = ingestSeries(datasetRoot, cacheDir, symbol, timeframe);
       reports.push(rec);
@@ -56,7 +65,7 @@ function main(): void {
 
   const summary = {
     symbols: V30_SYMBOLS,
-    timeframes: ['1h', '4h'],
+    timeframes,
     series: reports.map((r) => ({
       symbol: r.symbol,
       timeframe: r.timeframe,

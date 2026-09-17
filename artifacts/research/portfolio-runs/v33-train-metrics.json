@@ -1,0 +1,225 @@
+{
+  "strategy": "V3.3 HTF ZONE MITIGATION & LTF SQUEEZE",
+  "preregistration": "docs/V3_3_HTF_ZONE_MITIGATION_PREREGISTRATION.md",
+  "amendment": "docs/V3_3_HTF_ZONE_MITIGATION_PREREGISTRATION_AMENDMENT_1.md",
+  "windowMode": "while",
+  "stopMode": "protective",
+  "legMode": "displacement",
+  "isPrimary": true,
+  "slice": "train",
+  "execTimeframe": "1h",
+  "structuralTimeframe": "4h",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "constants": {
+    "MIN_RVOL": 1.25,
+    "WICK_FRAC_MIN": 0.35,
+    "RECLAIM_BODY_MIN": 0.4,
+    "CLOSE_TOP_FRAC": 0.7,
+    "CLOSE_BOTTOM_FRAC": 0.3,
+    "FVG_FILL_MIN": 0.5,
+    "CORRIDOR_ATR_FRAC": 0.1,
+    "CORRIDOR_EXPIRY_BARS": 3,
+    "STOP_BUFFER_ATR": 0.15,
+    "TIMEOUT_BARS": 48,
+    "MAKER_BPS": 2,
+    "TAKER_BPS": 5,
+    "WARMUP_BARS": 60
+  },
+  "frozenSurface": {
+    "swingStrength": 3,
+    "atrPeriod": 14,
+    "volumePeriod": 20,
+    "displacementMinBodyAtr": 0.6,
+    "fvgMinSizeAtr": 0.15,
+    "srcModified": false
+  },
+  "guards": {
+    "trainFromUtc": "2022-01-01T00:00:00.000Z",
+    "trainToUtc": "2024-05-26T13:00:00.000Z",
+    "validFromUtc": "2024-05-26T14:00:00.000Z",
+    "hardTruncation": "both the 1H and the 4H series truncated at trainToMs immediately after load",
+    "candlesIgnoredBeyondTrain": 105192,
+    "candlesBeyondTrainRead": 0,
+    "candles2026Read": 0,
+    "warmupBarsSkipped": 60,
+    "htfSeriesLoaded": [
+      "BTCUSDT-4h",
+      "ETHUSDT-4h",
+      "BNBUSDT-4h",
+      "SOLUSDT-4h",
+      "XRPUSDT-4h",
+      "DOGEUSDT-4h"
+    ],
+    "note": "no VALIDATION and no TEST candle reaches any computation"
+  },
+  "funnel": {
+    "zonesTotal": 10665,
+    "zonesMitigated": 8627,
+    "zonesDead": 8238,
+    "zonesSkippedByWarmup": 0,
+    "skippedNoSwingLeg": 0,
+    "triggersInZone": 15957,
+    "multiZoneBars": 8756,
+    "pendingCreated": 15957,
+    "filled": 6957,
+    "expired": 0,
+    "cancelled": 849,
+    "rejected": 8140,
+    "unresolved": 9,
+    "triggersWithTp1BehindClose": 7762
+  },
+  "zonesByType": {
+    "OB": 7425,
+    "FVG": 3240
+  },
+  "zoneSource": {
+    "OB": 14512,
+    "FVG": 1445
+  },
+  "absorption": {
+    "RECLAIM": 4537,
+    "WICK": 10670,
+    "WICK+RECLAIM": 750
+  },
+  "wickTriggerCloseDirection": {
+    "LONG:closeDOWN": 4036,
+    "LONG:closeUP": 2169,
+    "SHORT:closeUP": 3258,
+    "SHORT:closeDOWN": 1957
+  },
+  "n": 6957,
+  "underpowered": false,
+  "tp1HitRatePct": 65.24,
+  "tp2HitRatePct": 12.43,
+  "positiveRRatePct": 66.16,
+  "stopDistancePct": {
+    "p25": 1.0914,
+    "median": 1.6953,
+    "p75": 2.6374
+  },
+  "targetRMultiple": {
+    "tp1": {
+      "p25": 0.2425,
+      "median": 0.5824,
+      "p75": 1.1911
+    },
+    "tp2": {
+      "p25": 1.8127,
+      "median": 2.9164,
+      "p75": 4.5831
+    }
+  },
+  "feeDragR": {
+    "FUT_4": 0.0511,
+    "SPOT": 0.0731
+  },
+  "grossRPerTrade": 0.0778,
+  "netRPerTrade": {
+    "FUT_4": 0.0267,
+    "SPOT": 0.0047
+  },
+  "profitFactor": 1.2341,
+  "maxDrawdownR": -43.67,
+  "grossMedianR": 0.0915,
+  "avgWinR": 0.62,
+  "avgLossR": -0.9823,
+  "medianBarsHeld": 6,
+  "exits": {
+    "TP1_THEN_BE": 3295,
+    "SL": 2298,
+    "TP1_THEN_TIMEOUT": 379,
+    "TP2": 865,
+    "TIMEOUT": 120
+  },
+  "outlierDependence": {
+    "grossExpectancy": 0.0778,
+    "exTop1": 0.0758,
+    "exTop5": 0.071,
+    "exTop1Pct": 0.0264,
+    "removedForTop1Pct": 70
+  },
+  "byDirection": {
+    "SHORT": {
+      "n": 3420,
+      "grossExpectancy": 0.1188
+    },
+    "LONG": {
+      "n": 3537,
+      "grossExpectancy": 0.0382
+    }
+  },
+  "bySymbol": {
+    "BTCUSDT": {
+      "n": 1135,
+      "grossExpectancy": 0.1074
+    },
+    "ETHUSDT": {
+      "n": 1149,
+      "grossExpectancy": 0.1003
+    },
+    "BNBUSDT": {
+      "n": 1092,
+      "grossExpectancy": 0.0944
+    },
+    "SOLUSDT": {
+      "n": 1154,
+      "grossExpectancy": 0.0407
+    },
+    "XRPUSDT": {
+      "n": 1213,
+      "grossExpectancy": 0.0893
+    },
+    "DOGEUSDT": {
+      "n": 1214,
+      "grossExpectancy": 0.0378
+    }
+  },
+  "criterion": {
+    "F1_netPositive": {
+      "rule": "net R/trade > 0 at 2/5 bps",
+      "value": 0.0267,
+      "passed": true
+    },
+    "F2_feeDrag": {
+      "rule": "fee drag < 0.10 R at 2/5 bps",
+      "value": 0.0511,
+      "passed": true
+    },
+    "F3_tp1Rate": {
+      "rule": "TP1 hit rate >= 50 %",
+      "value": 65.24,
+      "passed": true
+    }
+  },
+  "vsV30Train": {
+    "source": "artifacts/research/v30/v30-train-metrics.json",
+    "n": 1585,
+    "feeDragR": 0.0732,
+    "grossRPerTrade": 0.1726,
+    "netRPerTrade": 0.0994,
+    "profitFactor": 1.3538,
+    "maxDrawdownR": -37.18,
+    "stopDistancePctMedian": 1.252,
+    "tp1HitRatePct": 48.26,
+    "tp2HitRatePct": 17.35
+  },
+  "vsV32Train": {
+    "source": "artifacts/research/v32/v32-train-metrics.json",
+    "n": 307,
+    "feeDragR": 0.0538,
+    "grossRPerTrade": -0.0082,
+    "netRPerTrade": -0.062,
+    "profitFactor": 0.9791,
+    "maxDrawdownR": -19.97,
+    "tp1HitRatePct": 60.59,
+    "tp2HitRatePct": 15.64,
+    "stopDistancePctMedian": 1.5854
+  }
+}

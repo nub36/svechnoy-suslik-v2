@@ -1,0 +1,111 @@
+{
+  "slice": "train",
+  "execTimeframe": "1h",
+  "structuralTimeframe": "4h",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "constants": {
+    "MIN_BODY_RATIO": 0.35,
+    "MIN_RVOL": 1.25,
+    "CORRIDOR_ATR_FRAC": 0.1,
+    "CORRIDOR_EXPIRY_BARS": 3,
+    "STOP_BUFFER_ATR": 0.15,
+    "TIMEOUT_BARS": 50,
+    "MAKER_BPS": 2,
+    "TAKER_BPS": 5
+  },
+  "funnel": {
+    "signals": 2015,
+    "pendingCreated": 2015,
+    "filled": 1585,
+    "expired": 0,
+    "cancelled": 330,
+    "rejected": 100,
+    "unresolved": 0
+  },
+  "n": 1585,
+  "tp1HitRatePct": 48.26,
+  "tp2HitRatePct": 17.35,
+  "positiveRRatePct": 50.73,
+  "stopDistancePct": {
+    "p25": 0.7848,
+    "median": 1.252,
+    "p75": 1.9874
+  },
+  "feeDragR": {
+    "FUT_4": 0.0732,
+    "SPOT": 0.1046
+  },
+  "grossRPerTrade": 0.1726,
+  "netRPerTrade": {
+    "FUT_4": 0.0994,
+    "SPOT": 0.068
+  },
+  "profitFactor": 1.3538,
+  "maxDrawdownR": -37.18,
+  "grossMedianR": 0.0179,
+  "avgWinR": 1.3022,
+  "avgLossR": -0.9901,
+  "medianBarsHeld": 7,
+  "exits": {
+    "TP1_THEN_BE": 410,
+    "TP2": 275,
+    "SL": 772,
+    "TP1_THEN_TIMEOUT": 80,
+    "TIMEOUT": 48
+  },
+  "outlierDependence": {
+    "grossExpectancy": 0.1726,
+    "exTop1": 0.1665,
+    "exTop5": 0.1451,
+    "exTop1Pct": 0.0983,
+    "removedForTop1Pct": 16
+  },
+  "byDirection": {
+    "LONG": {
+      "n": 796,
+      "grossExpectancy": 0.1736
+    },
+    "SHORT": {
+      "n": 789,
+      "grossExpectancy": 0.1717
+    }
+  },
+  "bySymbol": {
+    "BTCUSDT": {
+      "n": 259,
+      "grossExpectancy": 0.2517
+    },
+    "ETHUSDT": {
+      "n": 268,
+      "grossExpectancy": 0.252
+    },
+    "BNBUSDT": {
+      "n": 295,
+      "grossExpectancy": 0.1387
+    },
+    "SOLUSDT": {
+      "n": 259,
+      "grossExpectancy": 0.2841
+    },
+    "XRPUSDT": {
+      "n": 238,
+      "grossExpectancy": 0.0386
+    },
+    "DOGEUSDT": {
+      "n": 266,
+      "grossExpectancy": 0.0648
+    }
+  },
+  "criterion": {
+    "rule": "net R/trade > 0 at 2/5 bps",
+    "value": 0.0994,
+    "passed": true
+  }
+}

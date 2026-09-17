@@ -1,0 +1,150 @@
+{
+ "generatedAt": "2026-09-17T19:43:49.111Z",
+ "scope": "TRAIN only",
+ "fees": {
+  "model": "FUT_MAKER_TAKER",
+  "makerBps": 2,
+  "takerBps": 5,
+  "perLeg": true
+ },
+ "cache": "/home/user/.cache/v30parity",
+ "splits": "artifacts/research/v2-real-20260915-080338/splits.json",
+ "quick": false,
+ "strategies": [
+  {
+   "id": "v30",
+   "name": "V3.0 HTF Liquidation Trap",
+   "module": "research/v30_htf_trap.ts",
+   "moduleSha256Prefix": "a821757f",
+   "status": "V3_0_VALIDATED_FOR_RESEARCH",
+   "verdict": "USE THIS. Validated out of sample (+0.0600 R/trade @2/5 bps, n=536). Ported into the engine.",
+   "driftFromPublished": false,
+   "zeroFee": false,
+   "metrics": {
+    "n": 1585,
+    "tp1HitRatePct": 48.26,
+    "tp2HitRatePct": 17.35,
+    "stopMedianPct": 1.252,
+    "feeDragR": {
+     "FUT_4": 0.0732,
+     "SPOT": 0.1046
+    },
+    "grossRPerTrade": 0.1726,
+    "netRPerTrade": {
+     "FUT_4": 0.0994,
+     "SPOT": 0.068
+    },
+    "profitFactor": 1.3538,
+    "maxDrawdownR": -37.18,
+    "exTop1Pct": 0.0983
+   }
+  },
+  {
+   "id": "v33",
+   "name": "V3.3 HTF Zone Mitigation & LTF Squeeze",
+   "module": "research/v33_zone_mitigation.ts",
+   "moduleSha256Prefix": "3f5b1478",
+   "status": "V3_3_TRAIN_ONLY",
+   "verdict": "RESEARCH ONLY. TRAIN pass, never validated, tail-dependent, not ported. Do not trade live.",
+   "driftFromPublished": false,
+   "zeroFee": false,
+   "metrics": {
+    "n": 6957,
+    "tp1HitRatePct": 65.24,
+    "tp2HitRatePct": 12.43,
+    "stopMedianPct": 1.6953,
+    "feeDragR": {
+     "FUT_4": 0.0511,
+     "SPOT": 0.0731
+    },
+    "grossRPerTrade": 0.0778,
+    "netRPerTrade": {
+     "FUT_4": 0.0267,
+     "SPOT": 0.0047
+    },
+    "profitFactor": 1.2341,
+    "maxDrawdownR": -43.67,
+    "exTop1Pct": 0.0264
+   }
+  },
+  {
+   "id": "v31",
+   "name": "V3.1 HTF Trend Pullback & Mitigation",
+   "module": "research/v31_trend_pullback.ts",
+   "moduleSha256Prefix": "1f18bb3c",
+   "status": "V3_1_FALSIFIED_ON_TRAIN",
+   "verdict": "FALSIFIED. Negative before fees (−0.0838 gross). Reproducible only.",
+   "driftFromPublished": false,
+   "zeroFee": false,
+   "metrics": {
+    "n": 158,
+    "tp1HitRatePct": 48.1,
+    "tp2HitRatePct": 15.19,
+    "stopMedianPct": 3.4561,
+    "feeDragR": {
+     "FUT_4": 0.0258,
+     "SPOT": 0.0369
+    },
+    "grossRPerTrade": -0.0838,
+    "netRPerTrade": {
+     "FUT_4": -0.1097,
+     "SPOT": -0.1207
+    },
+    "profitFactor": 0.7873,
+    "maxDrawdownR": -20.42,
+    "exTop1Pct": -0.1272
+   }
+  },
+  {
+   "id": "v28",
+   "name": "V2.8 Zero-Fee Sniper + Trailing (Trail arm)",
+   "module": "research/v28_gross_only.ts",
+   "moduleSha256Prefix": "bb237f47",
+   "status": "V2_8_VALIDATED_FOR_RESEARCH (ZERO FEES ONLY)",
+   "verdict": "ZERO-FEE ACCOUNT ONLY. Validated gross of fees (+0.0488 R/trade, n=98) — at real fees it is negative, and even at zero fees the validation edge is negative once its best 1 % of trades is removed (ex-top-1 % = −0.0143).",
+   "driftFromPublished": false,
+   "zeroFee": true,
+   "metrics": {
+    "n": 317,
+    "tp1HitRatePct": 50.79,
+    "tp2HitRatePct": null,
+    "stopMedianPct": null,
+    "feeDragR": null,
+    "grossRPerTrade": 0.1462,
+    "netRPerTrade": null,
+    "profitFactor": 1.3508,
+    "maxDrawdownR": -16.16,
+    "exTop1Pct": 0.0536
+   }
+  },
+  {
+   "id": "v32",
+   "name": "V3.2 Volume Climax & Absorption",
+   "module": "research/v32_volume_climax.ts",
+   "moduleSha256Prefix": "c209b8d7",
+   "status": "V3_2_FALSIFIED_ON_TRAIN",
+   "verdict": "FALSIFIED. Zero expectancy before fees (−0.0082 gross). Reproducible only.",
+   "driftFromPublished": false,
+   "zeroFee": false,
+   "metrics": {
+    "n": 307,
+    "tp1HitRatePct": 60.59,
+    "tp2HitRatePct": 15.64,
+    "stopMedianPct": 1.5854,
+    "feeDragR": {
+     "FUT_4": 0.0538,
+     "SPOT": 0.0769
+    },
+    "grossRPerTrade": -0.0082,
+    "netRPerTrade": {
+     "FUT_4": -0.062,
+     "SPOT": -0.085
+    },
+    "profitFactor": 0.9791,
+    "maxDrawdownR": -19.97,
+    "exTop1Pct": -0.0427
+   }
+  }
+ ],
+ "problems": []
+}
